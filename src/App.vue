@@ -257,7 +257,34 @@ onErrorCaptured((err, instance, info) => {
                 ESC
               </button>
             </div>
-            <pre class="whitespace-pre-wrap">{{ JSON.stringify(debug, null, 2) }}</pre>
+            <div class="flex flex-col gap-4">
+              <div class="flex items-center gap-4 p-2 bg-gray-700 rounded">
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" v-model="useSimulatedDate" class="sr-only peer">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <span class="ms-3 text-sm font-medium text-gray-200">Datum simulieren</span>
+                </label>
+                <input
+                  type="date"
+                  v-model="simulatedDate"
+                  :disabled="!useSimulatedDate"
+                  class="px-3 py-1.5 border border-gray-600 bg-gray-700 text-gray-200 rounded-lg text-sm disabled:opacity-50"
+                >
+              </div>
+              <div class="flex items-center gap-4 p-2 bg-gray-700 rounded">
+                <button
+                  @click="resetTasks"
+                  class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg
+                         hover:from-yellow-600 hover:to-orange-600 transform hover:scale-105 transition-all
+                         duration-200 shadow-sm hover:shadow disabled:opacity-50 text-sm flex items-center gap-2"
+                  :disabled="isLoading"
+                >
+                  <ArrowPathIcon class="h-4 w-4" />
+                  Zurücksetzen
+                </button>
+              </div>
+              <pre class="whitespace-pre-wrap">{{ JSON.stringify(debug, null, 2) }}</pre>
+            </div>
           </div>
         </Transition>
 
@@ -268,41 +295,18 @@ onErrorCaptured((err, instance, info) => {
           <div class="flex justify-between items-center">
             <div class="flex items-center gap-4">
               <p class="text-sm text-gray-600">Fahrzeugwartung im Überblick</p>
-              <div class="flex items-center gap-2">
-                <label class="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" v-model="useSimulatedDate" class="sr-only peer">
-                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  <span class="ms-3 text-sm font-medium text-gray-600">Datum simulieren</span>
-                </label>
-                <input
-                  type="date"
-                  v-model="simulatedDate"
-                  :disabled="!useSimulatedDate"
-                  class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm disabled:opacity-50"
+              <div class="flex gap-2">
+                <button
+                  @click="openLogModal"
+                  class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg
+                         hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all
+                         duration-200 shadow-md hover:shadow-lg disabled:opacity-50 text-sm flex items-center gap-2"
+                  :disabled="isLoading"
                 >
+                  <ClipboardDocumentListIcon class="h-4 w-4" />
+                  Protokolle
+                </button>
               </div>
-            </div>
-            <div class="flex gap-2">
-              <button
-                @click="resetTasks"
-                class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg
-                       hover:from-yellow-600 hover:to-orange-600 transform hover:scale-105 transition-all
-                       duration-200 shadow-md hover:shadow-lg disabled:opacity-50 text-sm flex items-center gap-2"
-                :disabled="isLoading"
-              >
-                <ArrowPathIcon class="h-4 w-4" />
-                Zurücksetzen
-              </button>
-              <button
-                @click="openLogModal"
-                class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg
-                       hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all
-                       duration-200 shadow-md hover:shadow-lg disabled:opacity-50 text-sm flex items-center gap-2"
-                :disabled="isLoading"
-              >
-                <ClipboardDocumentListIcon class="h-4 w-4" />
-                Protokolle
-              </button>
             </div>
           </div>
         </div>
