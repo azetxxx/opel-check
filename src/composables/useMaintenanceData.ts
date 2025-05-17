@@ -15,7 +15,6 @@ const calculateNextDate = (lastDate: string, days: number): string => {
 const today = new Date().toISOString().split('T')[0];
 
 // Get dates for different periods
-const yesterday = calculateNextDate(today, -1);
 const lastWeek = calculateNextDate(today, -7);
 const lastMonth = calculateNextDate(today, -30);
 const threeMonthsAgo = calculateNextDate(today, -90);

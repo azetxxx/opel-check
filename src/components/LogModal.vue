@@ -41,10 +41,12 @@
 <script setup lang="ts">
 import type { MaintenanceLog, Frequency } from '../types/maintenance';
 
-const props = defineProps<{
+interface Props {
   isOpen: boolean;
   logs: MaintenanceLog[];
-}>();
+}
+
+const props = defineProps<Props>();
 
 const emit = defineEmits<{
   (e: 'close'): void;
