@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click="closeModal">
+  <div v-if="props.isOpen" class="modal-overlay" @click="closeModal">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
         <h2>Wartungsprotokolle</h2>
@@ -14,11 +14,11 @@
         </div>
 
         <div class="logs-container">
-          <div v-if="logs.length === 0" class="no-logs">
+          <div v-if="props.logs.length === 0" class="no-logs">
             Keine Wartungsprotokolle vorhanden.
           </div>
           <div v-else class="log-entries">
-            <div v-for="log in logs" :key="log.checkedAt + log.taskId" class="log-entry">
+            <div v-for="log in props.logs" :key="log.checkedAt + log.taskId" class="log-entry">
               <div class="log-header">
                 <span class="log-category">{{ log.category }}</span>
                 <span class="log-date">{{ formatDate(log.checkedAt) }}</span>
