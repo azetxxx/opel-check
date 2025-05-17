@@ -2,10 +2,33 @@
 import { useMaintenanceData } from './composables/useMaintenanceData';
 import { useMaintenanceLogs } from './composables/useMaintenanceLogs';
 import LogModal from './components/LogModal.vue';
-import type { MaintenanceTask } from './types/maintenance';
+import type { MaintenanceTask, Frequency } from './types/maintenance';
 
 const { maintenanceTasks, updateTask } = useMaintenanceData();
 const { addLog, isLoading, openLogModal } = useMaintenanceLogs();
+
+const formatFrequency = (frequency: Frequency): string => {
+  const frequencyMap: Record<Frequency, string> = {
+    daily: 'Täglich',
+    weekly: 'Wöchentlich',
+    monthly: 'Monatlich',
+    quarterly: 'Vierteljährlich',
+    biannual: 'Halbjährlich',
+    annual: 'Jährlich'
+  };
+  return frequencyMap[frequency];
+};
+
+const getCategoryClass = (category: string): string => {
+  const categoryClasses: Record<string, string> = {
+    'Motor': 'bg-red-100 text-red-800',
+    'Reifen': 'bg-blue-100 text-blue-800',
+    'Bremsen': 'bg-yellow-100 text-yellow-800',
+    'Karosserie': 'bg-purple-100 text-purple-800',
+    'Beleuchtung': 'bg-green-100 text-green-800'
+  };
+  return categoryClasses[category] || 'bg-gray-100 text-gray-800';
+};
 
 const markChecked = async (task: MaintenanceTask) => {
   const now = new Date();
@@ -56,48 +79,76 @@ const markChecked = async (task: MaintenanceTask) => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 py-8">
-      <div class="bg-white shadow rounded-lg overflow-hidden">
-        <div class="p-6">
-          <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-900">Opel Wartungscheckliste</h1>
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+    <div class="max-w-7xl mx-auto px-4 py-12">
+      <div class="bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
+        <div class="p-8">
+          <div class="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
+            <div>
+              <h1 class="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                Opel Wartungscheckliste
+              </h1>
+              <p class="text-gray-600 mt-2">Behalten Sie Ihre Fahrzeugwartung im Überblick</p>
+            </div>
             <button
               @click="openLogModal"
-              class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              class="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl
+                     hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all
+                     duration-200 shadow-md hover:shadow-lg disabled:opacity-50 flex items-center gap-2"
               :disabled="isLoading"
             >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd" />
+              </svg>
               Protokolle anzeigen
             </button>
           </div>
 
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200">
-              <thead class="bg-gray-50">
-                <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aufgabe</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategorie</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Häufigkeit</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Letzte Prüfung</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nächste Prüfung</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktion</th>
+              <thead>
+                <tr class="bg-gradient-to-r from-gray-50 to-gray-100">
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Aufgabe</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Kategorie</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Häufigkeit</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Letzte Prüfung</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Nächste Prüfung</th>
+                  <th class="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Aktion</th>
                 </tr>
               </thead>
-              <tbody class="bg-white divide-y divide-gray-200">
-                <tr v-for="task in maintenanceTasks" :key="task.id" class="hover:bg-gray-50">
-                  <td class="px-6 py-4 whitespace-normal">{{ task.description }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap">{{ task.category }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap">{{ task.frequency }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    {{ task.lastCheck ? new Date(task.lastCheck).toLocaleDateString() : 'Nie' }}
+              <tbody class="bg-white divide-y divide-gray-100">
+                <tr v-for="task in maintenanceTasks" :key="task.id"
+                    class="hover:bg-blue-50 transition-colors duration-150">
+                  <td class="px-6 py-4">
+                    <div class="text-sm text-gray-900">{{ task.description }}</div>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    {{ task.nextCheck ? new Date(task.nextCheck).toLocaleDateString() : 'Nicht geplant' }}
+                  <td class="px-6 py-4">
+                    <span class="px-3 py-1 text-sm rounded-full"
+                          :class="getCategoryClass(task.category)">
+                      {{ task.category }}
+                    </span>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
+                  <td class="px-6 py-4">
+                    <div class="text-sm text-gray-600">{{ formatFrequency(task.frequency) }}</div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="text-sm" :class="{'text-gray-400': !task.lastCheck, 'text-gray-900': task.lastCheck}">
+                      {{ task.lastCheck ? new Date(task.lastCheck).toLocaleDateString('de-DE') : 'Nie' }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
+                    <div class="text-sm" :class="{'text-gray-400': !task.nextCheck, 'text-gray-900': task.nextCheck}">
+                      {{ task.nextCheck ? new Date(task.nextCheck).toLocaleDateString('de-DE') : 'Nicht geplant' }}
+                    </div>
+                  </td>
+                  <td class="px-6 py-4">
                     <button
                       @click="markChecked(task)"
-                      class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                      class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg
+                             hover:from-emerald-600 hover:to-green-600 transform hover:scale-105
+                             transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50
+                             text-sm font-medium"
                       :disabled="isLoading"
                     >
                       Erledigt
