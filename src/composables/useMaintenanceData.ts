@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import type { MaintenanceTask, Frequency } from '../types/maintenance';
+import type { MaintenanceTask } from '../types/maintenance';
 
 const STORAGE_KEY = 'maintenance-tasks';
 
