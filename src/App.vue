@@ -4,10 +4,43 @@ import { useMaintenanceLogs } from './composables/useMaintenanceLogs';
 import { ClipboardDocumentListIcon, CheckIcon, ArrowPathIcon, ChevronDownIcon } from '@heroicons/vue/20/solid';
 import LogModal from './components/LogModal.vue';
 import type { MaintenanceTask, Frequency } from './types/maintenance';
-import { ref, computed, watch, onErrorCaptured } from 'vue';
+import { ref, computed, watch, onErrorCaptured, onMounted, onUnmounted } from 'vue';
 
 const { maintenanceTasks, updateTask, resetTasks } = useMaintenanceData();
 const { addLog, isLoading, openLogModal } = useMaintenanceLogs();
+
+// Add debug mode functionality
+const showDebug = ref(false);
+
+// Add keyboard shortcut for debug mode
+const handleKeydown = (event: KeyboardEvent) => {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
+    event.preventDefault();
+    showDebug.value = !showDebug.value;
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown);
+});
+
+// Add debug computed property
+const debug = computed(() => ({
+  tasksLoaded: maintenanceTasks.value.length,
+  groupedTasksCount: Object.values(groupedTasks.value).reduce((acc, tasks) => acc + tasks.length, 0),
+  groups: Object.fromEntries(
+    Object.entries(groupedTasks.value).map(([key, tasks]) => [key, tasks.length])
+  ),
+  rawTasks: maintenanceTasks.value,
+  rawGroupedTasks: groupedTasks.value,
+  collapsedState: collapsedGroups.value,
+  simulatedDateEnabled: useSimulatedDate.value,
+  currentSimulatedDate: simulatedDate.value
+}));
 
 // Add simulated date functionality
 const simulatedDate = ref<string>(new Date().toISOString().split('T')[0]);
@@ -205,6 +238,29 @@ onErrorCaptured((err, instance, info) => {
     <!-- Header -->
     <header class="sticky top-0 bg-white shadow-md z-10">
       <div class="max-w-7xl mx-auto px-4 py-4">
+        <!-- Debug Panel -->
+        <Transition
+          enter-active-class="transition duration-200 ease-out"
+          enter-from-class="transform -translate-y-4 opacity-0"
+          enter-to-class="transform translate-y-0 opacity-100"
+          leave-active-class="transition duration-200 ease-in"
+          leave-from-class="transform translate-y-0 opacity-100"
+          leave-to-class="transform -translate-y-4 opacity-0"
+        >
+          <div v-if="showDebug" class="mb-4 p-4 bg-gray-800 text-gray-200 rounded-lg shadow text-sm font-mono overflow-auto">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs text-gray-400">Debug Info (Ctrl/Cmd + D to toggle)</span>
+              <button
+                @click="showDebug = false"
+                class="text-gray-400 hover:text-gray-200 transition-colors"
+              >
+                ESC
+              </button>
+            </div>
+            <pre class="whitespace-pre-wrap">{{ JSON.stringify(debug, null, 2) }}</pre>
+          </div>
+        </Transition>
+
         <div class="flex flex-col gap-2">
           <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
             Opel Wartungscheckliste
