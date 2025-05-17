@@ -2,6 +2,7 @@
   "name": "opel-check",
   "private": true,
   "version": "0.0.0",
+  "description": "Auto Wartungs-Checkliste - Eine Web-Anwendung zur Verwaltung und Überwachung von Fahrzeugwartungsaufgaben",
   "type": "module",
   "scripts": {
     "dev": "vite",
