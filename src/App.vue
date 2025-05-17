@@ -4,9 +4,21 @@ import { useMaintenanceLogs } from './composables/useMaintenanceLogs';
 import { ClipboardDocumentListIcon, CheckIcon, ArrowPathIcon } from '@heroicons/vue/20/solid';
 import LogModal from './components/LogModal.vue';
 import type { MaintenanceTask, Frequency } from './types/maintenance';
+import { ref } from 'vue';
 
 const { maintenanceTasks, updateTask, resetTasks } = useMaintenanceData();
 const { addLog, isLoading, openLogModal } = useMaintenanceLogs();
+
+// Add simulated date functionality
+const simulatedDate = ref<string>(new Date().toISOString().split('T')[0]);
+const useSimulatedDate = ref(false);
+
+const getCurrentDate = (): Date => {
+  if (useSimulatedDate.value && simulatedDate.value) {
+    return new Date(simulatedDate.value);
+  }
+  return new Date();
+};
 
 const formatFrequency = (frequency: Frequency): string => {
   const frequencyMap: Record<Frequency, string> = {
@@ -37,7 +49,7 @@ const getCategoryClass = (category: string): string => {
 
 const isOverdue = (task: MaintenanceTask): boolean => {
   if (!task.nextCheck) return false;
-  return new Date(task.nextCheck) < new Date();
+  return new Date(task.nextCheck) < getCurrentDate();
 };
 
 const getStatusText = (task: MaintenanceTask): string => {
@@ -47,7 +59,7 @@ const getStatusText = (task: MaintenanceTask): string => {
 };
 
 const markChecked = async (task: MaintenanceTask) => {
-  const now = new Date();
+  const now = getCurrentDate();
   const nextCheck = new Date(now);
 
   // Calculate next check date based on frequency
@@ -104,7 +116,22 @@ const markChecked = async (task: MaintenanceTask) => {
             Opel Wartungscheckliste
           </h1>
           <div class="flex justify-between items-center">
-            <p class="text-sm text-gray-600">Fahrzeugwartung im Überblick</p>
+            <div class="flex items-center gap-4">
+              <p class="text-sm text-gray-600">Fahrzeugwartung im Überblick</p>
+              <div class="flex items-center gap-2">
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" v-model="useSimulatedDate" class="sr-only peer">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                  <span class="ms-3 text-sm font-medium text-gray-600">Datum simulieren</span>
+                </label>
+                <input
+                  type="date"
+                  v-model="simulatedDate"
+                  :disabled="!useSimulatedDate"
+                  class="px-3 py-1.5 border border-gray-300 rounded-lg text-sm disabled:opacity-50"
+                >
+              </div>
+            </div>
             <div class="flex gap-2">
               <button
                 @click="resetTasks"
