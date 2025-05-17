@@ -191,38 +191,6 @@ const markChecked = async (task: MaintenanceTask) => {
   updateTask(updatedTask);
 };
 
-// Add debug computed property
-const debug = computed(() => ({
-  tasksLoaded: maintenanceTasks.value.length,
-  groupedTasksCount: Object.values(groupedTasks.value).reduce((acc, tasks) => acc + tasks.length, 0),
-  groups: Object.fromEntries(
-    Object.entries(groupedTasks.value).map(([key, tasks]) => [key, tasks.length])
-  ),
-  rawTasks: maintenanceTasks.value,
-  rawGroupedTasks: groupedTasks.value,
-  collapsedState: collapsedGroups.value,
-  simulatedDateEnabled: useSimulatedDate.value,
-  currentSimulatedDate: simulatedDate.value
-}));
-
-// Add more detailed logging
-watch(maintenanceTasks, (newTasks) => {
-  console.log('Tasks updated:', {
-    count: newTasks.length,
-    tasks: newTasks
-  });
-}, { immediate: true });
-
-watch(groupedTasks, (newGroups) => {
-  console.log('Groups updated:', {
-    totalCount: Object.values(newGroups).reduce((acc, tasks) => acc + tasks.length, 0),
-    groupCounts: Object.fromEntries(
-      Object.entries(newGroups).map(([key, tasks]) => [key, tasks.length])
-    ),
-    groups: newGroups
-  });
-}, { immediate: true });
-
 // Add error boundary
 onErrorCaptured((err, instance, info) => {
   console.error('Error captured:', err);
