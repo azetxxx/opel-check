@@ -148,12 +148,21 @@ export function useMaintenanceData() {
   const maintenanceTasks = ref<MaintenanceTask[]>([]);
 
   const loadTasks = () => {
-    const savedTasks = localStorage.getItem(STORAGE_KEY);
-    maintenanceTasks.value = savedTasks ? JSON.parse(savedTasks) : initialTasks;
+    try {
+      const savedTasks = localStorage.getItem(STORAGE_KEY);
+      maintenanceTasks.value = savedTasks ? JSON.parse(savedTasks) : [...initialTasks];
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+      maintenanceTasks.value = [...initialTasks];
+    }
   };
 
   const saveTasks = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(maintenanceTasks.value));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(maintenanceTasks.value));
+    } catch (error) {
+      console.error('Error saving tasks:', error);
+    }
   };
 
   const updateTask = (updatedTask: MaintenanceTask) => {
@@ -165,9 +174,14 @@ export function useMaintenanceData() {
   };
 
   const resetTasks = () => {
-    localStorage.removeItem(STORAGE_KEY);
-    maintenanceTasks.value = initialTasks;
-    saveTasks();
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      maintenanceTasks.value = [...initialTasks];
+      saveTasks();
+    } catch (error) {
+      console.error('Error resetting tasks:', error);
+      maintenanceTasks.value = [...initialTasks];
+    }
   };
 
   // Load tasks when composable is created

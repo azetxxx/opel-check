@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { useMaintenanceData } from './composables/useMaintenanceData';
 import { useMaintenanceLogs } from './composables/useMaintenanceLogs';
-import { ClipboardDocumentListIcon, CheckIcon, ArrowPathIcon } from '@heroicons/vue/20/solid';
+import { ClipboardDocumentListIcon, CheckIcon, ArrowPathIcon, ChevronDownIcon } from '@heroicons/vue/20/solid';
 import LogModal from './components/LogModal.vue';
 import type { MaintenanceTask, Frequency } from './types/maintenance';
-import { ref } from 'vue';
+import { ref, computed, watch, onErrorCaptured } from 'vue';
 
 const { maintenanceTasks, updateTask, resetTasks } = useMaintenanceData();
 const { addLog, isLoading, openLogModal } = useMaintenanceLogs();
@@ -18,6 +18,103 @@ const getCurrentDate = (): Date => {
     return new Date(simulatedDate.value);
   }
   return new Date();
+};
+
+const isOverdue = (task: MaintenanceTask): boolean => {
+  if (!task.nextCheck) return false;
+  return new Date(task.nextCheck) < getCurrentDate();
+};
+
+const getStatusText = (task: MaintenanceTask): string => {
+  if (!task.lastCheck) return 'Ausstehend';
+  if (isOverdue(task)) return 'Überfällig';
+  return 'Aktuell';
+};
+
+// Add sorted tasks computed property
+const sortedTasks = computed(() => {
+  return [...maintenanceTasks.value].sort((a, b) => {
+    // First priority: Tasks that are overdue
+    const aOverdue = isOverdue(a);
+    const bOverdue = isOverdue(b);
+    if (aOverdue && !bOverdue) return -1;
+    if (!aOverdue && bOverdue) return 1;
+
+    // Second priority: Tasks that have never been checked
+    const aUnchecked = !a.lastCheck;
+    const bUnchecked = !b.lastCheck;
+    if (aUnchecked && !bUnchecked) return -1;
+    if (!aUnchecked && bUnchecked) return 1;
+
+    // Third priority: Sort by next check date
+    if (a.nextCheck && b.nextCheck) {
+      return new Date(a.nextCheck).getTime() - new Date(b.nextCheck).getTime();
+    }
+
+    // Keep original order for tasks without next check date
+    return 0;
+  });
+});
+
+// Add grouped tasks computed property
+const groupedTasks = computed(() => {
+  const groups: Record<Frequency, MaintenanceTask[]> = {
+    daily: [],
+    weekly: [],
+    monthly: [],
+    quarterly: [],
+    biannual: [],
+    annual: []
+  };
+
+  // Sort tasks within each frequency group by urgency
+  sortedTasks.value.forEach(task => {
+    groups[task.frequency].push(task);
+  });
+
+  return groups;
+});
+
+const getGroupStatus = (tasks: MaintenanceTask[]) => {
+  const hasOverdue = tasks.some(task => isOverdue(task));
+  const hasPending = tasks.some(task => !task.lastCheck);
+  const allCurrent = tasks.every(task => task.lastCheck && !isOverdue(task));
+
+  if (hasOverdue) return 'overdue';
+  if (hasPending) return 'pending';
+  if (allCurrent) return 'current';
+  return 'pending';
+};
+
+// Add frequency order for display
+const frequencyOrder: Frequency[] = ['daily', 'weekly', 'monthly', 'quarterly', 'biannual', 'annual'];
+
+// Add collapsed state management
+const collapsedGroups = ref<Record<Frequency, boolean>>({
+  daily: false,
+  weekly: false,
+  monthly: false,
+  quarterly: false,
+  biannual: false,
+  annual: false
+});
+
+// Initialize collapsed state based on group status
+const initializeCollapsedState = () => {
+  frequencyOrder.forEach(frequency => {
+    if (groupedTasks.value[frequency].length > 0) {
+      collapsedGroups.value[frequency] = getGroupStatus(groupedTasks.value[frequency]) === 'current';
+    }
+  });
+};
+
+// Watch for changes in grouped tasks and update collapsed state
+watch(groupedTasks, () => {
+  initializeCollapsedState();
+}, { immediate: true });
+
+const toggleGroup = (frequency: Frequency) => {
+  collapsedGroups.value[frequency] = !collapsedGroups.value[frequency];
 };
 
 const formatFrequency = (frequency: Frequency): string => {
@@ -45,17 +142,6 @@ const getCategoryClass = (category: string): string => {
     'Klimaanlage': 'bg-cyan-100 text-cyan-800'
   };
   return categoryClasses[category] || 'bg-gray-100 text-gray-800';
-};
-
-const isOverdue = (task: MaintenanceTask): boolean => {
-  if (!task.nextCheck) return false;
-  return new Date(task.nextCheck) < getCurrentDate();
-};
-
-const getStatusText = (task: MaintenanceTask): string => {
-  if (!task.lastCheck) return 'Ausstehend';
-  if (isOverdue(task)) return 'Überfällig';
-  return 'Aktuell';
 };
 
 const markChecked = async (task: MaintenanceTask) => {
@@ -104,6 +190,46 @@ const markChecked = async (task: MaintenanceTask) => {
   // Update task state
   updateTask(updatedTask);
 };
+
+// Add debug computed property
+const debug = computed(() => ({
+  tasksLoaded: maintenanceTasks.value.length,
+  groupedTasksCount: Object.values(groupedTasks.value).reduce((acc, tasks) => acc + tasks.length, 0),
+  groups: Object.fromEntries(
+    Object.entries(groupedTasks.value).map(([key, tasks]) => [key, tasks.length])
+  ),
+  rawTasks: maintenanceTasks.value,
+  rawGroupedTasks: groupedTasks.value,
+  collapsedState: collapsedGroups.value,
+  simulatedDateEnabled: useSimulatedDate.value,
+  currentSimulatedDate: simulatedDate.value
+}));
+
+// Add more detailed logging
+watch(maintenanceTasks, (newTasks) => {
+  console.log('Tasks updated:', {
+    count: newTasks.length,
+    tasks: newTasks
+  });
+}, { immediate: true });
+
+watch(groupedTasks, (newGroups) => {
+  console.log('Groups updated:', {
+    totalCount: Object.values(newGroups).reduce((acc, tasks) => acc + tasks.length, 0),
+    groupCounts: Object.fromEntries(
+      Object.entries(newGroups).map(([key, tasks]) => [key, tasks.length])
+    ),
+    groups: newGroups
+  });
+}, { immediate: true });
+
+// Add error boundary
+onErrorCaptured((err, instance, info) => {
+  console.error('Error captured:', err);
+  console.log('Component:', instance);
+  console.log('Error Info:', info);
+  return false;
+});
 </script>
 
 <template>
@@ -160,68 +286,114 @@ const markChecked = async (task: MaintenanceTask) => {
     </header>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 py-4">
-      <div class="space-y-4">
-        <div v-for="task in maintenanceTasks" :key="task.id"
-             class="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
-          <div class="flex flex-col gap-3">
-            <!-- Task Header -->
-            <div class="flex justify-between items-start gap-4">
-              <div class="flex-1">
-                <h3 class="font-medium text-gray-900">{{ task.description }}</h3>
-                <div class="mt-1 flex flex-wrap gap-2">
-                  <span class="px-2 py-1 text-xs rounded-full"
-                        :class="getCategoryClass(task.category)">
-                    {{ task.category }}
-                  </span>
-                  <span class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
-                    {{ formatFrequency(task.frequency) }}
-                  </span>
-                </div>
-              </div>
-              <div class="flex items-center">
-                <div :class="[
-                  'h-2.5 w-2.5 rounded-full mr-2',
-                  isOverdue(task) ? 'bg-red-400' : (task.lastCheck ? 'bg-green-400' : 'bg-gray-300')
-                ]"></div>
-                <span class="text-sm text-gray-500">
-                  {{ getStatusText(task) }}
-                </span>
-              </div>
-            </div>
-
-            <!-- Task Dates -->
-            <div class="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <div class="text-gray-500 mb-1">Letzte Prüfung</div>
-                <div :class="{'text-gray-400': !task.lastCheck, 'text-gray-900': task.lastCheck}">
-                  {{ task.lastCheck ? new Date(task.lastCheck).toLocaleDateString('de-DE') : 'Nie' }}
-                </div>
-              </div>
-              <div>
-                <div class="text-gray-500 mb-1">Nächste Prüfung</div>
-                <div :class="{'text-gray-400': !task.nextCheck, 'text-gray-900': task.nextCheck}">
-                  {{ task.nextCheck ? new Date(task.nextCheck).toLocaleDateString('de-DE') : 'Nicht geplant' }}
-                </div>
-              </div>
-            </div>
-
-            <!-- Action Button -->
-            <button
-              @click="markChecked(task)"
-              class="w-full px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-500 text-white rounded-lg
-                     hover:from-emerald-600 hover:to-green-600 transform hover:scale-105
-                     transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50
-                     text-sm font-medium flex items-center justify-center gap-2"
-              :disabled="isLoading"
+    <main class="max-w-7xl mx-auto px-4 py-8">
+      <div class="space-y-6">
+        <template v-for="frequency in frequencyOrder" :key="frequency">
+          <div v-if="groupedTasks[frequency].length > 0" class="bg-white rounded-xl shadow-sm overflow-hidden">
+            <!-- Group Header -->
+            <div
+              @click="toggleGroup(frequency)"
+              class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
             >
-              <CheckIcon class="h-4 w-4" />
-              Als erledigt markieren
-            </button>
+              <div class="flex items-center gap-3">
+                <div :class="[
+                  'h-3 w-3 rounded-full',
+                  {
+                    'bg-red-500': getGroupStatus(groupedTasks[frequency]) === 'overdue',
+                    'bg-green-500': getGroupStatus(groupedTasks[frequency]) === 'current',
+                    'bg-yellow-400': getGroupStatus(groupedTasks[frequency]) === 'pending'
+                  }
+                ]"></div>
+                <h2 class="text-lg font-semibold">{{ formatFrequency(frequency) }}</h2>
+              </div>
+              <ChevronDownIcon
+                class="h-5 w-5 text-gray-400 transition-transform duration-200"
+                :class="{ 'rotate-180': !collapsedGroups[frequency] }"
+              />
+            </div>
+
+            <!-- Group Content -->
+            <div
+              v-show="!collapsedGroups[frequency]"
+              class="border-t border-gray-100"
+            >
+              <div class="divide-y divide-gray-100">
+                <div v-for="task in groupedTasks[frequency]" :key="task.id"
+                     class="p-4 hover:bg-gray-50 transition-colors duration-200">
+                  <div class="flex flex-col gap-3">
+                    <!-- Task Header -->
+                    <div class="flex justify-between items-start gap-4">
+                      <div class="flex-1">
+                        <h3 class="font-medium text-gray-900">{{ task.description }}</h3>
+                        <div class="mt-1 flex flex-wrap gap-2">
+                          <span class="px-2 py-1 text-xs rounded-full"
+                                :class="getCategoryClass(task.category)">
+                            {{ task.category }}
+                          </span>
+                        </div>
+                      </div>
+                      <div class="flex items-center">
+                        <div :class="[
+                          'h-3 w-3 rounded-full mr-2',
+                          {
+                            'bg-red-500': isOverdue(task),
+                            'bg-green-500': task.lastCheck && !isOverdue(task),
+                            'bg-yellow-400': !task.lastCheck
+                          }
+                        ]"></div>
+                        <span :class="[
+                          'text-sm font-medium',
+                          {
+                            'text-red-600': isOverdue(task),
+                            'text-green-600': task.lastCheck && !isOverdue(task),
+                            'text-yellow-600': !task.lastCheck
+                          }
+                        ]">
+                          {{ getStatusText(task) }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Task Dates -->
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <div class="text-gray-500 mb-1">Letzte Prüfung</div>
+                        <div :class="{'text-gray-400': !task.lastCheck, 'text-gray-900': task.lastCheck}">
+                          {{ task.lastCheck ? new Date(task.lastCheck).toLocaleDateString('de-DE') : 'Nie' }}
+                        </div>
+                      </div>
+                      <div>
+                        <div class="text-gray-500 mb-1">Nächste Prüfung</div>
+                        <div :class="{'text-gray-400': !task.nextCheck, 'text-gray-900': task.nextCheck}">
+                          {{ task.nextCheck ? new Date(task.nextCheck).toLocaleDateString('de-DE') : 'Nicht geplant' }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Action Button -->
+                    <button
+                      @click="markChecked(task)"
+                      :class="[
+                        'w-full px-4 py-2 text-white rounded-lg transform hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2',
+                        {
+                          'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700': isOverdue(task),
+                          'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700': task.lastCheck && !isOverdue(task),
+                          'bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600': !task.lastCheck
+                        }
+                      ]"
+                      :disabled="isLoading"
+                    >
+                      <CheckIcon class="h-4 w-4" />
+                      Als erledigt markieren
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        </template>
       </div>
-    </div>
+    </main>
 
     <LogModal />
   </div>
