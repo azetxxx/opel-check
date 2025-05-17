@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { useMaintenanceData } from './composables/useMaintenanceData';
 import { useMaintenanceLogs } from './composables/useMaintenanceLogs';
-import { ClipboardDocumentListIcon, CheckIcon } from '@heroicons/vue/20/solid';
+import { ClipboardDocumentListIcon, CheckIcon, ArrowPathIcon } from '@heroicons/vue/20/solid';
 import LogModal from './components/LogModal.vue';
 import type { MaintenanceTask, Frequency } from './types/maintenance';
 
-const { maintenanceTasks, updateTask } = useMaintenanceData();
+const { maintenanceTasks, updateTask, resetTasks } = useMaintenanceData();
 const { addLog, isLoading, openLogModal } = useMaintenanceLogs();
 
 const formatFrequency = (frequency: Frequency): string => {
@@ -105,16 +105,28 @@ const markChecked = async (task: MaintenanceTask) => {
           </h1>
           <div class="flex justify-between items-center">
             <p class="text-sm text-gray-600">Fahrzeugwartung im Überblick</p>
-            <button
-              @click="openLogModal"
-              class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg
-                     hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all
-                     duration-200 shadow-md hover:shadow-lg disabled:opacity-50 text-sm flex items-center gap-2"
-              :disabled="isLoading"
-            >
-              <ClipboardDocumentListIcon class="h-4 w-4" />
-              Protokolle
-            </button>
+            <div class="flex gap-2">
+              <button
+                @click="resetTasks"
+                class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg
+                       hover:from-yellow-600 hover:to-orange-600 transform hover:scale-105 transition-all
+                       duration-200 shadow-md hover:shadow-lg disabled:opacity-50 text-sm flex items-center gap-2"
+                :disabled="isLoading"
+              >
+                <ArrowPathIcon class="h-4 w-4" />
+                Zurücksetzen
+              </button>
+              <button
+                @click="openLogModal"
+                class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg
+                       hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all
+                       duration-200 shadow-md hover:shadow-lg disabled:opacity-50 text-sm flex items-center gap-2"
+                :disabled="isLoading"
+              >
+                <ClipboardDocumentListIcon class="h-4 w-4" />
+                Protokolle
+              </button>
+            </div>
           </div>
         </div>
       </div>

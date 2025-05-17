@@ -164,11 +164,18 @@ export function useMaintenanceData() {
     }
   };
 
+  const resetTasks = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    maintenanceTasks.value = initialTasks;
+    saveTasks();
+  };
+
   // Load tasks when composable is created
   loadTasks();
 
   return {
     maintenanceTasks,
-    updateTask
+    updateTask,
+    resetTasks
   };
 }
