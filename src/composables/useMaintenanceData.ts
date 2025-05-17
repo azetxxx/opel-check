@@ -5,9 +5,10 @@ const STORAGE_KEY = 'maintenance-tasks';
 
 // Initial test data
 const initialTasks: MaintenanceTask[] = [
+  // Wöchentlich
   {
     id: '1',
-    description: 'Ölstand prüfen',
+    description: 'Ölstand prüfen (Motoröl)',
     category: 'Motor',
     frequency: 'weekly',
     lastCheck: null,
@@ -15,33 +16,129 @@ const initialTasks: MaintenanceTask[] = [
   },
   {
     id: '2',
-    description: 'Reifendruck kontrollieren',
-    category: 'Reifen',
-    frequency: 'monthly',
+    description: 'Scheibenwaschanlage prüfen und nachfüllen',
+    category: 'Karosserie',
+    frequency: 'weekly',
     lastCheck: null,
     nextCheck: null
   },
   {
     id: '3',
-    description: 'Bremsflüssigkeit prüfen',
-    category: 'Bremsen',
-    frequency: 'quarterly',
+    description: 'Lichtfunktionen prüfen (Abblend-, Fernlicht, Bremslicht, Blinker)',
+    category: 'Beleuchtung',
+    frequency: 'weekly',
     lastCheck: null,
     nextCheck: null
   },
+
+  // Monatlich
   {
     id: '4',
-    description: 'Scheibenwischer prüfen',
-    category: 'Karosserie',
+    description: 'Kühlflüssigkeit und Bremsflüssigkeit kontrollieren',
+    category: 'Motor',
     frequency: 'monthly',
     lastCheck: null,
     nextCheck: null
   },
   {
     id: '5',
-    description: 'Scheinwerfer kontrollieren',
-    category: 'Beleuchtung',
-    frequency: 'weekly',
+    description: 'Batterie prüfen (besonders im Winter)',
+    category: 'Elektrik',
+    frequency: 'monthly',
+    lastCheck: null,
+    nextCheck: null
+  },
+  {
+    id: '6',
+    description: 'Reifendruck kontrollieren und anpassen',
+    category: 'Reifen',
+    frequency: 'monthly',
+    lastCheck: null,
+    nextCheck: null
+  },
+
+  // Vierteljährlich
+  {
+    id: '7',
+    description: 'Wischerblätter auf Schlierenbildung/Geräusche prüfen',
+    category: 'Karosserie',
+    frequency: 'quarterly',
+    lastCheck: null,
+    nextCheck: null
+  },
+  {
+    id: '8',
+    description: 'Reifenwechsel (Sommer/Winter)',
+    category: 'Reifen',
+    frequency: 'quarterly',
+    lastCheck: null,
+    nextCheck: null
+  },
+  {
+    id: '9',
+    description: 'TÜV/HU/AU Fälligkeit prüfen',
+    category: 'Dokumente',
+    frequency: 'quarterly',
+    lastCheck: null,
+    nextCheck: null
+  },
+
+  // Halbjährlich
+  {
+    id: '10',
+    description: 'Unterbodenwäsche durchführen',
+    category: 'Karosserie',
+    frequency: 'biannual',
+    lastCheck: null,
+    nextCheck: null
+  },
+  {
+    id: '11',
+    description: 'Roststellen kontrollieren (Kanten/Radläufe)',
+    category: 'Karosserie',
+    frequency: 'biannual',
+    lastCheck: null,
+    nextCheck: null
+  },
+
+  // Jährlich
+  {
+    id: '12',
+    description: 'Inspektion nach Herstellervorgabe',
+    category: 'Service',
+    frequency: 'annual',
+    lastCheck: null,
+    nextCheck: null
+  },
+  {
+    id: '13',
+    description: 'Klimaanlage prüfen und desinfizieren',
+    category: 'Klimaanlage',
+    frequency: 'annual',
+    lastCheck: null,
+    nextCheck: null
+  },
+  {
+    id: '14',
+    description: 'Innenraumfilter (Pollenfilter) wechseln',
+    category: 'Klimaanlage',
+    frequency: 'annual',
+    lastCheck: null,
+    nextCheck: null
+  },
+  {
+    id: '15',
+    description: 'Bremsen (Beläge und Scheiben) überprüfen',
+    category: 'Bremsen',
+    frequency: 'annual',
+    lastCheck: null,
+    nextCheck: null
+  },
+  {
+    id: '16',
+    description: 'ADAC-Mitgliedschaft prüfen',
+    category: 'Dokumente',
+    frequency: 'annual',
     lastCheck: null,
     nextCheck: null
   }
