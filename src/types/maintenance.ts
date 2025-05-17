@@ -3,9 +3,10 @@ export type Frequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannual
 export interface MaintenanceTask {
   id: string;
   description: string;
-  lastChecked: string | null;
-  nextDueDate: string | null;
+  category: string;
   frequency: Frequency;
+  lastCheck: string | null;
+  nextCheck: string | null;
 }
 
 export interface MaintenanceCategory {

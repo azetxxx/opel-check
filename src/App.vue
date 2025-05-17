@@ -4,106 +4,114 @@ import { useMaintenanceLogs } from './composables/useMaintenanceLogs';
 import LogModal from './components/LogModal.vue';
 import type { MaintenanceTask } from './types/maintenance';
 
-const { maintenanceSchedule, markTaskChecked } = useMaintenanceData();
-const { logs, isLogModalOpen, openLogModal, closeLogModal, addLog, clearLogs } = useMaintenanceLogs();
+const { maintenanceTasks, updateTask } = useMaintenanceData();
+const { addLog, isLoading, openLogModal } = useMaintenanceLogs();
 
-const formatDate = (dateString: string | null): string => {
-  if (!dateString) return '-';
-  return new Date(dateString).toLocaleDateString('de-DE');
-};
+const markChecked = async (task: MaintenanceTask) => {
+  const now = new Date();
+  const nextCheck = new Date(now);
 
-const isOverdue = (task: MaintenanceTask): boolean => {
-  if (!task.nextDueDate) return false;
-  const today = new Date();
-  const dueDate = new Date(task.nextDueDate);
-  return today > dueDate;
-};
+  // Calculate next check date based on frequency
+  switch (task.frequency) {
+    case 'daily':
+      nextCheck.setDate(nextCheck.getDate() + 1);
+      break;
+    case 'weekly':
+      nextCheck.setDate(nextCheck.getDate() + 7);
+      break;
+    case 'monthly':
+      nextCheck.setMonth(nextCheck.getMonth() + 1);
+      break;
+    case 'quarterly':
+      nextCheck.setMonth(nextCheck.getMonth() + 3);
+      break;
+    case 'biannual':
+      nextCheck.setMonth(nextCheck.getMonth() + 6);
+      break;
+    case 'annual':
+      nextCheck.setFullYear(nextCheck.getFullYear() + 1);
+      break;
+  }
 
-const handleTaskCheck = (task: MaintenanceTask, categoryTitle: string) => {
-  markTaskChecked(task.id);
-  addLog({
+  // Update task
+  const updatedTask = {
+    ...task,
+    lastCheck: now.toISOString(),
+    nextCheck: nextCheck.toISOString()
+  };
+
+  // Add log
+  await addLog({
     taskId: task.id,
     taskDescription: task.description,
-    category: categoryTitle,
+    category: task.category,
     frequency: task.frequency,
-    checkedAt: new Date().toISOString(),
-    nextDueDate: task.nextDueDate || ''
+    checkedAt: now.toISOString(),
+    nextDueDate: nextCheck.toISOString()
   });
+
+  // Update task state
+  updateTask(updatedTask);
 };
 </script>
 
 <template>
-  <div class="container">
-    <header>
-      <h1>Auto Wartungs-Checkliste</h1>
-      <button class="view-logs-button" @click="openLogModal">
-        Wartungsprotokolle anzeigen
-      </button>
-    </header>
-
-    <main>
-      <div class="categories">
-        <div v-for="category in maintenanceSchedule"
-             :key="category.title"
-             class="category">
-          <div class="category-header">
-            <h2>{{ category.title }}</h2>
+  <div class="min-h-screen bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 py-8">
+      <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">Opel Wartungscheckliste</h1>
+            <button
+              @click="openLogModal"
+              class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+              :disabled="isLoading"
+            >
+              Protokolle anzeigen
+            </button>
           </div>
 
-          <div class="task-table">
-            <template v-if="category.frequency === 'daily'">
-              <div class="daily-tasks-header">
-                <div class="task-description-header">Tägliche Sichtprüfung</div>
-              </div>
-              <div v-for="task in category.tasks"
-                   :key="task.id"
-                   class="daily-task-row">
-                <div class="daily-task-description">
-                  <span class="check-icon">✓</span>
-                  {{ task.description }}
-                </div>
-              </div>
-            </template>
-            <template v-else>
-              <div class="task-table-header">
-                <div class="task-description-header">Wartungsaufgabe</div>
-                <div class="task-date-header">Letzte Prüfung</div>
-                <div class="task-date-header">Nächste Prüfung</div>
-                <div class="task-action-header">Aktion</div>
-              </div>
-              <div v-for="task in category.tasks"
-                   :key="task.id"
-                   class="task-row"
-                   :class="{ 'task-overdue': isOverdue(task) }">
-                <div class="task-description">
-                  {{ task.description }}
-                </div>
-                <div class="task-date" :class="{ 'no-date': !task.lastChecked }" data-label="Letzte Prüfung:">
-                  {{ formatDate(task.lastChecked) }}
-                </div>
-                <div class="task-date" :class="{ 'no-date': !task.nextDueDate, 'overdue': isOverdue(task) }" data-label="Nächste Prüfung:">
-                  {{ formatDate(task.nextDueDate) }}
-                </div>
-                <div class="task-action">
-                  <button @click="handleTaskCheck(task, category.title)"
-                          class="check-button"
-                          :class="{ 'checked': task.lastChecked }">
-                    {{ task.lastChecked ? 'Erneut prüfen' : 'Als geprüft markieren' }}
-                  </button>
-                </div>
-              </div>
-            </template>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aufgabe</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategorie</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Häufigkeit</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Letzte Prüfung</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nächste Prüfung</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Aktion</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr v-for="task in maintenanceTasks" :key="task.id" class="hover:bg-gray-50">
+                  <td class="px-6 py-4 whitespace-normal">{{ task.description }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">{{ task.category }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">{{ task.frequency }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    {{ task.lastCheck ? new Date(task.lastCheck).toLocaleDateString() : 'Nie' }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    {{ task.nextCheck ? new Date(task.nextCheck).toLocaleDateString() : 'Nicht geplant' }}
+                  </td>
+                  <td class="px-6 py-4 whitespace-nowrap">
+                    <button
+                      @click="markChecked(task)"
+                      class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                      :disabled="isLoading"
+                    >
+                      Erledigt
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
-    </main>
+    </div>
 
-    <LogModal
-      :is-open="isLogModalOpen"
-      :logs="logs"
-      @close="closeLogModal"
-      @clear="clearLogs"
-    />
+    <LogModal />
   </div>
 </template>
 

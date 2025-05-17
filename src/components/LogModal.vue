@@ -1,65 +1,67 @@
 <template>
-  <div v-if="props.isOpen" class="modal-overlay" @click="closeModal">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <h2>Wartungsprotokolle</h2>
-        <button class="close-button" @click="closeModal">&times;</button>
-      </div>
-
-      <div class="modal-body">
-        <div class="log-controls">
-          <button class="clear-button" @click="clearLogs">
-            Protokolle löschen
+  <Teleport to="body">
+    <div v-if="isLogModalOpen" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div class="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold">Wartungsprotokoll</h2>
+          <button @click="closeLogModal" class="text-gray-500 hover:text-gray-700">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
-        <div class="logs-container">
-          <div v-if="props.logs.length === 0" class="no-logs">
-            Keine Wartungsprotokolle vorhanden.
+        <div v-if="isLoading" class="flex-1 flex items-center justify-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+        </div>
+
+        <div v-else class="flex-1 overflow-auto">
+          <div v-if="logs.length === 0" class="text-center text-gray-500 py-8">
+            Keine Wartungsprotokolle vorhanden
           </div>
-          <div v-else class="log-entries">
-            <div v-for="log in props.logs" :key="log.checkedAt + log.taskId" class="log-entry">
-              <div class="log-header">
-                <span class="log-category">{{ log.category }}</span>
-                <span class="log-date">{{ formatDate(log.checkedAt) }}</span>
-              </div>
-              <div class="log-description">
-                {{ log.taskDescription }}
-              </div>
-              <div class="log-footer">
-                <span class="log-next-due">Nächste Prüfung: {{ formatDate(log.nextDueDate) }}</span>
-                <span class="log-frequency">{{ formatFrequency(log.frequency) }}</span>
+          <div v-else class="space-y-4">
+            <div v-for="log in logs" :key="log.checkedAt" class="border rounded-lg p-4">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h3 class="font-semibold">{{ log.taskDescription }}</h3>
+                  <p class="text-sm text-gray-600">Kategorie: {{ log.category }}</p>
+                  <p class="text-sm text-gray-600">Häufigkeit: {{ formatFrequency(log.frequency) }}</p>
+                </div>
+                <div class="text-right text-sm">
+                  <p>Geprüft am: {{ formatDate(log.checkedAt) }}</p>
+                  <p>Nächste Prüfung: {{ formatDate(log.nextDueDate) }}</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        <div class="mt-4 flex justify-end space-x-2">
+          <button
+            @click="clearLogs"
+            class="px-4 py-2 text-red-600 hover:text-red-800 disabled:opacity-50"
+            :disabled="isLoading"
+          >
+            Protokolle löschen
+          </button>
+          <button
+            @click="closeLogModal"
+            class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 disabled:opacity-50"
+            :disabled="isLoading"
+          >
+            Schließen
+          </button>
+        </div>
       </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
-import type { MaintenanceLog, Frequency } from '../types/maintenance';
+import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
+import type { Frequency } from '../types/maintenance';
 
-interface Props {
-  isOpen: boolean;
-  logs: MaintenanceLog[];
-}
-
-const props = defineProps<Props>();
-
-const emit = defineEmits<{
-  (e: 'close'): void;
-  (e: 'clear'): void;
-}>();
-
-const closeModal = () => {
-  emit('close');
-};
-
-const clearLogs = () => {
-  emit('clear');
-};
+const { logs, isLogModalOpen, isLoading, clearLogs, closeLogModal } = useMaintenanceLogs();
 
 const formatDate = (dateString: string): string => {
   return new Date(dateString).toLocaleDateString('de-DE');
