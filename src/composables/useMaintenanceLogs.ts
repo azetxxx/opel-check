@@ -1,74 +1,66 @@
 import { ref } from 'vue';
-import { collection, addDoc, getDocs, deleteDoc, query, orderBy } from 'firebase/firestore';
 import type { MaintenanceLog } from '../types/maintenance';
-import { db } from '../firebase/config';
 
-// Create refs outside the function to share state across components
+const STORAGE_KEY = 'maintenance-logs';
+
+// Shared state across components
 const logs = ref<MaintenanceLog[]>([]);
 const isLogModalOpen = ref(false);
 const isLoading = ref(false);
+let initialized = false;
+
+const sortLogsByDateDesc = (items: MaintenanceLog[]) => {
+  return [...items].sort(
+    (a, b) => new Date(b.checkedAt).getTime() - new Date(a.checkedAt).getTime()
+  );
+};
 
 export function useMaintenanceLogs() {
-  const addLog = async (log: MaintenanceLog) => {
+  const loadLogs = () => {
     try {
       isLoading.value = true;
-      // Add to Firestore
-      await addDoc(collection(db, 'maintenance-logs'), {
-        ...log,
-        createdAt: new Date().toISOString()
-      });
-      // Refresh logs
-      await loadLogs();
+      const savedLogs = localStorage.getItem(STORAGE_KEY);
+      const parsedLogs: MaintenanceLog[] = savedLogs ? JSON.parse(savedLogs) : [];
+      logs.value = sortLogsByDateDesc(parsedLogs);
     } catch (error) {
-      console.error('Error adding log:', error);
-      // Fallback to localStorage if offline
-      const currentLogs = JSON.parse(localStorage.getItem('maintenance-logs') || '[]');
-      currentLogs.unshift(log);
-      localStorage.setItem('maintenance-logs', JSON.stringify(currentLogs));
-      logs.value = currentLogs;
+      console.error('Error loading logs:', error);
+      logs.value = [];
     } finally {
       isLoading.value = false;
     }
   };
 
-  const loadLogs = async () => {
+  const saveLogs = () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(logs.value));
+    } catch (error) {
+      console.error('Error saving logs:', error);
+    }
+  };
+
+  const addLog = async (log: MaintenanceLog) => {
     try {
       isLoading.value = true;
-      const q = query(collection(db, 'maintenance-logs'), orderBy('createdAt', 'desc'));
-      const querySnapshot = await getDocs(q);
-      const loadedLogs: MaintenanceLog[] = [];
-      querySnapshot.forEach((doc) => {
-        loadedLogs.push(doc.data() as MaintenanceLog);
-      });
-      logs.value = loadedLogs;
-      // Update localStorage as backup
-      localStorage.setItem('maintenance-logs', JSON.stringify(loadedLogs));
+      logs.value = sortLogsByDateDesc([log, ...logs.value]);
+      saveLogs();
     } catch (error) {
-      console.error('Error loading logs:', error);
-      // Fallback to localStorage if offline
-      const savedLogs = localStorage.getItem('maintenance-logs');
-      if (savedLogs) {
-        logs.value = JSON.parse(savedLogs);
-      }
+      console.error('Error adding log:', error);
     } finally {
       isLoading.value = false;
     }
   };
 
   const clearLogs = async () => {
-    if (confirm('Möchten Sie wirklich alle Protokolle löschen?')) {
-      try {
-        isLoading.value = true;
-        const querySnapshot = await getDocs(collection(db, 'maintenance-logs'));
-        const deletePromises = querySnapshot.docs.map(doc => deleteDoc(doc.ref));
-        await Promise.all(deletePromises);
-        logs.value = [];
-        localStorage.removeItem('maintenance-logs');
-      } catch (error) {
-        console.error('Error clearing logs:', error);
-      } finally {
-        isLoading.value = false;
-      }
+    if (!confirm('Möchten Sie wirklich alle Protokolle löschen?')) return;
+
+    try {
+      isLoading.value = true;
+      logs.value = [];
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (error) {
+      console.error('Error clearing logs:', error);
+    } finally {
+      isLoading.value = false;
     }
   };
 
@@ -80,8 +72,10 @@ export function useMaintenanceLogs() {
     isLogModalOpen.value = false;
   };
 
-  // Load logs when the composable is used
-  loadLogs();
+  if (!initialized) {
+    loadLogs();
+    initialized = true;
+  }
 
   return {
     logs,

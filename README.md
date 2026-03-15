@@ -1,46 +1,83 @@
-# Auto Wartungs-Checkliste
+# Omiigo Car – Wartungscheckliste
 
-Eine Web-Anwendung zur Verwaltung und Überwachung von Fahrzeugwartungsaufgaben.
+Eine lokale Web-Anwendung zur Verwaltung und Nachverfolgung von Fahrzeugwartungen.
 
-## Features
-
-- Tägliche Sichtprüfungsliste
-- Wartungsaufgaben mit verschiedenen Intervallen (wöchentlich, monatlich, vierteljährlich, halbjährlich, jährlich)
-- Automatische Berechnung der nächsten fälligen Wartung
-- Wartungsprotokoll mit Verlauf aller durchgeführten Prüfungen
-- Responsive Design für Mobile und Desktop
-- Offline-Funktionalität durch lokale Speicherung
-
-## Technologien
+## Aktueller Stack
 
 - Vue 3
 - TypeScript
 - Vite
-- Local Storage für Datenpersistenz
+- Tailwind CSS
+- Heroicons
+- localStorage für lokale Datenpersistenz
+
+## Aktueller Stand
+
+Die App läuft aktuell **lokal-first**:
+- Wartungsaufgaben werden im Browser gespeichert
+- Wartungsprotokolle werden im Browser gespeichert
+- keine Backend- oder Firebase-Abhängigkeit für die Funktionalität
+
+Das ist sinnvoll für die lokale Weiterentwicklung, bevor später ein produktionsreifer Sync- oder Backend-Ansatz ergänzt wird.
+
+## Features
+
+- Wartungsaufgaben mit Intervallen
+- Statusanzeige für offen / aktuell / überfällig
+- Protokollierung erledigter Wartungen
+- Mobile-friendly UI
+- lokale Speicherung im Browser
+- Debug-Modus mit simuliertem Datum
 
 ## Entwicklung
 
-1. Repository klonen:
-```bash
-git clone https://github.com/IHR_BENUTZERNAME/opel-check.git
-cd opel-check
-```
+### Voraussetzungen
 
-2. Abhängigkeiten installieren:
+- Node.js 20+ empfohlen
+- npm
+
+### Installation
+
 ```bash
 npm install
 ```
 
-3. Entwicklungsserver starten:
+### Entwicklungsserver starten
+
 ```bash
 npm run dev
 ```
 
-4. Für Produktion bauen:
+### Production Build
+
 ```bash
 npm run build
 ```
 
-## Lizenz
+### Type Check
 
-MIT
+```bash
+npm run type-check
+```
+
+## Datenhaltung
+
+Die App nutzt aktuell `localStorage` mit diesen Keys:
+
+- `maintenance-tasks`
+- `maintenance-logs`
+
+Hinweis:
+`localStorage` ist browser- und gerätegebunden. Daten werden nicht automatisch zwischen Geräten synchronisiert.
+
+## Nächste sinnvolle Schritte vor Production
+
+1. Komponenten weiter aufteilen
+2. Geschäftslogik aus `App.vue` in Utilities/Composables verschieben
+3. Datenmodell für mehrere Fahrzeuge vorbereiten
+4. Export/Import für lokale Backups ergänzen
+5. später optional Auth + Cloud-Sync ergänzen
+
+## Hinweis zum bisherigen Firebase-Ansatz
+
+Der Code wurde auf lokale Nutzung zurückgestellt. Falls später Production-Sync gebraucht wird, sollte die Cloud-Strategie sauber neu eingeführt werden statt Aufgaben lokal und Logs remote zu mischen.

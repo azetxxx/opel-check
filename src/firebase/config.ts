@@ -1,18 +1,5 @@
-import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+// Firebase integration is intentionally disabled for the current local-first setup.
+// Keep this file as a placeholder so a future production sync layer can be added
+// back in a controlled way without mixing local and remote persistence.
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyAlB4FZ3Ck10N3FKIocD4RajOh511_zQfE",
-  authDomain: "opel-check.firebaseapp.com",
-  projectId: "opel-check",
-  storageBucket: "opel-check.firebasestorage.app",
-  messagingSenderId: "350504595763",
-  appId: "1:350504595763:web:8e94f12d14344482034e46"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-export { db };
+export {};
