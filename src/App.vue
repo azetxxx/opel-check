@@ -3,10 +3,12 @@ import { computed, onErrorCaptured, onMounted, onUnmounted, ref, watch } from 'v
 import AppHeader from './components/AppHeader.vue';
 import LogModal from './components/LogModal.vue';
 import TaskGroup from './components/TaskGroup.vue';
+import VehicleProfileCard from './components/VehicleProfileCard.vue';
 import { FREQUENCY_ORDER } from './constants/maintenance';
 import { useMaintenanceData } from './composables/useMaintenanceData';
 import { useMaintenanceLogs } from './composables/useMaintenanceLogs';
-import type { Frequency, MaintenanceTask } from './types/maintenance';
+import { useVehicleProfile } from './composables/useVehicleProfile';
+import type { Frequency, MaintenanceTask, VehicleProfile } from './types/maintenance';
 import { getCurrentDate, getNextCheckDate, toDateInputValue } from './utils/maintenanceDates';
 import {
   buildDefaultCollapsedGroups,
@@ -17,6 +19,7 @@ import {
 
 const { maintenanceTasks, updateTask, resetTasks } = useMaintenanceData();
 const { addLog, isLoading, openLogModal } = useMaintenanceLogs();
+const { activeVehicle, updateVehicle } = useVehicleProfile();
 
 const showDebug = ref(false);
 const simulatedDate = ref<string>(toDateInputValue(new Date()));
@@ -24,11 +27,17 @@ const useSimulatedDate = ref(false);
 const collapsedGroups = ref<Record<Frequency, boolean>>(buildDefaultCollapsedGroups());
 
 const currentDate = computed(() => getCurrentDate(simulatedDate.value, useSimulatedDate.value));
-const enrichedTasks = computed(() => enrichTasks(maintenanceTasks.value, currentDate.value));
+const filteredTasks = computed(() => {
+  const vehicleId = activeVehicle.value.id;
+  return maintenanceTasks.value.filter((task) => task.vehicleId === vehicleId);
+});
+const enrichedTasks = computed(() => enrichTasks(filteredTasks.value, currentDate.value));
 const groupedTasks = computed(() => groupTasksByFrequency(enrichedTasks.value));
 
 const debug = computed(() => ({
+  activeVehicle: activeVehicle.value,
   tasksLoaded: maintenanceTasks.value.length,
+  filteredTasksLoaded: filteredTasks.value.length,
   groupedTasksCount: Object.values(groupedTasks.value).reduce((acc, tasks) => acc + tasks.length, 0),
   groups: Object.fromEntries(
     Object.entries(groupedTasks.value).map(([key, tasks]) => [key, tasks.length])
@@ -68,6 +77,10 @@ const toggleGroup = (frequency: Frequency) => {
   collapsedGroups.value[frequency] = !collapsedGroups.value[frequency];
 };
 
+const saveVehicleProfile = (vehicle: VehicleProfile) => {
+  updateVehicle(vehicle);
+};
+
 const markChecked = async (task: MaintenanceTask) => {
   const now = currentDate.value;
   const nextCheck = getNextCheckDate(task.frequency, now);
@@ -75,16 +88,23 @@ const markChecked = async (task: MaintenanceTask) => {
   const updatedTask = {
     ...task,
     lastCheck: now.toISOString(),
-    nextCheck: nextCheck.toISOString()
+    nextCheck: nextCheck.toISOString(),
+    updatedAt: now.toISOString(),
+    lastMileage: activeVehicle.value.currentMileage ?? task.lastMileage ?? null
   };
 
   await addLog({
+    id: crypto.randomUUID(),
+    vehicleId: task.vehicleId,
     taskId: task.id,
     taskDescription: task.description,
     category: task.category,
     frequency: task.frequency,
     checkedAt: now.toISOString(),
-    nextDueDate: nextCheck.toISOString()
+    nextDueDate: nextCheck.toISOString(),
+    notes: task.notes ?? '',
+    mileage: activeVehicle.value.currentMileage ?? task.lastMileage ?? null,
+    createdAt: now.toISOString()
   });
 
   updateTask(updatedTask);
@@ -115,6 +135,11 @@ onErrorCaptured((err, instance, info) => {
 
     <main class="max-w-7xl mx-auto px-4 py-8">
       <div class="space-y-6">
+        <VehicleProfileCard
+          :vehicle="activeVehicle"
+          @save="saveVehicleProfile"
+        />
+
         <TaskGroup
           v-for="frequency in FREQUENCY_ORDER"
           :key="frequency"

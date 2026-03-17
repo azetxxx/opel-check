@@ -1,13 +1,29 @@
 import { ref } from 'vue';
 import type { MaintenanceLog } from '../types/maintenance';
+import { DEFAULT_VEHICLE_ID } from './useVehicleProfile';
 
 const STORAGE_KEY = 'maintenance-logs';
 
-// Shared state across components
 const logs = ref<MaintenanceLog[]>([]);
 const isLogModalOpen = ref(false);
 const isLoading = ref(false);
 let initialized = false;
+
+const nowIso = () => new Date().toISOString();
+
+const normalizeLog = (log: Partial<MaintenanceLog>): MaintenanceLog => ({
+  id: log.id ?? crypto.randomUUID(),
+  vehicleId: log.vehicleId ?? DEFAULT_VEHICLE_ID,
+  taskId: log.taskId ?? 'unknown-task',
+  taskDescription: log.taskDescription ?? 'Unbekannte Wartung',
+  category: log.category ?? 'Allgemein',
+  frequency: log.frequency ?? 'monthly',
+  checkedAt: log.checkedAt ?? nowIso(),
+  nextDueDate: log.nextDueDate ?? nowIso(),
+  notes: log.notes ?? '',
+  mileage: log.mileage ?? null,
+  createdAt: log.createdAt ?? log.checkedAt ?? nowIso()
+});
 
 const sortLogsByDateDesc = (items: MaintenanceLog[]) => {
   return [...items].sort(
@@ -20,8 +36,9 @@ export function useMaintenanceLogs() {
     try {
       isLoading.value = true;
       const savedLogs = localStorage.getItem(STORAGE_KEY);
-      const parsedLogs: MaintenanceLog[] = savedLogs ? JSON.parse(savedLogs) : [];
-      logs.value = sortLogsByDateDesc(parsedLogs);
+      const parsedLogs: Partial<MaintenanceLog>[] = savedLogs ? JSON.parse(savedLogs) : [];
+      logs.value = sortLogsByDateDesc(parsedLogs.map(normalizeLog));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(logs.value));
     } catch (error) {
       console.error('Error loading logs:', error);
       logs.value = [];
@@ -41,7 +58,7 @@ export function useMaintenanceLogs() {
   const addLog = async (log: MaintenanceLog) => {
     try {
       isLoading.value = true;
-      logs.value = sortLogsByDateDesc([log, ...logs.value]);
+      logs.value = sortLogsByDateDesc([normalizeLog(log), ...logs.value]);
       saveLogs();
     } catch (error) {
       console.error('Error adding log:', error);

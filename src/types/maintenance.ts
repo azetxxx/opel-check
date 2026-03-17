@@ -1,13 +1,33 @@
 export type Frequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual';
 export type TaskStatus = 'pending' | 'current' | 'overdue';
 
+export interface VehicleProfile {
+  id: string;
+  name: string;
+  plate?: string;
+  brand?: string;
+  model?: string;
+  year?: number;
+  vin?: string;
+  notes?: string;
+  currentMileage?: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface MaintenanceTask {
   id: string;
+  vehicleId: string;
   description: string;
   category: string;
   frequency: Frequency;
   lastCheck: string | null;
   nextCheck: string | null;
+  notes?: string;
+  dueMileage?: number | null;
+  lastMileage?: number | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface MaintenanceCategory {
@@ -17,12 +37,17 @@ export interface MaintenanceCategory {
 }
 
 export interface MaintenanceLog {
+  id: string;
+  vehicleId: string;
   taskId: string;
   taskDescription: string;
   category: string;
   frequency: Frequency;
   checkedAt: string;
   nextDueDate: string;
+  notes?: string;
+  mileage?: number | null;
+  createdAt: string;
 }
 
 export const frequencyToDays: Record<Frequency, number> = {

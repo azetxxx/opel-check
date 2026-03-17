@@ -1,148 +1,73 @@
 import { ref } from 'vue';
 import type { MaintenanceTask } from '../types/maintenance';
+import { DEFAULT_VEHICLE_ID } from './useVehicleProfile';
 
 const STORAGE_KEY = 'maintenance-tasks';
 
-// Initial test data
+const nowIso = () => new Date().toISOString();
+
+const createTask = (
+  id: string,
+  description: string,
+  category: string,
+  frequency: MaintenanceTask['frequency']
+): MaintenanceTask => {
+  const now = nowIso();
+
+  return {
+    id,
+    vehicleId: DEFAULT_VEHICLE_ID,
+    description,
+    category,
+    frequency,
+    lastCheck: null,
+    nextCheck: null,
+    notes: '',
+    dueMileage: null,
+    lastMileage: null,
+    createdAt: now,
+    updatedAt: now
+  };
+};
+
 const initialTasks: MaintenanceTask[] = [
-  // Wöchentlich
-  {
-    id: '1',
-    description: 'Ölstand prüfen (Motoröl)',
-    category: 'Motor',
-    frequency: 'weekly',
-    lastCheck: null,
-    nextCheck: null
-  },
-  {
-    id: '2',
-    description: 'Scheibenwaschanlage prüfen und nachfüllen',
-    category: 'Karosserie',
-    frequency: 'weekly',
-    lastCheck: null,
-    nextCheck: null
-  },
-  {
-    id: '3',
-    description: 'Lichtfunktionen prüfen (Abblend-, Fernlicht, Bremslicht, Blinker)',
-    category: 'Beleuchtung',
-    frequency: 'weekly',
-    lastCheck: null,
-    nextCheck: null
-  },
-
-  // Monatlich
-  {
-    id: '4',
-    description: 'Kühlflüssigkeit und Bremsflüssigkeit kontrollieren',
-    category: 'Motor',
-    frequency: 'monthly',
-    lastCheck: null,
-    nextCheck: null
-  },
-  {
-    id: '5',
-    description: 'Batterie prüfen (besonders im Winter)',
-    category: 'Elektrik',
-    frequency: 'monthly',
-    lastCheck: null,
-    nextCheck: null
-  },
-  {
-    id: '6',
-    description: 'Reifendruck kontrollieren und anpassen',
-    category: 'Reifen',
-    frequency: 'monthly',
-    lastCheck: null,
-    nextCheck: null
-  },
-
-  // Vierteljährlich
-  {
-    id: '7',
-    description: 'Wischerblätter auf Schlierenbildung/Geräusche prüfen',
-    category: 'Karosserie',
-    frequency: 'quarterly',
-    lastCheck: null,
-    nextCheck: null
-  },
-  {
-    id: '8',
-    description: 'Reifenwechsel (Sommer/Winter)',
-    category: 'Reifen',
-    frequency: 'quarterly',
-    lastCheck: null,
-    nextCheck: null
-  },
-  {
-    id: '9',
-    description: 'TÜV/HU/AU Fälligkeit prüfen',
-    category: 'Dokumente',
-    frequency: 'quarterly',
-    lastCheck: null,
-    nextCheck: null
-  },
-
-  // Halbjährlich
-  {
-    id: '10',
-    description: 'Unterbodenwäsche durchführen',
-    category: 'Karosserie',
-    frequency: 'biannual',
-    lastCheck: null,
-    nextCheck: null
-  },
-  {
-    id: '11',
-    description: 'Roststellen kontrollieren (Kanten/Radläufe)',
-    category: 'Karosserie',
-    frequency: 'biannual',
-    lastCheck: null,
-    nextCheck: null
-  },
-
-  // Jährlich
-  {
-    id: '12',
-    description: 'Inspektion nach Herstellervorgabe',
-    category: 'Service',
-    frequency: 'annual',
-    lastCheck: null,
-    nextCheck: null
-  },
-  {
-    id: '13',
-    description: 'Klimaanlage prüfen und desinfizieren',
-    category: 'Klimaanlage',
-    frequency: 'annual',
-    lastCheck: null,
-    nextCheck: null
-  },
-  {
-    id: '14',
-    description: 'Innenraumfilter (Pollenfilter) wechseln',
-    category: 'Klimaanlage',
-    frequency: 'annual',
-    lastCheck: null,
-    nextCheck: null
-  },
-  {
-    id: '15',
-    description: 'Bremsen (Beläge und Scheiben) überprüfen',
-    category: 'Bremsen',
-    frequency: 'annual',
-    lastCheck: null,
-    nextCheck: null
-  },
-  {
-    id: '16',
-    description: 'ADAC-Mitgliedschaft prüfen',
-    category: 'Dokumente',
-    frequency: 'annual',
-    lastCheck: null,
-    nextCheck: null
-  }
+  createTask('1', 'Ölstand prüfen (Motoröl)', 'Motor', 'weekly'),
+  createTask('2', 'Scheibenwaschanlage prüfen und nachfüllen', 'Karosserie', 'weekly'),
+  createTask('3', 'Lichtfunktionen prüfen (Abblend-, Fernlicht, Bremslicht, Blinker)', 'Beleuchtung', 'weekly'),
+  createTask('4', 'Kühlflüssigkeit und Bremsflüssigkeit kontrollieren', 'Motor', 'monthly'),
+  createTask('5', 'Batterie prüfen (besonders im Winter)', 'Elektrik', 'monthly'),
+  createTask('6', 'Reifendruck kontrollieren und anpassen', 'Reifen', 'monthly'),
+  createTask('7', 'Wischerblätter auf Schlierenbildung/Geräusche prüfen', 'Karosserie', 'quarterly'),
+  createTask('8', 'Reifenwechsel (Sommer/Winter)', 'Reifen', 'quarterly'),
+  createTask('9', 'TÜV/HU/AU Fälligkeit prüfen', 'Dokumente', 'quarterly'),
+  createTask('10', 'Unterbodenwäsche durchführen', 'Karosserie', 'biannual'),
+  createTask('11', 'Roststellen kontrollieren (Kanten/Radläufe)', 'Karosserie', 'biannual'),
+  createTask('12', 'Inspektion nach Herstellervorgabe', 'Service', 'annual'),
+  createTask('13', 'Klimaanlage prüfen und desinfizieren', 'Klimaanlage', 'annual'),
+  createTask('14', 'Innenraumfilter (Pollenfilter) wechseln', 'Klimaanlage', 'annual'),
+  createTask('15', 'Bremsen (Beläge und Scheiben) überprüfen', 'Bremsen', 'annual'),
+  createTask('16', 'ADAC-Mitgliedschaft prüfen', 'Dokumente', 'annual')
 ];
+
+const normalizeTask = (task: Partial<MaintenanceTask>): MaintenanceTask => {
+  const now = nowIso();
+  const createdAt = task.createdAt ?? task.lastCheck ?? now;
+
+  return {
+    id: task.id ?? crypto.randomUUID(),
+    vehicleId: task.vehicleId ?? DEFAULT_VEHICLE_ID,
+    description: task.description ?? 'Unbekannte Aufgabe',
+    category: task.category ?? 'Allgemein',
+    frequency: task.frequency ?? 'monthly',
+    lastCheck: task.lastCheck ?? null,
+    nextCheck: task.nextCheck ?? null,
+    notes: task.notes ?? '',
+    dueMileage: task.dueMileage ?? null,
+    lastMileage: task.lastMileage ?? null,
+    createdAt,
+    updatedAt: task.updatedAt ?? createdAt
+  };
+};
 
 export function useMaintenanceData() {
   const maintenanceTasks = ref<MaintenanceTask[]>([]);
@@ -150,10 +75,12 @@ export function useMaintenanceData() {
   const loadTasks = () => {
     try {
       const savedTasks = localStorage.getItem(STORAGE_KEY);
-      maintenanceTasks.value = savedTasks ? JSON.parse(savedTasks) : [...initialTasks];
+      const parsedTasks: Partial<MaintenanceTask>[] = savedTasks ? JSON.parse(savedTasks) : initialTasks;
+      maintenanceTasks.value = parsedTasks.map(normalizeTask);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(maintenanceTasks.value));
     } catch (error) {
       console.error('Error loading tasks:', error);
-      maintenanceTasks.value = [...initialTasks];
+      maintenanceTasks.value = initialTasks.map(normalizeTask);
     }
   };
 
@@ -168,7 +95,10 @@ export function useMaintenanceData() {
   const updateTask = (updatedTask: MaintenanceTask) => {
     const index = maintenanceTasks.value.findIndex(task => task.id === updatedTask.id);
     if (index !== -1) {
-      maintenanceTasks.value[index] = updatedTask;
+      maintenanceTasks.value[index] = {
+        ...updatedTask,
+        updatedAt: nowIso()
+      };
       saveTasks();
     }
   };
@@ -176,15 +106,14 @@ export function useMaintenanceData() {
   const resetTasks = () => {
     try {
       localStorage.removeItem(STORAGE_KEY);
-      maintenanceTasks.value = [...initialTasks];
+      maintenanceTasks.value = initialTasks.map(normalizeTask);
       saveTasks();
     } catch (error) {
       console.error('Error resetting tasks:', error);
-      maintenanceTasks.value = [...initialTasks];
+      maintenanceTasks.value = initialTasks.map(normalizeTask);
     }
   };
 
-  // Load tasks when composable is created
   loadTasks();
 
   return {
