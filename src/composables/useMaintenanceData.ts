@@ -1,8 +1,9 @@
 import { ref } from 'vue';
+import { STORAGE_KEYS, STORAGE_VERSIONS } from '../constants/storage';
 import type { MaintenanceTask, TaskScheduleType } from '../types/maintenance';
+import { migrateTasksStorage } from '../utils/storageMigrations';
+import { readRawStorage, writeStorageEnvelope } from '../utils/storage';
 import { DEFAULT_VEHICLE_ID } from './useVehicleProfile';
-
-const STORAGE_KEY = 'maintenance-tasks';
 
 const nowIso = () => new Date().toISOString();
 
@@ -86,33 +87,31 @@ const normalizeTask = (task: Partial<MaintenanceTask>): MaintenanceTask => {
 export function useMaintenanceData() {
   const maintenanceTasks = ref<MaintenanceTask[]>([]);
 
-  const loadTasks = () => {
+  const saveTasks = () => {
     try {
-      const savedTasks = localStorage.getItem(STORAGE_KEY);
-      const parsedTasks: Partial<MaintenanceTask>[] = savedTasks ? JSON.parse(savedTasks) : initialTasks;
-      maintenanceTasks.value = parsedTasks.map(normalizeTask);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(maintenanceTasks.value));
+      writeStorageEnvelope(STORAGE_KEYS.tasks, STORAGE_VERSIONS.tasks, maintenanceTasks.value);
     } catch (error) {
-      console.error('Error loading tasks:', error);
-      maintenanceTasks.value = initialTasks.map(normalizeTask);
+      console.error('Error saving tasks:', error);
     }
   };
 
-  const saveTasks = () => {
+  const loadTasks = () => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(maintenanceTasks.value));
+      const migrated = migrateTasksStorage(readRawStorage(STORAGE_KEYS.tasks));
+      const parsedTasks: Partial<MaintenanceTask>[] = migrated?.data ?? initialTasks;
+      maintenanceTasks.value = parsedTasks.map(normalizeTask);
+      saveTasks();
     } catch (error) {
-      console.error('Error saving tasks:', error);
+      console.error('Error loading tasks:', error);
+      maintenanceTasks.value = initialTasks.map(normalizeTask);
+      saveTasks();
     }
   };
 
   const updateTask = (updatedTask: MaintenanceTask) => {
     const index = maintenanceTasks.value.findIndex((task) => task.id === updatedTask.id);
     if (index !== -1) {
-      maintenanceTasks.value[index] = {
-        ...updatedTask,
-        updatedAt: nowIso()
-      };
+      maintenanceTasks.value[index] = { ...updatedTask, updatedAt: nowIso() };
       saveTasks();
     }
   };
@@ -126,26 +125,12 @@ export function useMaintenanceData() {
     if (task.id) {
       const existingTask = maintenanceTasks.value.find((item) => item.id === task.id);
       if (existingTask) {
-        updateTask(normalizeTask({
-          ...existingTask,
-          ...task,
-          id: existingTask.id,
-          createdAt: existingTask.createdAt,
-          updatedAt: nowIso()
-        }));
+        updateTask(normalizeTask({ ...existingTask, ...task, id: existingTask.id, createdAt: existingTask.createdAt, updatedAt: nowIso() }));
         return;
       }
     }
 
-    const newTask = normalizeTask({
-      ...task,
-      id: crypto.randomUUID(),
-      isCustom: true,
-      isArchived: false,
-      createdAt: nowIso(),
-      updatedAt: nowIso()
-    });
-
+    const newTask = normalizeTask({ ...task, id: crypto.randomUUID(), isCustom: true, isArchived: false, createdAt: nowIso(), updatedAt: nowIso() });
     maintenanceTasks.value.unshift(newTask);
     saveTasks();
   };
@@ -153,18 +138,18 @@ export function useMaintenanceData() {
   const archiveTask = (taskId: string) => {
     const task = maintenanceTasks.value.find((item) => item.id === taskId);
     if (!task || !task.isCustom) return;
-
     updateTask({ ...task, isArchived: true });
   };
 
   const resetTasks = () => {
     try {
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEYS.tasks);
       maintenanceTasks.value = initialTasks.map(normalizeTask);
       saveTasks();
     } catch (error) {
       console.error('Error resetting tasks:', error);
       maintenanceTasks.value = initialTasks.map(normalizeTask);
+      saveTasks();
     }
   };
 

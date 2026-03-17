@@ -1,8 +1,9 @@
 import { ref } from 'vue';
+import { STORAGE_KEYS, STORAGE_VERSIONS } from '../constants/storage';
 import type { MaintenanceLog } from '../types/maintenance';
 import { DEFAULT_VEHICLE_ID } from './useVehicleProfile';
-
-const STORAGE_KEY = 'maintenance-logs';
+import { migrateLogsStorage } from '../utils/storageMigrations';
+import { readRawStorage, writeStorageEnvelope } from '../utils/storage';
 
 const logs = ref<MaintenanceLog[]>([]);
 const isLogModalOpen = ref(false);
@@ -17,41 +18,39 @@ const normalizeLog = (log: Partial<MaintenanceLog>): MaintenanceLog => ({
   taskId: log.taskId ?? 'unknown-task',
   taskDescription: log.taskDescription ?? 'Unbekannte Wartung',
   category: log.category ?? 'Allgemein',
-  frequency: log.frequency ?? 'monthly',
+  frequency: log.frequency ?? null,
   checkedAt: log.checkedAt ?? nowIso(),
-  nextDueDate: log.nextDueDate ?? nowIso(),
+  nextDueDate: log.nextDueDate ?? null,
   notes: log.notes ?? '',
   mileage: log.mileage ?? null,
   createdAt: log.createdAt ?? log.checkedAt ?? nowIso()
 });
 
 const sortLogsByDateDesc = (items: MaintenanceLog[]) => {
-  return [...items].sort(
-    (a, b) => new Date(b.checkedAt).getTime() - new Date(a.checkedAt).getTime()
-  );
+  return [...items].sort((a, b) => new Date(b.checkedAt).getTime() - new Date(a.checkedAt).getTime());
 };
 
 export function useMaintenanceLogs() {
+  const saveLogs = () => {
+    try {
+      writeStorageEnvelope(STORAGE_KEYS.logs, STORAGE_VERSIONS.logs, logs.value);
+    } catch (error) {
+      console.error('Error saving logs:', error);
+    }
+  };
+
   const loadLogs = () => {
     try {
       isLoading.value = true;
-      const savedLogs = localStorage.getItem(STORAGE_KEY);
-      const parsedLogs: Partial<MaintenanceLog>[] = savedLogs ? JSON.parse(savedLogs) : [];
+      const migrated = migrateLogsStorage(readRawStorage(STORAGE_KEYS.logs));
+      const parsedLogs: Partial<MaintenanceLog>[] = migrated?.data ?? [];
       logs.value = sortLogsByDateDesc(parsedLogs.map(normalizeLog));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(logs.value));
+      saveLogs();
     } catch (error) {
       console.error('Error loading logs:', error);
       logs.value = [];
     } finally {
       isLoading.value = false;
-    }
-  };
-
-  const saveLogs = () => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(logs.value));
-    } catch (error) {
-      console.error('Error saving logs:', error);
     }
   };
 
@@ -78,7 +77,7 @@ export function useMaintenanceLogs() {
     try {
       isLoading.value = true;
       logs.value = [];
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEYS.logs);
     } catch (error) {
       console.error('Error clearing logs:', error);
     } finally {
