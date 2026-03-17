@@ -1,5 +1,7 @@
 export type Frequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual';
-export type TaskStatus = 'pending' | 'current' | 'overdue';
+export type TaskGroupKey = Frequency | 'scheduled';
+export type TaskScheduleType = 'recurring' | 'scheduled';
+export type TaskStatus = 'pending' | 'dueSoon' | 'current' | 'overdue';
 
 export interface VehicleProfile {
   id: string;
@@ -20,9 +22,11 @@ export interface MaintenanceTask {
   vehicleId: string;
   description: string;
   category: string;
-  frequency: Frequency;
+  scheduleType: TaskScheduleType;
+  frequency: Frequency | null;
   lastCheck: string | null;
   nextCheck: string | null;
+  dueDate?: string | null;
   notes?: string;
   dueMileage?: number | null;
   lastMileage?: number | null;
@@ -44,9 +48,9 @@ export interface MaintenanceLog {
   taskId: string;
   taskDescription: string;
   category: string;
-  frequency: Frequency;
+  frequency: Frequency | null;
   checkedAt: string;
-  nextDueDate: string;
+  nextDueDate: string | null;
   notes?: string;
   mileage?: number | null;
   createdAt: string;

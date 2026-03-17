@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { ChevronDownIcon } from '@heroicons/vue/20/solid';
 import { FREQUENCY_LABELS } from '../constants/maintenance';
-import type { Frequency, MaintenanceTask } from '../types/maintenance';
+import type { MaintenanceTask, TaskGroupKey } from '../types/maintenance';
 import { getGroupStatus, type EnrichedMaintenanceTask } from '../utils/maintenanceTasks';
 import TaskCard from './TaskCard.vue';
 
 const props = defineProps<{
-  frequency: Frequency;
+  frequency: TaskGroupKey;
   tasks: EnrichedMaintenanceTask[];
   collapsed: boolean;
   isLoading: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'toggle', frequency: Frequency): void;
+  (e: 'toggle', frequency: TaskGroupKey): void;
   (e: 'mark-checked', task: MaintenanceTask): void;
   (e: 'edit', task: MaintenanceTask): void;
   (e: 'delete', taskId: string): void;
@@ -33,6 +33,7 @@ const groupStatus = () => getGroupStatus(props.tasks);
           'h-3 w-3 rounded-full',
           {
             'bg-red-500': groupStatus() === 'overdue',
+            'bg-orange-500': groupStatus() === 'dueSoon',
             'bg-green-500': groupStatus() === 'current',
             'bg-yellow-400': groupStatus() === 'pending'
           }

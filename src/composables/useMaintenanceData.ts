@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import type { MaintenanceTask } from '../types/maintenance';
+import type { MaintenanceTask, TaskScheduleType } from '../types/maintenance';
 import { DEFAULT_VEHICLE_ID } from './useVehicleProfile';
 
 const STORAGE_KEY = 'maintenance-tasks';
@@ -10,7 +10,7 @@ const createBaseTask = (
   id: string,
   description: string,
   category: string,
-  frequency: MaintenanceTask['frequency']
+  frequency: NonNullable<MaintenanceTask['frequency']>
 ): MaintenanceTask => {
   const now = nowIso();
 
@@ -19,9 +19,11 @@ const createBaseTask = (
     vehicleId: DEFAULT_VEHICLE_ID,
     description,
     category,
+    scheduleType: 'recurring',
     frequency,
     lastCheck: null,
     nextCheck: null,
+    dueDate: null,
     notes: '',
     dueMileage: null,
     lastMileage: null,
@@ -51,18 +53,26 @@ const initialTasks: MaintenanceTask[] = [
   createBaseTask('16', 'ADAC-Mitgliedschaft prüfen', 'Dokumente', 'annual')
 ];
 
+const getScheduleType = (task: Partial<MaintenanceTask>): TaskScheduleType => {
+  if (task.scheduleType) return task.scheduleType;
+  return task.dueDate ? 'scheduled' : 'recurring';
+};
+
 const normalizeTask = (task: Partial<MaintenanceTask>): MaintenanceTask => {
   const now = nowIso();
   const createdAt = task.createdAt ?? task.lastCheck ?? now;
+  const scheduleType = getScheduleType(task);
 
   return {
     id: task.id ?? crypto.randomUUID(),
     vehicleId: task.vehicleId ?? DEFAULT_VEHICLE_ID,
     description: task.description ?? 'Unbekannte Aufgabe',
     category: task.category ?? 'Allgemein',
-    frequency: task.frequency ?? 'monthly',
+    scheduleType,
+    frequency: scheduleType === 'recurring' ? (task.frequency ?? 'monthly') : null,
     lastCheck: task.lastCheck ?? null,
-    nextCheck: task.nextCheck ?? null,
+    nextCheck: scheduleType === 'recurring' ? (task.nextCheck ?? null) : null,
+    dueDate: scheduleType === 'scheduled' ? (task.dueDate ?? null) : null,
     notes: task.notes ?? '',
     dueMileage: task.dueMileage ?? null,
     lastMileage: task.lastMileage ?? null,
@@ -97,7 +107,7 @@ export function useMaintenanceData() {
   };
 
   const updateTask = (updatedTask: MaintenanceTask) => {
-    const index = maintenanceTasks.value.findIndex(task => task.id === updatedTask.id);
+    const index = maintenanceTasks.value.findIndex((task) => task.id === updatedTask.id);
     if (index !== -1) {
       maintenanceTasks.value[index] = {
         ...updatedTask,
@@ -112,7 +122,7 @@ export function useMaintenanceData() {
     saveTasks();
   };
 
-  const saveTask = (task: Partial<MaintenanceTask> & Pick<MaintenanceTask, 'vehicleId' | 'description' | 'category' | 'frequency'>) => {
+  const saveTask = (task: Partial<MaintenanceTask> & Pick<MaintenanceTask, 'vehicleId' | 'description' | 'category' | 'scheduleType'>) => {
     if (task.id) {
       const existingTask = maintenanceTasks.value.find((item) => item.id === task.id);
       if (existingTask) {
@@ -144,10 +154,7 @@ export function useMaintenanceData() {
     const task = maintenanceTasks.value.find((item) => item.id === taskId);
     if (!task || !task.isCustom) return;
 
-    updateTask({
-      ...task,
-      isArchived: true
-    });
+    updateTask({ ...task, isArchived: true });
   };
 
   const resetTasks = () => {

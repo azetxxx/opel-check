@@ -84,8 +84,11 @@ import { formatDisplayDate } from '../utils/maintenanceDates';
 
 const { logs, isLogModalOpen, isLoading, clearLogs, closeLogModal } = useMaintenanceLogs();
 
-const formatDate = (dateString: string): string => formatDisplayDate(dateString) ?? '';
-const formatFrequency = (frequency: Frequency): string => FREQUENCY_LABELS[frequency];
+const formatDate = (dateString: string | null): string => formatDisplayDate(dateString) ?? '—';
+const formatFrequency = (frequency: Frequency | null): string => {
+  if (!frequency) return 'Geplant';
+  return FREQUENCY_LABELS[frequency];
+};
 const getCategoryClass = (category: string): string => CATEGORY_CLASSES[category] || DEFAULT_CATEGORY_CLASS;
 </script>
 

@@ -10,15 +10,10 @@ import { FREQUENCY_ORDER } from './constants/maintenance';
 import { useMaintenanceData } from './composables/useMaintenanceData';
 import { useMaintenanceLogs } from './composables/useMaintenanceLogs';
 import { useVehicleProfile } from './composables/useVehicleProfile';
-import type { Frequency, MaintenanceTask, VehicleProfile } from './types/maintenance';
+import type { MaintenanceTask, TaskGroupKey, VehicleProfile } from './types/maintenance';
 import { createBackupPayload, downloadBackup, validateBackupPayload } from './utils/backup';
 import { getCurrentDate, getNextCheckDate, toDateInputValue } from './utils/maintenanceDates';
-import {
-  buildDefaultCollapsedGroups,
-  enrichTasks,
-  getAutoCollapsedGroups,
-  groupTasksByFrequency
-} from './utils/maintenanceTasks';
+import { buildDefaultCollapsedGroups, enrichTasks, getAutoCollapsedGroups, groupTasksByFrequency } from './utils/maintenanceTasks';
 
 const { maintenanceTasks, updateTask, saveTask, archiveTask, replaceTasks, resetTasks } = useMaintenanceData();
 const { logs, addLog, isLoading, openLogModal, replaceLogs } = useMaintenanceLogs();
@@ -30,13 +25,10 @@ const isImportingBackup = ref(false);
 const editingTask = ref<MaintenanceTask | null>(null);
 const simulatedDate = ref<string>(toDateInputValue(new Date()));
 const useSimulatedDate = ref(false);
-const collapsedGroups = ref<Record<Frequency, boolean>>(buildDefaultCollapsedGroups());
+const collapsedGroups = ref<Record<TaskGroupKey, boolean>>(buildDefaultCollapsedGroups());
 
 const currentDate = computed(() => getCurrentDate(simulatedDate.value, useSimulatedDate.value));
-const filteredTasks = computed(() => {
-  const vehicleId = activeVehicle.value.id;
-  return maintenanceTasks.value.filter((task) => task.vehicleId === vehicleId && !task.isArchived);
-});
+const filteredTasks = computed(() => maintenanceTasks.value.filter((task) => task.vehicleId === activeVehicle.value.id && !task.isArchived));
 const enrichedTasks = computed(() => enrichTasks(filteredTasks.value, currentDate.value));
 const groupedTasks = computed(() => groupTasksByFrequency(enrichedTasks.value));
 
@@ -47,9 +39,7 @@ const debug = computed(() => ({
   tasksLoaded: maintenanceTasks.value.length,
   filteredTasksLoaded: filteredTasks.value.length,
   groupedTasksCount: Object.values(groupedTasks.value).reduce((acc, tasks) => acc + tasks.length, 0),
-  groups: Object.fromEntries(
-    Object.entries(groupedTasks.value).map(([key, tasks]) => [key, tasks.length])
-  ),
+  groups: Object.fromEntries(Object.entries(groupedTasks.value).map(([key, tasks]) => [key, tasks.length])),
   rawTasks: maintenanceTasks.value,
   rawGroupedTasks: groupedTasks.value,
   collapsedState: collapsedGroups.value,
@@ -65,40 +55,25 @@ const handleKeydown = (event: KeyboardEvent) => {
   }
 };
 
-watch(
-  groupedTasks,
-  (groups) => {
-    collapsedGroups.value = getAutoCollapsedGroups(groups);
-  },
-  { immediate: true }
-);
+watch(groupedTasks, (groups) => {
+  collapsedGroups.value = getAutoCollapsedGroups(groups);
+}, { immediate: true });
 
-onMounted(() => {
-  window.addEventListener('keydown', handleKeydown);
-});
+onMounted(() => window.addEventListener('keydown', handleKeydown));
+onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown);
-});
-
-const toggleGroup = (frequency: Frequency) => {
+const toggleGroup = (frequency: TaskGroupKey) => {
   collapsedGroups.value[frequency] = !collapsedGroups.value[frequency];
 };
 
-const saveVehicleProfile = (vehicle: VehicleProfile) => {
-  updateVehicle(vehicle);
-};
+const saveVehicleProfile = (vehicle: VehicleProfile) => updateVehicle(vehicle);
 
-const exportBackup = () => {
-  const payload = createBackupPayload(vehicles.value, maintenanceTasks.value, logs.value);
-  downloadBackup(payload);
-};
+const exportBackup = () => downloadBackup(createBackupPayload(vehicles.value, maintenanceTasks.value, logs.value));
 
 const importBackup = async (file: File) => {
   try {
     isImportingBackup.value = true;
-    const text = await file.text();
-    const parsed = JSON.parse(text) as unknown;
+    const parsed = JSON.parse(await file.text()) as unknown;
 
     if (!validateBackupPayload(parsed)) {
       alert('Ungültiges Backup-Format. Bitte eine gültige Omiigo-Car-JSON-Datei wählen.');
@@ -132,23 +107,21 @@ const closeTaskModal = () => {
   editingTask.value = null;
 };
 
-const handleSaveTask = (task: Partial<MaintenanceTask> & Pick<MaintenanceTask, 'vehicleId' | 'description' | 'category' | 'frequency'>) => {
+const handleSaveTask = (task: Partial<MaintenanceTask> & Pick<MaintenanceTask, 'vehicleId' | 'description' | 'category' | 'scheduleType'>) => {
   saveTask(task);
   closeTaskModal();
 };
 
-const handleArchiveTask = (taskId: string) => {
-  archiveTask(taskId);
-};
+const handleArchiveTask = (taskId: string) => archiveTask(taskId);
 
 const markChecked = async (task: MaintenanceTask) => {
   const now = currentDate.value;
-  const nextCheck = getNextCheckDate(task.frequency, now);
+  const nextCheck = task.scheduleType === 'recurring' && task.frequency ? getNextCheckDate(task.frequency, now).toISOString() : null;
 
-  const updatedTask = {
+  const updatedTask: MaintenanceTask = {
     ...task,
     lastCheck: now.toISOString(),
-    nextCheck: nextCheck.toISOString(),
+    nextCheck,
     updatedAt: now.toISOString(),
     lastMileage: activeVehicle.value.currentMileage ?? task.lastMileage ?? null
   };
@@ -161,7 +134,7 @@ const markChecked = async (task: MaintenanceTask) => {
     category: task.category,
     frequency: task.frequency,
     checkedAt: now.toISOString(),
-    nextDueDate: nextCheck.toISOString(),
+    nextDueDate: task.scheduleType === 'scheduled' ? task.dueDate ?? null : nextCheck,
     notes: task.notes ?? '',
     mileage: activeVehicle.value.currentMileage ?? task.lastMileage ?? null,
     createdAt: now.toISOString()
@@ -195,17 +168,8 @@ onErrorCaptured((err, instance, info) => {
 
     <main class="max-w-7xl mx-auto px-4 py-8">
       <div class="space-y-6">
-        <VehicleProfileCard
-          :vehicle="activeVehicle"
-          @save="saveVehicleProfile"
-          @create-task="openCreateTaskModal"
-        />
-
-        <BackupPanel
-          :is-importing="isImportingBackup"
-          @export="exportBackup"
-          @import-file="importBackup"
-        />
+        <VehicleProfileCard :vehicle="activeVehicle" @save="saveVehicleProfile" @create-task="openCreateTaskModal" />
+        <BackupPanel :is-importing="isImportingBackup" @export="exportBackup" @import-file="importBackup" />
 
         <TaskGroup
           v-for="frequency in FREQUENCY_ORDER"
@@ -222,14 +186,7 @@ onErrorCaptured((err, instance, info) => {
       </div>
     </main>
 
-    <TaskFormModal
-      :open="isTaskModalOpen"
-      :task="editingTask"
-      :vehicle-id="activeVehicle.id"
-      @close="closeTaskModal"
-      @save="handleSaveTask"
-    />
-
+    <TaskFormModal :open="isTaskModalOpen" :task="editingTask" :vehicle-id="activeVehicle.id" @close="closeTaskModal" @save="handleSaveTask" />
     <LogModal />
   </div>
 </template>

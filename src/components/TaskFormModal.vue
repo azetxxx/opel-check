@@ -2,7 +2,7 @@
 import { XMarkIcon } from '@heroicons/vue/24/outline';
 import { computed, reactive, watch } from 'vue';
 import { CATEGORY_OPTIONS, FREQUENCY_LABELS, FREQUENCY_ORDER } from '../constants/maintenance';
-import type { MaintenanceTask } from '../types/maintenance';
+import type { MaintenanceTask, TaskScheduleType } from '../types/maintenance';
 
 const props = defineProps<{
   open: boolean;
@@ -19,8 +19,10 @@ const emptyForm = () => ({
   id: '',
   description: '',
   category: 'Allgemein',
-  frequency: 'monthly' as MaintenanceTask['frequency'],
+  scheduleType: 'recurring' as TaskScheduleType,
+  frequency: 'monthly' as NonNullable<MaintenanceTask['frequency']>,
   notes: '',
+  dueDate: '',
   dueMileage: '',
   lastMileage: '',
   lastCheck: null as string | null,
@@ -30,7 +32,6 @@ const emptyForm = () => ({
 });
 
 const form = reactive(emptyForm());
-
 const isEditing = computed(() => Boolean(props.task));
 
 const syncForm = (task: MaintenanceTask | null) => {
@@ -43,8 +44,10 @@ const syncForm = (task: MaintenanceTask | null) => {
     id: task.id,
     description: task.description,
     category: task.category,
-    frequency: task.frequency,
+    scheduleType: task.scheduleType,
+    frequency: task.frequency ?? 'monthly',
     notes: task.notes ?? '',
+    dueDate: task.dueDate ?? '',
     dueMileage: task.dueMileage != null ? String(task.dueMileage) : '',
     lastMileage: task.lastMileage != null ? String(task.lastMileage) : '',
     lastCheck: task.lastCheck,
@@ -54,32 +57,25 @@ const syncForm = (task: MaintenanceTask | null) => {
   });
 };
 
-watch(
-  () => props.task,
-  (task) => syncForm(task),
-  { immediate: true }
-);
+watch(() => props.task, (task) => syncForm(task), { immediate: true });
+watch(() => props.open, (open) => { if (open && !props.task) syncForm(null); });
 
-watch(
-  () => props.open,
-  (open) => {
-    if (open && !props.task) {
-      syncForm(null);
-    }
-  }
-);
+const recurringOptions = computed(() => FREQUENCY_ORDER.filter((item) => item !== 'scheduled'));
 
 const submit = () => {
   if (!form.description.trim()) return;
+  if (form.scheduleType === 'scheduled' && !form.dueDate) return;
 
   emit('save', {
     id: form.id,
     vehicleId: props.vehicleId,
     description: form.description.trim(),
     category: form.category,
-    frequency: form.frequency,
+    scheduleType: form.scheduleType,
+    frequency: form.scheduleType === 'recurring' ? form.frequency : null,
     lastCheck: form.lastCheck,
-    nextCheck: form.nextCheck,
+    nextCheck: form.scheduleType === 'recurring' ? form.nextCheck : null,
+    dueDate: form.scheduleType === 'scheduled' ? (form.dueDate || null) : null,
     notes: form.notes.trim(),
     dueMileage: form.dueMileage ? Number(form.dueMileage) : null,
     lastMileage: form.lastMileage ? Number(form.lastMileage) : null,
@@ -95,9 +91,7 @@ const submit = () => {
       <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl border border-gray-100">
         <div class="flex justify-between items-center mb-6">
           <div>
-            <h2 class="text-2xl font-bold text-gray-900">
-              {{ isEditing ? 'Aufgabe bearbeiten' : 'Neue Aufgabe' }}
-            </h2>
+            <h2 class="text-2xl font-bold text-gray-900">{{ isEditing ? 'Aufgabe bearbeiten' : 'Neue Aufgabe' }}</h2>
             <p class="text-gray-600 text-sm mt-1">Wartungsaufgabe für das aktuelle Fahrzeug konfigurieren</p>
           </div>
           <button @click="emit('close')" class="text-gray-400 hover:text-gray-600 transition-colors duration-200">
@@ -119,10 +113,23 @@ const submit = () => {
           </div>
 
           <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Typ</label>
+            <select v-model="form.scheduleType" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+              <option value="recurring">Wiederholend</option>
+              <option value="scheduled">Geplant</option>
+            </select>
+          </div>
+
+          <div v-if="form.scheduleType === 'recurring'" class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-1">Frequenz</label>
             <select v-model="form.frequency" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-              <option v-for="frequency in FREQUENCY_ORDER" :key="frequency" :value="frequency">{{ FREQUENCY_LABELS[frequency] }}</option>
+              <option v-for="frequency in recurringOptions" :key="frequency" :value="frequency">{{ FREQUENCY_LABELS[frequency] }}</option>
             </select>
+          </div>
+
+          <div v-else class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Fällig am</label>
+            <input v-model="form.dueDate" type="date" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
           </div>
 
           <div>
@@ -142,9 +149,7 @@ const submit = () => {
         </div>
 
         <div class="mt-6 flex justify-end gap-3">
-          <button @click="emit('close')" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors duration-200">
-            Abbrechen
-          </button>
+          <button @click="emit('close')" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors duration-200">Abbrechen</button>
           <button @click="submit" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow text-sm font-medium">
             {{ isEditing ? 'Änderungen speichern' : 'Aufgabe erstellen' }}
           </button>

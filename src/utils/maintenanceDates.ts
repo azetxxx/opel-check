@@ -1,5 +1,7 @@
 import type { Frequency, MaintenanceTask, TaskStatus } from '../types/maintenance';
 
+const DUE_SOON_DAYS = 7;
+
 export const toDateInputValue = (date: Date) => date.toISOString().split('T')[0];
 
 export const getCurrentDate = (simulatedDate?: string | null, useSimulatedDate = false) => {
@@ -37,14 +39,27 @@ export const getNextCheckDate = (frequency: Frequency, baseDate: Date) => {
   return nextCheck;
 };
 
-export const getTaskStatus = (task: MaintenanceTask, currentDate: Date): TaskStatus => {
-  if (!task.lastCheck) return 'pending';
-  if (task.nextCheck && new Date(task.nextCheck) < currentDate) return 'overdue';
-  return 'current';
+const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+const getReferenceDate = (task: MaintenanceTask) => {
+  if (task.scheduleType === 'scheduled') return task.dueDate ?? null;
+  return task.nextCheck ?? null;
 };
 
-export const isOverdue = (task: MaintenanceTask, currentDate: Date) => {
-  return getTaskStatus(task, currentDate) === 'overdue';
+export const getTaskStatus = (task: MaintenanceTask, currentDate: Date): TaskStatus => {
+  const referenceDate = getReferenceDate(task);
+
+  if (!referenceDate) {
+    return task.lastCheck ? 'current' : 'pending';
+  }
+
+  const current = startOfDay(currentDate).getTime();
+  const target = startOfDay(new Date(referenceDate)).getTime();
+  const diffDays = Math.ceil((target - current) / (1000 * 60 * 60 * 24));
+
+  if (diffDays < 0) return 'overdue';
+  if (diffDays <= DUE_SOON_DAYS) return 'dueSoon';
+  return 'current';
 };
 
 export const formatDisplayDate = (dateString: string | null, locale = 'de-DE') => {

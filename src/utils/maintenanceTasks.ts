@@ -1,5 +1,5 @@
 import { FREQUENCY_ORDER } from '../constants/maintenance';
-import type { Frequency, MaintenanceTask, TaskStatus } from '../types/maintenance';
+import type { MaintenanceTask, TaskGroupKey, TaskStatus } from '../types/maintenance';
 import { getTaskStatus } from './maintenanceDates';
 
 export type GroupStatus = TaskStatus;
@@ -8,7 +8,8 @@ export interface EnrichedMaintenanceTask extends MaintenanceTask {
   status: TaskStatus;
 }
 
-export const createEmptyTaskGroups = (): Record<Frequency, EnrichedMaintenanceTask[]> => ({
+export const createEmptyTaskGroups = (): Record<TaskGroupKey, EnrichedMaintenanceTask[]> => ({
+  scheduled: [],
   daily: [],
   weekly: [],
   monthly: [],
@@ -17,10 +18,7 @@ export const createEmptyTaskGroups = (): Record<Frequency, EnrichedMaintenanceTa
   annual: []
 });
 
-export const enrichTasks = (
-  tasks: MaintenanceTask[],
-  currentDate: Date
-): EnrichedMaintenanceTask[] => {
+export const enrichTasks = (tasks: MaintenanceTask[], currentDate: Date): EnrichedMaintenanceTask[] => {
   return tasks.map((task) => ({
     ...task,
     status: getTaskStatus(task, currentDate)
@@ -29,8 +27,13 @@ export const enrichTasks = (
 
 const statusPriority: Record<TaskStatus, number> = {
   overdue: 0,
-  pending: 1,
-  current: 2
+  dueSoon: 1,
+  pending: 2,
+  current: 3
+};
+
+const getSortDate = (task: EnrichedMaintenanceTask) => {
+  return task.scheduleType === 'scheduled' ? task.dueDate ?? null : task.nextCheck ?? null;
 };
 
 export const sortTasksByUrgency = (tasks: EnrichedMaintenanceTask[]) => {
@@ -38,12 +41,12 @@ export const sortTasksByUrgency = (tasks: EnrichedMaintenanceTask[]) => {
     const statusDiff = statusPriority[a.status] - statusPriority[b.status];
     if (statusDiff !== 0) return statusDiff;
 
-    if (a.nextCheck && b.nextCheck) {
-      return new Date(a.nextCheck).getTime() - new Date(b.nextCheck).getTime();
-    }
+    const aDate = getSortDate(a);
+    const bDate = getSortDate(b);
 
-    if (a.nextCheck && !b.nextCheck) return -1;
-    if (!a.nextCheck && b.nextCheck) return 1;
+    if (aDate && bDate) return new Date(aDate).getTime() - new Date(bDate).getTime();
+    if (aDate && !bDate) return -1;
+    if (!aDate && bDate) return 1;
 
     return Number(a.id) - Number(b.id);
   });
@@ -53,7 +56,8 @@ export const groupTasksByFrequency = (tasks: EnrichedMaintenanceTask[]) => {
   const groups = createEmptyTaskGroups();
 
   sortTasksByUrgency(tasks).forEach((task) => {
-    groups[task.frequency].push(task);
+    const groupKey: TaskGroupKey = task.scheduleType === 'scheduled' ? 'scheduled' : (task.frequency ?? 'monthly');
+    groups[groupKey].push(task);
   });
 
   return groups;
@@ -61,11 +65,13 @@ export const groupTasksByFrequency = (tasks: EnrichedMaintenanceTask[]) => {
 
 export const getGroupStatus = (tasks: EnrichedMaintenanceTask[]): GroupStatus => {
   if (tasks.some((task) => task.status === 'overdue')) return 'overdue';
+  if (tasks.some((task) => task.status === 'dueSoon')) return 'dueSoon';
   if (tasks.some((task) => task.status === 'pending')) return 'pending';
   return 'current';
 };
 
-export const buildDefaultCollapsedGroups = () => ({
+export const buildDefaultCollapsedGroups = (): Record<TaskGroupKey, boolean> => ({
+  scheduled: false,
   daily: false,
   weekly: false,
   monthly: false,
@@ -75,8 +81,8 @@ export const buildDefaultCollapsedGroups = () => ({
 });
 
 export const getAutoCollapsedGroups = (
-  groups: Record<Frequency, EnrichedMaintenanceTask[]>
-): Record<Frequency, boolean> => {
+  groups: Record<TaskGroupKey, EnrichedMaintenanceTask[]>
+): Record<TaskGroupKey, boolean> => {
   const collapsed = buildDefaultCollapsedGroups();
 
   FREQUENCY_ORDER.forEach((frequency) => {
