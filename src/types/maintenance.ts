@@ -1,4 +1,5 @@
 export type Frequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual';
+export type TaskStatus = 'pending' | 'current' | 'overdue';
 
 export interface MaintenanceTask {
   id: string;

@@ -1,34 +1,43 @@
 <script setup lang="ts">
+import { ClipboardDocumentListIcon, CheckIcon, ArrowPathIcon, ChevronDownIcon } from '@heroicons/vue/20/solid';
+import { computed, onErrorCaptured, onMounted, onUnmounted, ref, watch } from 'vue';
+import LogModal from './components/LogModal.vue';
+import {
+  CATEGORY_CLASSES,
+  DEFAULT_CATEGORY_CLASS,
+  FREQUENCY_LABELS,
+  FREQUENCY_ORDER
+} from './constants/maintenance';
 import { useMaintenanceData } from './composables/useMaintenanceData';
 import { useMaintenanceLogs } from './composables/useMaintenanceLogs';
-import { ClipboardDocumentListIcon, CheckIcon, ArrowPathIcon, ChevronDownIcon } from '@heroicons/vue/20/solid';
-import LogModal from './components/LogModal.vue';
-import type { MaintenanceTask, Frequency } from './types/maintenance';
-import { ref, computed, watch, onErrorCaptured, onMounted, onUnmounted } from 'vue';
+import type { Frequency, MaintenanceTask } from './types/maintenance';
+import {
+  formatDisplayDate,
+  getCurrentDate,
+  getNextCheckDate,
+  toDateInputValue
+} from './utils/maintenanceDates';
+import {
+  buildDefaultCollapsedGroups,
+  enrichTasks,
+  getAutoCollapsedGroups,
+  getGroupStatus,
+  groupTasksByFrequency,
+  type EnrichedMaintenanceTask
+} from './utils/maintenanceTasks';
 
 const { maintenanceTasks, updateTask, resetTasks } = useMaintenanceData();
 const { addLog, isLoading, openLogModal } = useMaintenanceLogs();
 
-// Add debug mode functionality
 const showDebug = ref(false);
+const simulatedDate = ref<string>(toDateInputValue(new Date()));
+const useSimulatedDate = ref(false);
+const collapsedGroups = ref<Record<Frequency, boolean>>(buildDefaultCollapsedGroups());
 
-// Add keyboard shortcut for debug mode
-const handleKeydown = (event: KeyboardEvent) => {
-  if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
-    event.preventDefault();
-    showDebug.value = !showDebug.value;
-  }
-};
+const currentDate = computed(() => getCurrentDate(simulatedDate.value, useSimulatedDate.value));
+const enrichedTasks = computed(() => enrichTasks(maintenanceTasks.value, currentDate.value));
+const groupedTasks = computed(() => groupTasksByFrequency(enrichedTasks.value));
 
-onMounted(() => {
-  window.addEventListener('keydown', handleKeydown);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown);
-});
-
-// Add debug computed property
 const debug = computed(() => ({
   tasksLoaded: maintenanceTasks.value.length,
   groupedTasksCount: Object.values(groupedTasks.value).reduce((acc, tasks) => acc + tasks.length, 0),
@@ -39,178 +48,55 @@ const debug = computed(() => ({
   rawGroupedTasks: groupedTasks.value,
   collapsedState: collapsedGroups.value,
   simulatedDateEnabled: useSimulatedDate.value,
-  currentSimulatedDate: simulatedDate.value
+  currentSimulatedDate: simulatedDate.value,
+  currentDate: currentDate.value.toISOString()
 }));
 
-// Add simulated date functionality
-const simulatedDate = ref<string>(new Date().toISOString().split('T')[0]);
-const useSimulatedDate = ref(false);
-
-const getCurrentDate = (): Date => {
-  if (useSimulatedDate.value && simulatedDate.value) {
-    return new Date(simulatedDate.value);
+const handleKeydown = (event: KeyboardEvent) => {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
+    event.preventDefault();
+    showDebug.value = !showDebug.value;
   }
-  return new Date();
 };
 
-const isOverdue = (task: MaintenanceTask): boolean => {
-  if (!task.nextCheck) return false;
-  return new Date(task.nextCheck) < getCurrentDate();
-};
+watch(
+  groupedTasks,
+  (groups) => {
+    collapsedGroups.value = getAutoCollapsedGroups(groups);
+  },
+  { immediate: true }
+);
 
-const getStatusText = (task: MaintenanceTask): string => {
-  if (!task.lastCheck) return 'Ausstehend';
-  if (isOverdue(task)) return 'Überfällig';
-  return 'Aktuell';
-};
-
-// Add sorted tasks computed property
-const sortedTasks = computed(() => {
-  return [...maintenanceTasks.value].sort((a, b) => {
-    // First priority: Tasks that are overdue
-    const aOverdue = isOverdue(a);
-    const bOverdue = isOverdue(b);
-    if (aOverdue && !bOverdue) return -1;
-    if (!aOverdue && bOverdue) return 1;
-
-    // Second priority: Tasks that have never been checked
-    const aUnchecked = !a.lastCheck;
-    const bUnchecked = !b.lastCheck;
-    if (aUnchecked && !bUnchecked) return -1;
-    if (!aUnchecked && bUnchecked) return 1;
-
-    // Third priority: Sort by next check date
-    if (a.nextCheck && b.nextCheck) {
-      return new Date(a.nextCheck).getTime() - new Date(b.nextCheck).getTime();
-    }
-
-    // Keep original order for tasks without next check date
-    return 0;
-  });
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
 });
 
-// Add grouped tasks computed property
-const groupedTasks = computed(() => {
-  const groups: Record<Frequency, MaintenanceTask[]> = {
-    daily: [],
-    weekly: [],
-    monthly: [],
-    quarterly: [],
-    biannual: [],
-    annual: []
-  };
-
-  // Sort tasks within each frequency group by urgency
-  sortedTasks.value.forEach(task => {
-    groups[task.frequency].push(task);
-  });
-
-  return groups;
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown);
 });
-
-const getGroupStatus = (tasks: MaintenanceTask[]) => {
-  const hasOverdue = tasks.some(task => isOverdue(task));
-  const hasPending = tasks.some(task => !task.lastCheck);
-  const allCurrent = tasks.every(task => task.lastCheck && !isOverdue(task));
-
-  if (hasOverdue) return 'overdue';
-  if (hasPending) return 'pending';
-  if (allCurrent) return 'current';
-  return 'pending';
-};
-
-// Add frequency order for display
-const frequencyOrder: Frequency[] = ['daily', 'weekly', 'monthly', 'quarterly', 'biannual', 'annual'];
-
-// Add collapsed state management
-const collapsedGroups = ref<Record<Frequency, boolean>>({
-  daily: false,
-  weekly: false,
-  monthly: false,
-  quarterly: false,
-  biannual: false,
-  annual: false
-});
-
-// Initialize collapsed state based on group status
-const initializeCollapsedState = () => {
-  frequencyOrder.forEach(frequency => {
-    if (groupedTasks.value[frequency].length > 0) {
-      collapsedGroups.value[frequency] = getGroupStatus(groupedTasks.value[frequency]) === 'current';
-    }
-  });
-};
-
-// Watch for changes in grouped tasks and update collapsed state
-watch(groupedTasks, () => {
-  initializeCollapsedState();
-}, { immediate: true });
 
 const toggleGroup = (frequency: Frequency) => {
   collapsedGroups.value[frequency] = !collapsedGroups.value[frequency];
 };
 
-const formatFrequency = (frequency: Frequency): string => {
-  const frequencyMap: Record<Frequency, string> = {
-    daily: 'Täglich',
-    weekly: 'Wöchentlich',
-    monthly: 'Monatlich',
-    quarterly: 'Vierteljährlich',
-    biannual: 'Halbjährlich',
-    annual: 'Jährlich'
-  };
-  return frequencyMap[frequency];
-};
-
-const getCategoryClass = (category: string): string => {
-  const categoryClasses: Record<string, string> = {
-    'Motor': 'bg-red-100 text-red-800',
-    'Reifen': 'bg-blue-100 text-blue-800',
-    'Bremsen': 'bg-yellow-100 text-yellow-800',
-    'Karosserie': 'bg-purple-100 text-purple-800',
-    'Beleuchtung': 'bg-green-100 text-green-800',
-    'Elektrik': 'bg-orange-100 text-orange-800',
-    'Dokumente': 'bg-slate-100 text-slate-800',
-    'Service': 'bg-emerald-100 text-emerald-800',
-    'Klimaanlage': 'bg-cyan-100 text-cyan-800'
-  };
-  return categoryClasses[category] || 'bg-gray-100 text-gray-800';
+const formatFrequency = (frequency: Frequency) => FREQUENCY_LABELS[frequency];
+const getCategoryClass = (category: string) => CATEGORY_CLASSES[category] || DEFAULT_CATEGORY_CLASS;
+const getStatusText = (task: EnrichedMaintenanceTask) => {
+  if (task.status === 'overdue') return 'Überfällig';
+  if (task.status === 'current') return 'Aktuell';
+  return 'Ausstehend';
 };
 
 const markChecked = async (task: MaintenanceTask) => {
-  const now = getCurrentDate();
-  const nextCheck = new Date(now);
+  const now = currentDate.value;
+  const nextCheck = getNextCheckDate(task.frequency, now);
 
-  // Calculate next check date based on frequency
-  switch (task.frequency) {
-    case 'daily':
-      nextCheck.setDate(nextCheck.getDate() + 1);
-      break;
-    case 'weekly':
-      nextCheck.setDate(nextCheck.getDate() + 7);
-      break;
-    case 'monthly':
-      nextCheck.setMonth(nextCheck.getMonth() + 1);
-      break;
-    case 'quarterly':
-      nextCheck.setMonth(nextCheck.getMonth() + 3);
-      break;
-    case 'biannual':
-      nextCheck.setMonth(nextCheck.getMonth() + 6);
-      break;
-    case 'annual':
-      nextCheck.setFullYear(nextCheck.getFullYear() + 1);
-      break;
-  }
-
-  // Update task
   const updatedTask = {
     ...task,
     lastCheck: now.toISOString(),
     nextCheck: nextCheck.toISOString()
   };
 
-  // Add log
   await addLog({
     taskId: task.id,
     taskDescription: task.description,
@@ -220,11 +106,9 @@ const markChecked = async (task: MaintenanceTask) => {
     nextDueDate: nextCheck.toISOString()
   });
 
-  // Update task state
   updateTask(updatedTask);
 };
 
-// Add error boundary
 onErrorCaptured((err, instance, info) => {
   console.error('Error captured:', err);
   console.log('Component:', instance);
@@ -235,10 +119,8 @@ onErrorCaptured((err, instance, info) => {
 
 <template>
   <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 pb-20">
-    <!-- Header -->
     <header class="sticky top-0 bg-white shadow-md z-10">
       <div class="max-w-7xl mx-auto px-4 py-4">
-        <!-- Debug Panel -->
         <Transition
           enter-active-class="transition duration-200 ease-out"
           enter-from-class="transform -translate-y-4 opacity-0"
@@ -313,12 +195,10 @@ onErrorCaptured((err, instance, info) => {
       </div>
     </header>
 
-    <!-- Main Content -->
     <main class="max-w-7xl mx-auto px-4 py-8">
       <div class="space-y-6">
-        <template v-for="frequency in frequencyOrder" :key="frequency">
+        <template v-for="frequency in FREQUENCY_ORDER" :key="frequency">
           <div v-if="groupedTasks[frequency].length > 0" class="bg-white rounded-xl shadow-sm overflow-hidden">
-            <!-- Group Header -->
             <div
               @click="toggleGroup(frequency)"
               class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
@@ -340,7 +220,6 @@ onErrorCaptured((err, instance, info) => {
               />
             </div>
 
-            <!-- Group Content -->
             <div
               v-show="!collapsedGroups[frequency]"
               class="border-t border-gray-100"
@@ -349,7 +228,6 @@ onErrorCaptured((err, instance, info) => {
                 <div v-for="task in groupedTasks[frequency]" :key="task.id"
                      class="p-4 hover:bg-gray-50 transition-colors duration-200">
                   <div class="flex flex-col gap-3">
-                    <!-- Task Header -->
                     <div class="flex justify-between items-start gap-4">
                       <div class="flex-1">
                         <h3 class="font-medium text-gray-900">{{ task.description }}</h3>
@@ -364,17 +242,17 @@ onErrorCaptured((err, instance, info) => {
                         <div :class="[
                           'h-3 w-3 rounded-full mr-2',
                           {
-                            'bg-red-500': isOverdue(task),
-                            'bg-green-500': task.lastCheck && !isOverdue(task),
-                            'bg-yellow-400': !task.lastCheck
+                            'bg-red-500': task.status === 'overdue',
+                            'bg-green-500': task.status === 'current',
+                            'bg-yellow-400': task.status === 'pending'
                           }
                         ]"></div>
                         <span :class="[
                           'text-sm font-medium',
                           {
-                            'text-red-600': isOverdue(task),
-                            'text-green-600': task.lastCheck && !isOverdue(task),
-                            'text-yellow-600': !task.lastCheck
+                            'text-red-600': task.status === 'overdue',
+                            'text-green-600': task.status === 'current',
+                            'text-yellow-600': task.status === 'pending'
                           }
                         ]">
                           {{ getStatusText(task) }}
@@ -382,31 +260,29 @@ onErrorCaptured((err, instance, info) => {
                       </div>
                     </div>
 
-                    <!-- Task Dates -->
                     <div class="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <div class="text-gray-500 mb-1">Letzte Prüfung</div>
                         <div :class="{'text-gray-400': !task.lastCheck, 'text-gray-900': task.lastCheck}">
-                          {{ task.lastCheck ? new Date(task.lastCheck).toLocaleDateString('de-DE') : 'Nie' }}
+                          {{ formatDisplayDate(task.lastCheck) ?? 'Nie' }}
                         </div>
                       </div>
                       <div>
                         <div class="text-gray-500 mb-1">Nächste Prüfung</div>
                         <div :class="{'text-gray-400': !task.nextCheck, 'text-gray-900': task.nextCheck}">
-                          {{ task.nextCheck ? new Date(task.nextCheck).toLocaleDateString('de-DE') : 'Nicht geplant' }}
+                          {{ formatDisplayDate(task.nextCheck) ?? 'Nicht geplant' }}
                         </div>
                       </div>
                     </div>
 
-                    <!-- Action Button -->
                     <button
                       @click="markChecked(task)"
                       :class="[
                         'w-full px-4 py-2 text-white rounded-lg transform hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2',
                         {
-                          'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700': isOverdue(task),
-                          'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700': task.lastCheck && !isOverdue(task),
-                          'bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600': !task.lastCheck
+                          'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700': task.status === 'overdue',
+                          'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700': task.status === 'current',
+                          'bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600': task.status === 'pending'
                         }
                       ]"
                       :disabled="isLoading"
@@ -426,4 +302,3 @@ onErrorCaptured((err, instance, info) => {
     <LogModal />
   </div>
 </template>
-
