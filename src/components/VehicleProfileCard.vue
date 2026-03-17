@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { PlusIcon } from '@heroicons/vue/20/solid';
 import { computed, reactive, watch } from 'vue';
 import type { VehicleProfile } from '../types/maintenance';
 
@@ -8,6 +9,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'save', vehicle: VehicleProfile): void;
+  (e: 'create-task'): void;
 }>();
 
 const form = reactive({
@@ -56,11 +58,20 @@ const submit = () => {
 
 <template>
   <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
-    <div class="mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">Fahrzeugprofil</h2>
-      <p class="text-sm text-gray-600 mt-1">
-        {{ vehicle.name }}<span v-if="vehicleSummary"> · {{ vehicleSummary }}</span>
-      </p>
+    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h2 class="text-lg font-semibold text-gray-900">Fahrzeugprofil</h2>
+        <p class="text-sm text-gray-600 mt-1">
+          {{ vehicle.name }}<span v-if="vehicleSummary"> · {{ vehicleSummary }}</span>
+        </p>
+      </div>
+      <button
+        @click="emit('create-task')"
+        class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow text-sm font-medium flex items-center gap-2"
+      >
+        <PlusIcon class="h-4 w-4" />
+        Neue Aufgabe
+      </button>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

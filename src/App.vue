@@ -2,6 +2,7 @@
 import { computed, onErrorCaptured, onMounted, onUnmounted, ref, watch } from 'vue';
 import AppHeader from './components/AppHeader.vue';
 import LogModal from './components/LogModal.vue';
+import TaskFormModal from './components/TaskFormModal.vue';
 import TaskGroup from './components/TaskGroup.vue';
 import VehicleProfileCard from './components/VehicleProfileCard.vue';
 import { FREQUENCY_ORDER } from './constants/maintenance';
@@ -17,11 +18,13 @@ import {
   groupTasksByFrequency
 } from './utils/maintenanceTasks';
 
-const { maintenanceTasks, updateTask, resetTasks } = useMaintenanceData();
+const { maintenanceTasks, updateTask, saveTask, archiveTask, resetTasks } = useMaintenanceData();
 const { addLog, isLoading, openLogModal } = useMaintenanceLogs();
 const { activeVehicle, updateVehicle } = useVehicleProfile();
 
 const showDebug = ref(false);
+const isTaskModalOpen = ref(false);
+const editingTask = ref<MaintenanceTask | null>(null);
 const simulatedDate = ref<string>(toDateInputValue(new Date()));
 const useSimulatedDate = ref(false);
 const collapsedGroups = ref<Record<Frequency, boolean>>(buildDefaultCollapsedGroups());
@@ -29,7 +32,7 @@ const collapsedGroups = ref<Record<Frequency, boolean>>(buildDefaultCollapsedGro
 const currentDate = computed(() => getCurrentDate(simulatedDate.value, useSimulatedDate.value));
 const filteredTasks = computed(() => {
   const vehicleId = activeVehicle.value.id;
-  return maintenanceTasks.value.filter((task) => task.vehicleId === vehicleId);
+  return maintenanceTasks.value.filter((task) => task.vehicleId === vehicleId && !task.isArchived);
 });
 const enrichedTasks = computed(() => enrichTasks(filteredTasks.value, currentDate.value));
 const groupedTasks = computed(() => groupTasksByFrequency(enrichedTasks.value));
@@ -79,6 +82,30 @@ const toggleGroup = (frequency: Frequency) => {
 
 const saveVehicleProfile = (vehicle: VehicleProfile) => {
   updateVehicle(vehicle);
+};
+
+const openCreateTaskModal = () => {
+  editingTask.value = null;
+  isTaskModalOpen.value = true;
+};
+
+const openEditTaskModal = (task: MaintenanceTask) => {
+  editingTask.value = task;
+  isTaskModalOpen.value = true;
+};
+
+const closeTaskModal = () => {
+  isTaskModalOpen.value = false;
+  editingTask.value = null;
+};
+
+const handleSaveTask = (task: Partial<MaintenanceTask> & Pick<MaintenanceTask, 'vehicleId' | 'description' | 'category' | 'frequency'>) => {
+  saveTask(task);
+  closeTaskModal();
+};
+
+const handleArchiveTask = (taskId: string) => {
+  archiveTask(taskId);
 };
 
 const markChecked = async (task: MaintenanceTask) => {
@@ -138,6 +165,7 @@ onErrorCaptured((err, instance, info) => {
         <VehicleProfileCard
           :vehicle="activeVehicle"
           @save="saveVehicleProfile"
+          @create-task="openCreateTaskModal"
         />
 
         <TaskGroup
@@ -149,9 +177,19 @@ onErrorCaptured((err, instance, info) => {
           :is-loading="isLoading"
           @toggle="toggleGroup"
           @mark-checked="markChecked"
+          @edit="openEditTaskModal"
+          @delete="handleArchiveTask"
         />
       </div>
     </main>
+
+    <TaskFormModal
+      :open="isTaskModalOpen"
+      :task="editingTask"
+      :vehicle-id="activeVehicle.id"
+      @close="closeTaskModal"
+      @save="handleSaveTask"
+    />
 
     <LogModal />
   </div>

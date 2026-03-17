@@ -31,3 +31,16 @@ export const CATEGORY_CLASSES: Record<string, string> = {
 };
 
 export const DEFAULT_CATEGORY_CLASS = 'bg-gray-100 text-gray-800';
+
+export const CATEGORY_OPTIONS = [
+  'Motor',
+  'Reifen',
+  'Bremsen',
+  'Karosserie',
+  'Beleuchtung',
+  'Elektrik',
+  'Dokumente',
+  'Service',
+  'Klimaanlage',
+  'Allgemein'
+] as const;

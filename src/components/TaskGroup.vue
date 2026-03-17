@@ -15,6 +15,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'toggle', frequency: Frequency): void;
   (e: 'mark-checked', task: MaintenanceTask): void;
+  (e: 'edit', task: MaintenanceTask): void;
+  (e: 'delete', taskId: string): void;
 }>();
 
 const groupStatus = () => getGroupStatus(props.tasks);
@@ -51,6 +53,8 @@ const groupStatus = () => getGroupStatus(props.tasks);
           :task="task"
           :is-loading="isLoading"
           @mark-checked="emit('mark-checked', $event)"
+          @edit="emit('edit', $event)"
+          @delete="emit('delete', $event)"
         />
       </div>
     </div>

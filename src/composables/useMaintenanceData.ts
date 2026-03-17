@@ -6,7 +6,7 @@ const STORAGE_KEY = 'maintenance-tasks';
 
 const nowIso = () => new Date().toISOString();
 
-const createTask = (
+const createBaseTask = (
   id: string,
   description: string,
   category: string,
@@ -25,28 +25,30 @@ const createTask = (
     notes: '',
     dueMileage: null,
     lastMileage: null,
+    isCustom: false,
+    isArchived: false,
     createdAt: now,
     updatedAt: now
   };
 };
 
 const initialTasks: MaintenanceTask[] = [
-  createTask('1', 'Ölstand prüfen (Motoröl)', 'Motor', 'weekly'),
-  createTask('2', 'Scheibenwaschanlage prüfen und nachfüllen', 'Karosserie', 'weekly'),
-  createTask('3', 'Lichtfunktionen prüfen (Abblend-, Fernlicht, Bremslicht, Blinker)', 'Beleuchtung', 'weekly'),
-  createTask('4', 'Kühlflüssigkeit und Bremsflüssigkeit kontrollieren', 'Motor', 'monthly'),
-  createTask('5', 'Batterie prüfen (besonders im Winter)', 'Elektrik', 'monthly'),
-  createTask('6', 'Reifendruck kontrollieren und anpassen', 'Reifen', 'monthly'),
-  createTask('7', 'Wischerblätter auf Schlierenbildung/Geräusche prüfen', 'Karosserie', 'quarterly'),
-  createTask('8', 'Reifenwechsel (Sommer/Winter)', 'Reifen', 'quarterly'),
-  createTask('9', 'TÜV/HU/AU Fälligkeit prüfen', 'Dokumente', 'quarterly'),
-  createTask('10', 'Unterbodenwäsche durchführen', 'Karosserie', 'biannual'),
-  createTask('11', 'Roststellen kontrollieren (Kanten/Radläufe)', 'Karosserie', 'biannual'),
-  createTask('12', 'Inspektion nach Herstellervorgabe', 'Service', 'annual'),
-  createTask('13', 'Klimaanlage prüfen und desinfizieren', 'Klimaanlage', 'annual'),
-  createTask('14', 'Innenraumfilter (Pollenfilter) wechseln', 'Klimaanlage', 'annual'),
-  createTask('15', 'Bremsen (Beläge und Scheiben) überprüfen', 'Bremsen', 'annual'),
-  createTask('16', 'ADAC-Mitgliedschaft prüfen', 'Dokumente', 'annual')
+  createBaseTask('1', 'Ölstand prüfen (Motoröl)', 'Motor', 'weekly'),
+  createBaseTask('2', 'Scheibenwaschanlage prüfen und nachfüllen', 'Karosserie', 'weekly'),
+  createBaseTask('3', 'Lichtfunktionen prüfen (Abblend-, Fernlicht, Bremslicht, Blinker)', 'Beleuchtung', 'weekly'),
+  createBaseTask('4', 'Kühlflüssigkeit und Bremsflüssigkeit kontrollieren', 'Motor', 'monthly'),
+  createBaseTask('5', 'Batterie prüfen (besonders im Winter)', 'Elektrik', 'monthly'),
+  createBaseTask('6', 'Reifendruck kontrollieren und anpassen', 'Reifen', 'monthly'),
+  createBaseTask('7', 'Wischerblätter auf Schlierenbildung/Geräusche prüfen', 'Karosserie', 'quarterly'),
+  createBaseTask('8', 'Reifenwechsel (Sommer/Winter)', 'Reifen', 'quarterly'),
+  createBaseTask('9', 'TÜV/HU/AU Fälligkeit prüfen', 'Dokumente', 'quarterly'),
+  createBaseTask('10', 'Unterbodenwäsche durchführen', 'Karosserie', 'biannual'),
+  createBaseTask('11', 'Roststellen kontrollieren (Kanten/Radläufe)', 'Karosserie', 'biannual'),
+  createBaseTask('12', 'Inspektion nach Herstellervorgabe', 'Service', 'annual'),
+  createBaseTask('13', 'Klimaanlage prüfen und desinfizieren', 'Klimaanlage', 'annual'),
+  createBaseTask('14', 'Innenraumfilter (Pollenfilter) wechseln', 'Klimaanlage', 'annual'),
+  createBaseTask('15', 'Bremsen (Beläge und Scheiben) überprüfen', 'Bremsen', 'annual'),
+  createBaseTask('16', 'ADAC-Mitgliedschaft prüfen', 'Dokumente', 'annual')
 ];
 
 const normalizeTask = (task: Partial<MaintenanceTask>): MaintenanceTask => {
@@ -64,6 +66,8 @@ const normalizeTask = (task: Partial<MaintenanceTask>): MaintenanceTask => {
     notes: task.notes ?? '',
     dueMileage: task.dueMileage ?? null,
     lastMileage: task.lastMileage ?? null,
+    isCustom: task.isCustom ?? false,
+    isArchived: task.isArchived ?? false,
     createdAt,
     updatedAt: task.updatedAt ?? createdAt
   };
@@ -103,6 +107,44 @@ export function useMaintenanceData() {
     }
   };
 
+  const saveTask = (task: Partial<MaintenanceTask> & Pick<MaintenanceTask, 'vehicleId' | 'description' | 'category' | 'frequency'>) => {
+    if (task.id) {
+      const existingTask = maintenanceTasks.value.find((item) => item.id === task.id);
+      if (existingTask) {
+        updateTask(normalizeTask({
+          ...existingTask,
+          ...task,
+          id: existingTask.id,
+          createdAt: existingTask.createdAt,
+          updatedAt: nowIso()
+        }));
+        return;
+      }
+    }
+
+    const newTask = normalizeTask({
+      ...task,
+      id: crypto.randomUUID(),
+      isCustom: true,
+      isArchived: false,
+      createdAt: nowIso(),
+      updatedAt: nowIso()
+    });
+
+    maintenanceTasks.value.unshift(newTask);
+    saveTasks();
+  };
+
+  const archiveTask = (taskId: string) => {
+    const task = maintenanceTasks.value.find((item) => item.id === taskId);
+    if (!task || !task.isCustom) return;
+
+    updateTask({
+      ...task,
+      isArchived: true
+    });
+  };
+
   const resetTasks = () => {
     try {
       localStorage.removeItem(STORAGE_KEY);
@@ -119,6 +161,8 @@ export function useMaintenanceData() {
   return {
     maintenanceTasks,
     updateTask,
+    saveTask,
+    archiveTask,
     resetTasks
   };
 }

@@ -26,6 +26,8 @@ export interface MaintenanceTask {
   notes?: string;
   dueMileage?: number | null;
   lastMileage?: number | null;
+  isCustom: boolean;
+  isArchived: boolean;
   createdAt: string;
   updatedAt: string;
 }
