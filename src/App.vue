@@ -2,6 +2,7 @@
 import { computed, onErrorCaptured, onMounted, onUnmounted, ref, watch } from 'vue';
 import AppHeader from './components/AppHeader.vue';
 import BackupPanel from './components/BackupPanel.vue';
+import DashboardOverview from './components/DashboardOverview.vue';
 import LogModal from './components/LogModal.vue';
 import TaskFormModal from './components/TaskFormModal.vue';
 import TaskGroup from './components/TaskGroup.vue';
@@ -12,7 +13,7 @@ import { useMaintenanceLogs } from './composables/useMaintenanceLogs';
 import { useVehicleProfile } from './composables/useVehicleProfile';
 import type { MaintenanceTask, TaskGroupKey, VehicleProfile } from './types/maintenance';
 import { createBackupPayload, downloadBackup, validateBackupPayload } from './utils/backup';
-import { getCurrentDate, getNextCheckDate, toDateInputValue } from './utils/maintenanceDates';
+import { formatDisplayDate, getCurrentDate, getNextCheckDate, toDateInputValue } from './utils/maintenanceDates';
 import { buildDefaultCollapsedGroups, enrichTasks, getAutoCollapsedGroups, groupTasksByFrequency } from './utils/maintenanceTasks';
 
 const { maintenanceTasks, updateTask, saveTask, archiveTask, replaceTasks, resetTasks } = useMaintenanceData();
@@ -29,8 +30,68 @@ const collapsedGroups = ref<Record<TaskGroupKey, boolean>>(buildDefaultCollapsed
 
 const currentDate = computed(() => getCurrentDate(simulatedDate.value, useSimulatedDate.value));
 const filteredTasks = computed(() => maintenanceTasks.value.filter((task) => task.vehicleId === activeVehicle.value.id && !task.isArchived));
+const filteredLogs = computed(() => logs.value.filter((log) => log.vehicleId === activeVehicle.value.id));
 const enrichedTasks = computed(() => enrichTasks(filteredTasks.value, currentDate.value));
 const groupedTasks = computed(() => groupTasksByFrequency(enrichedTasks.value));
+
+const summaryCards = computed(() => {
+  const overdueCount = enrichedTasks.value.filter((task) => task.status === 'overdue').length;
+  const pendingCount = enrichedTasks.value.filter((task) => task.status === 'pending').length;
+  const dueSoonCount = enrichedTasks.value.filter((task) => task.status === 'dueSoon' || task.status === 'dueNow').length;
+  const completedCount = enrichedTasks.value.filter((task) => task.status === 'done').length;
+
+  return [
+    { title: 'Überfällig', value: overdueCount, hint: overdueCount > 0 ? 'Benötigt Aufmerksamkeit' : 'Alles gut' },
+    { title: 'Demnächst fällig', value: dueSoonCount, hint: 'Heute + nächste 7 Tage' },
+    { title: 'Offen', value: pendingCount, hint: 'Noch nie erledigt' },
+    { title: 'Erledigt', value: completedCount, hint: 'Aktuell ohne Handlungsbedarf' }
+  ];
+});
+
+const nextDueItem = computed(() => {
+  const tasksWithDates = enrichedTasks.value
+    .filter((task) => ['overdue', 'dueNow', 'dueSoon'].includes(task.status) || (task.scheduleType === 'scheduled' ? task.dueDate : task.nextCheck))
+    .map((task) => ({
+      task,
+      date: task.scheduleType === 'scheduled' ? task.dueDate : task.nextCheck
+    }))
+    .filter((item): item is { task: typeof enrichedTasks.value[number]; date: string } => Boolean(item.date))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+
+  if (!nextDueItem) {
+    // no-op placeholder for TS narrowing symmetry
+  }
+
+  if (!tasksWithDates) return null;
+
+  return {
+    title: tasksWithDates.task.description,
+    subtitle: `${tasksWithDates.task.category} · ${tasksWithDates.task.scheduleType === 'scheduled' ? 'Geplant' : 'Wiederholend'}`,
+    meta: `${tasksWithDates.task.scheduleType === 'scheduled' ? 'Termin' : 'Nächste Prüfung'}: ${formatDisplayDate(tasksWithDates.date)}`
+  };
+});
+
+const recentItems = computed(() => {
+  return filteredLogs.value
+    .slice(0, 5)
+    .map((log) => ({
+      title: log.taskDescription,
+      subtitle: `${log.category}${log.frequency ? ` · ${log.frequency}` : ' · Geplant'}`,
+      meta: `Erledigt am ${formatDisplayDate(log.checkedAt)}`
+    }));
+});
+
+const monthSummary = computed(() => {
+  const now = currentDate.value;
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const completedThisMonth = filteredLogs.value.filter((log) => {
+    const checkedDate = new Date(log.checkedAt);
+    return checkedDate.getMonth() === currentMonth && checkedDate.getFullYear() === currentYear;
+  }).length;
+
+  return `${completedThisMonth} Aufgaben wurden in diesem Monat erledigt.`;
+});
 
 const debug = computed(() => ({
   activeVehicle: activeVehicle.value,
@@ -67,7 +128,6 @@ const toggleGroup = (frequency: TaskGroupKey) => {
 };
 
 const saveVehicleProfile = (vehicle: VehicleProfile) => updateVehicle(vehicle);
-
 const exportBackup = () => downloadBackup(createBackupPayload(vehicles.value, maintenanceTasks.value, logs.value));
 
 const importBackup = async (file: File) => {
@@ -169,6 +229,7 @@ onErrorCaptured((err, instance, info) => {
     <main class="max-w-7xl mx-auto px-4 py-8">
       <div class="space-y-6">
         <VehicleProfileCard :vehicle="activeVehicle" @save="saveVehicleProfile" @create-task="openCreateTaskModal" />
+        <DashboardOverview :summary="summaryCards" :next-due-item="nextDueItem" :recent-items="recentItems" :month-summary="monthSummary" />
         <BackupPanel :is-importing="isImportingBackup" @export="exportBackup" @import-file="importBackup" />
 
         <TaskGroup
