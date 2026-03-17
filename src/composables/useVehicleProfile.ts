@@ -73,6 +73,14 @@ export function useVehicleProfile() {
     }
   };
 
+  const replaceVehicles = (items: VehicleProfile[]) => {
+    vehicles.value = items.map(normalizeVehicle);
+    if (!vehicles.value.some((vehicle) => vehicle.id === activeVehicleId.value)) {
+      activeVehicleId.value = vehicles.value[0]?.id ?? DEFAULT_VEHICLE_ID;
+    }
+    saveVehicles();
+  };
+
   const updateVehicle = (updatedVehicle: VehicleProfile) => {
     const index = vehicles.value.findIndex((vehicle) => vehicle.id === updatedVehicle.id);
     if (index !== -1) {
@@ -106,6 +114,7 @@ export function useVehicleProfile() {
     vehicles,
     activeVehicle,
     activeVehicleId,
-    updateVehicle
+    updateVehicle,
+    replaceVehicles
   };
 }

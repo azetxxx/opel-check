@@ -55,6 +55,11 @@ export function useMaintenanceLogs() {
     }
   };
 
+  const replaceLogs = (items: MaintenanceLog[]) => {
+    logs.value = sortLogsByDateDesc(items.map(normalizeLog));
+    saveLogs();
+  };
+
   const addLog = async (log: MaintenanceLog) => {
     try {
       isLoading.value = true;
@@ -100,6 +105,7 @@ export function useMaintenanceLogs() {
     isLoading,
     addLog,
     clearLogs,
+    replaceLogs,
     openLogModal,
     closeLogModal
   };

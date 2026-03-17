@@ -107,6 +107,11 @@ export function useMaintenanceData() {
     }
   };
 
+  const replaceTasks = (tasks: MaintenanceTask[]) => {
+    maintenanceTasks.value = tasks.map(normalizeTask);
+    saveTasks();
+  };
+
   const saveTask = (task: Partial<MaintenanceTask> & Pick<MaintenanceTask, 'vehicleId' | 'description' | 'category' | 'frequency'>) => {
     if (task.id) {
       const existingTask = maintenanceTasks.value.find((item) => item.id === task.id);
@@ -163,6 +168,7 @@ export function useMaintenanceData() {
     updateTask,
     saveTask,
     archiveTask,
+    replaceTasks,
     resetTasks
   };
 }
