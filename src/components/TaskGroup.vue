@@ -24,26 +24,22 @@ const groupStatus = () => getGroupStatus(props.tasks);
 
 <template>
   <div v-if="tasks.length > 0" class="bg-white rounded-xl shadow-sm overflow-hidden">
-    <div
-      @click="emit('toggle', frequency)"
-      class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
-    >
+    <div @click="emit('toggle', frequency)" class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-200">
       <div class="flex items-center gap-3">
         <div :class="[
           'h-3 w-3 rounded-full',
           {
             'bg-red-500': groupStatus() === 'overdue',
+            'bg-amber-500': groupStatus() === 'dueNow',
             'bg-orange-500': groupStatus() === 'dueSoon',
-            'bg-green-500': groupStatus() === 'current',
+            'bg-blue-500': groupStatus() === 'planned',
+            'bg-green-500': groupStatus() === 'done',
             'bg-yellow-400': groupStatus() === 'pending'
           }
         ]"></div>
         <h2 class="text-lg font-semibold">{{ FREQUENCY_LABELS[frequency] }}</h2>
       </div>
-      <ChevronDownIcon
-        class="h-5 w-5 text-gray-400 transition-transform duration-200"
-        :class="{ 'rotate-180': !collapsed }"
-      />
+      <ChevronDownIcon class="h-5 w-5 text-gray-400 transition-transform duration-200" :class="{ 'rotate-180': !collapsed }" />
     </div>
 
     <div v-show="!collapsed" class="border-t border-gray-100">

@@ -27,9 +27,11 @@ export const enrichTasks = (tasks: MaintenanceTask[], currentDate: Date): Enrich
 
 const statusPriority: Record<TaskStatus, number> = {
   overdue: 0,
-  dueSoon: 1,
-  pending: 2,
-  current: 3
+  dueNow: 1,
+  dueSoon: 2,
+  pending: 3,
+  planned: 4,
+  done: 5
 };
 
 const getSortDate = (task: EnrichedMaintenanceTask) => {
@@ -65,9 +67,11 @@ export const groupTasksByFrequency = (tasks: EnrichedMaintenanceTask[]) => {
 
 export const getGroupStatus = (tasks: EnrichedMaintenanceTask[]): GroupStatus => {
   if (tasks.some((task) => task.status === 'overdue')) return 'overdue';
+  if (tasks.some((task) => task.status === 'dueNow')) return 'dueNow';
   if (tasks.some((task) => task.status === 'dueSoon')) return 'dueSoon';
   if (tasks.some((task) => task.status === 'pending')) return 'pending';
-  return 'current';
+  if (tasks.some((task) => task.status === 'planned')) return 'planned';
+  return 'done';
 };
 
 export const buildDefaultCollapsedGroups = (): Record<TaskGroupKey, boolean> => ({
@@ -87,7 +91,7 @@ export const getAutoCollapsedGroups = (
 
   FREQUENCY_ORDER.forEach((frequency) => {
     if (groups[frequency].length > 0) {
-      collapsed[frequency] = getGroupStatus(groups[frequency]) === 'current';
+      collapsed[frequency] = getGroupStatus(groups[frequency]) === 'done';
     }
   });
 

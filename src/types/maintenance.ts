@@ -1,7 +1,7 @@
 export type Frequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual';
 export type TaskGroupKey = Frequency | 'scheduled';
 export type TaskScheduleType = 'recurring' | 'scheduled';
-export type TaskStatus = 'pending' | 'dueSoon' | 'current' | 'overdue';
+export type TaskStatus = 'pending' | 'planned' | 'done' | 'dueSoon' | 'dueNow' | 'overdue';
 
 export interface VehicleProfile {
   id: string;

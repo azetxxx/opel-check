@@ -17,11 +17,38 @@ const emit = defineEmits<{
 }>();
 
 const getCategoryClass = (category: string) => CATEGORY_CLASSES[category] || DEFAULT_CATEGORY_CLASS;
-const getStatusText = (status: EnrichedMaintenanceTask['status']) => {
-  if (status === 'overdue') return 'Überfällig';
-  if (status === 'dueSoon') return 'Bald fällig';
-  if (status === 'current') return 'Aktuell';
-  return 'Ausstehend';
+const getStatusText = (task: EnrichedMaintenanceTask) => {
+  switch (task.status) {
+    case 'pending':
+      return 'Ausstehend';
+    case 'planned':
+      return 'Geplant';
+    case 'done':
+      return 'Erledigt';
+    case 'dueSoon':
+      return 'Bald fällig';
+    case 'dueNow':
+      return 'Jetzt / heute fällig';
+    case 'overdue':
+      return 'Überfällig';
+  }
+};
+
+const getButtonText = (task: EnrichedMaintenanceTask) => {
+  switch (task.status) {
+    case 'pending':
+      return 'Zum ersten Mal erledigen';
+    case 'planned':
+      return 'Jetzt erledigen';
+    case 'done':
+      return 'Erledigt';
+    case 'dueSoon':
+      return 'Bald fällig';
+    case 'dueNow':
+      return 'Jetzt erledigen';
+    case 'overdue':
+      return 'Überfällig';
+  }
 };
 </script>
 
@@ -49,8 +76,10 @@ const getStatusText = (status: EnrichedMaintenanceTask['status']) => {
             'h-3 w-3 rounded-full mr-2',
             {
               'bg-red-500': task.status === 'overdue',
+              'bg-amber-500': task.status === 'dueNow',
               'bg-orange-500': task.status === 'dueSoon',
-              'bg-green-500': task.status === 'current',
+              'bg-blue-500': task.status === 'planned',
+              'bg-green-500': task.status === 'done',
               'bg-yellow-400': task.status === 'pending'
             }
           ]"></div>
@@ -58,11 +87,13 @@ const getStatusText = (status: EnrichedMaintenanceTask['status']) => {
             'text-sm font-medium',
             {
               'text-red-600': task.status === 'overdue',
+              'text-amber-600': task.status === 'dueNow',
               'text-orange-600': task.status === 'dueSoon',
-              'text-green-600': task.status === 'current',
+              'text-blue-600': task.status === 'planned',
+              'text-green-600': task.status === 'done',
               'text-yellow-600': task.status === 'pending'
             }
-          ]">{{ getStatusText(task.status) }}</span>
+          ]">{{ getStatusText(task) }}</span>
         </div>
       </div>
 
@@ -91,15 +122,17 @@ const getStatusText = (status: EnrichedMaintenanceTask['status']) => {
             'flex-1 px-4 py-2 text-white rounded-lg transform hover:scale-[1.01] transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2',
             {
               'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700': task.status === 'overdue',
+              'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600': task.status === 'dueNow',
               'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600': task.status === 'dueSoon',
-              'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700': task.status === 'current',
+              'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700': task.status === 'planned',
+              'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700': task.status === 'done',
               'bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600': task.status === 'pending'
             }
           ]"
           :disabled="isLoading"
         >
           <CheckIcon class="h-4 w-4" />
-          Als erledigt markieren
+          {{ getButtonText(task) }}
         </button>
 
         <button @click="emit('edit', task)" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center gap-2" :disabled="isLoading">

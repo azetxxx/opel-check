@@ -1,6 +1,7 @@
-import type { Frequency } from '../types/maintenance';
+import type { TaskGroupKey } from '../types/maintenance';
 
-export const FREQUENCY_ORDER: Frequency[] = [
+export const FREQUENCY_ORDER: TaskGroupKey[] = [
+  'scheduled',
   'daily',
   'weekly',
   'monthly',
@@ -9,7 +10,8 @@ export const FREQUENCY_ORDER: Frequency[] = [
   'annual'
 ];
 
-export const FREQUENCY_LABELS: Record<Frequency, string> = {
+export const FREQUENCY_LABELS: Record<TaskGroupKey, string> = {
+  scheduled: 'Geplant',
   daily: 'Täglich',
   weekly: 'Wöchentlich',
   monthly: 'Monatlich',

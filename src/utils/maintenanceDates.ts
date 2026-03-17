@@ -41,25 +41,32 @@ export const getNextCheckDate = (frequency: Frequency, baseDate: Date) => {
 
 const startOfDay = (date: Date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-const getReferenceDate = (task: MaintenanceTask) => {
-  if (task.scheduleType === 'scheduled') return task.dueDate ?? null;
-  return task.nextCheck ?? null;
-};
-
 export const getTaskStatus = (task: MaintenanceTask, currentDate: Date): TaskStatus => {
-  const referenceDate = getReferenceDate(task);
+  const current = startOfDay(currentDate).getTime();
 
-  if (!referenceDate) {
-    return task.lastCheck ? 'current' : 'pending';
+  if (task.scheduleType === 'scheduled') {
+    if (task.lastCheck) return 'done';
+    if (!task.dueDate) return 'planned';
+
+    const target = startOfDay(new Date(task.dueDate)).getTime();
+    const diffDays = Math.ceil((target - current) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return 'overdue';
+    if (diffDays === 0) return 'dueNow';
+    if (diffDays <= DUE_SOON_DAYS) return 'dueSoon';
+    return 'planned';
   }
 
-  const current = startOfDay(currentDate).getTime();
-  const target = startOfDay(new Date(referenceDate)).getTime();
+  if (!task.lastCheck) return 'pending';
+  if (!task.nextCheck) return 'done';
+
+  const target = startOfDay(new Date(task.nextCheck)).getTime();
   const diffDays = Math.ceil((target - current) / (1000 * 60 * 60 * 24));
 
   if (diffDays < 0) return 'overdue';
+  if (diffDays === 0) return 'dueNow';
   if (diffDays <= DUE_SOON_DAYS) return 'dueSoon';
-  return 'current';
+  return 'done';
 };
 
 export const formatDisplayDate = (dateString: string | null, locale = 'de-DE') => {
