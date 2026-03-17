@@ -76,45 +76,16 @@
 </template>
 
 <script setup lang="ts">
-import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
 import { XMarkIcon, ClipboardDocumentListIcon, TrashIcon, CalendarIcon, ClockIcon } from '@heroicons/vue/24/outline';
+import { CATEGORY_CLASSES, DEFAULT_CATEGORY_CLASS, FREQUENCY_LABELS } from '../constants/maintenance';
+import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
 import type { Frequency } from '../types/maintenance';
+import { formatDisplayDate } from '../utils/maintenanceDates';
 
 const { logs, isLogModalOpen, isLoading, clearLogs, closeLogModal } = useMaintenanceLogs();
 
-const formatDate = (dateString: string): string => {
-  return new Date(dateString).toLocaleDateString('de-DE', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
-};
-
-const formatFrequency = (frequency: Frequency): string => {
-  const frequencyMap: Record<Frequency, string> = {
-    daily: 'Täglich',
-    weekly: 'Wöchentlich',
-    monthly: 'Monatlich',
-    quarterly: 'Vierteljährlich',
-    biannual: 'Halbjährlich',
-    annual: 'Jährlich'
-  };
-  return frequencyMap[frequency];
-};
-
-const getCategoryClass = (category: string): string => {
-  const categoryClasses: Record<string, string> = {
-    'Motor': 'bg-red-100 text-red-800',
-    'Reifen': 'bg-blue-100 text-blue-800',
-    'Bremsen': 'bg-yellow-100 text-yellow-800',
-    'Karosserie': 'bg-purple-100 text-purple-800',
-    'Beleuchtung': 'bg-green-100 text-green-800',
-    'Elektrik': 'bg-orange-100 text-orange-800',
-    'Dokumente': 'bg-slate-100 text-slate-800',
-    'Service': 'bg-emerald-100 text-emerald-800',
-    'Klimaanlage': 'bg-cyan-100 text-cyan-800'
-  };
-  return categoryClasses[category] || 'bg-gray-100 text-gray-800';
-};
+const formatDate = (dateString: string): string => formatDisplayDate(dateString) ?? '';
+const formatFrequency = (frequency: Frequency): string => FREQUENCY_LABELS[frequency];
+const getCategoryClass = (category: string): string => CATEGORY_CLASSES[category] || DEFAULT_CATEGORY_CLASS;
 </script>
 
