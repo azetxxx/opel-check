@@ -12,12 +12,17 @@ import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
 import { useMaintenanceData } from '../composables/useMaintenanceData';
 import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
+import { usePlaylistShortcuts } from '../composables/usePlaylistShortcuts';
+import { useSavedPlaces } from '../composables/useSavedPlaces';
 import { useVehicleProfile } from '../composables/useVehicleProfile';
+import type { NavigationProvider, SavedPlace } from '../types/map';
 import { formatDisplayDate } from '../utils/maintenanceDates';
 import { enrichTasks } from '../utils/maintenanceTasks';
 
 const { maintenanceTasks } = useMaintenanceData();
 const { logs } = useMaintenanceLogs();
+const { shortcuts } = usePlaylistShortcuts();
+const { places } = useSavedPlaces();
 const { activeVehicle } = useVehicleProfile();
 
 const modules = [
@@ -69,6 +74,30 @@ const nextTask = computed(() => {
 });
 
 const recentCompletions = computed(() => filteredLogs.value.slice(0, 3));
+const quickPlaces = computed(() => places.value.slice(0, 4));
+const quickPlaylists = computed(() => shortcuts.value.slice(0, 4));
+
+const providerLabel: Record<NavigationProvider, string> = {
+  google: 'Google Maps',
+  apple: 'Apple Karten',
+  waze: 'Waze'
+};
+
+const openPlace = (place: SavedPlace) => {
+  const provider = place.providers[0] ?? 'google';
+  const encoded = encodeURIComponent(place.address);
+  const urls: Record<NavigationProvider, string> = {
+    google: `https://www.google.com/maps/search/?api=1&query=${encoded}`,
+    apple: `https://maps.apple.com/?q=${encoded}`,
+    waze: `https://waze.com/ul?q=${encoded}&navigate=yes`
+  };
+
+  window.open(urls[provider], '_blank', 'noopener,noreferrer');
+};
+
+const openPlaylist = (url: string) => {
+  window.open(url, '_blank', 'noopener,noreferrer');
+};
 </script>
 
 <template>
@@ -142,6 +171,66 @@ const recentCompletions = computed(() => filteredLogs.value.slice(0, 3));
           </div>
         </div>
         <p v-else class="mt-4 text-sm text-gray-500">Noch keine erledigten Einträge vorhanden.</p>
+      </section>
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-lg font-semibold text-gray-900">Schnellziele</h3>
+          <RouterLink to="/map" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
+            Zur Karte
+            <ArrowTopRightOnSquareIcon class="h-4 w-4" />
+          </RouterLink>
+        </div>
+
+        <div v-if="quickPlaces.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            v-for="place in quickPlaces"
+            :key="place.id"
+            @click="openPlace(place)"
+            class="text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-2xl">{{ place.icon || '📍' }}</p>
+                <p class="mt-2 font-medium text-gray-900">{{ place.label }}</p>
+                <p class="mt-1 text-sm text-gray-600 line-clamp-2">{{ place.address }}</p>
+              </div>
+              <span class="text-xs font-medium text-blue-600">{{ providerLabel[place.providers[0] ?? 'google'] }}</span>
+            </div>
+          </button>
+        </div>
+        <p v-else class="text-sm text-gray-500">Noch keine Schnellziele gespeichert.</p>
+      </section>
+
+      <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-lg font-semibold text-gray-900">Musik-Shortcuts</h3>
+          <RouterLink to="/music" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
+            Zu Musik
+            <ArrowTopRightOnSquareIcon class="h-4 w-4" />
+          </RouterLink>
+        </div>
+
+        <div v-if="quickPlaylists.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            v-for="item in quickPlaylists"
+            :key="item.id"
+            @click="openPlaylist(item.url)"
+            class="text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-2xl">{{ item.icon || '🎶' }}</p>
+                <p class="mt-2 font-medium text-gray-900">{{ item.title }}</p>
+                <p class="mt-1 text-sm text-gray-600">{{ item.provider }}</p>
+              </div>
+              <span class="text-xs font-medium text-blue-600">Öffnen</span>
+            </div>
+          </button>
+        </div>
+        <p v-else class="text-sm text-gray-500">Noch keine Musik-Shortcuts gespeichert.</p>
       </section>
     </div>
 
