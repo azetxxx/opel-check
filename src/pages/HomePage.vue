@@ -1,13 +1,74 @@
 <script setup lang="ts">
-import { HomeIcon, MapPinIcon, MusicalNoteIcon, WrenchScrewdriverIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline';
+import {
+  ArrowTopRightOnSquareIcon,
+  Cog6ToothIcon,
+  HomeIcon,
+  MapPinIcon,
+  MusicalNoteIcon,
+  PlusCircleIcon,
+  WrenchScrewdriverIcon
+} from '@heroicons/vue/24/outline';
+import { computed } from 'vue';
 import { RouterLink } from 'vue-router';
+import { useMaintenanceData } from '../composables/useMaintenanceData';
+import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
+import { useVehicleProfile } from '../composables/useVehicleProfile';
+import { formatDisplayDate } from '../utils/maintenanceDates';
+import { enrichTasks } from '../utils/maintenanceTasks';
+
+const { maintenanceTasks } = useMaintenanceData();
+const { logs } = useMaintenanceLogs();
+const { activeVehicle } = useVehicleProfile();
 
 const modules = [
-  { title: 'Map', description: 'Saved places and quick navigation shortcuts.', to: '/map', icon: MapPinIcon },
-  { title: 'Maintaining', description: 'Maintenance dashboard, tasks and service logs.', to: '/maintenance', icon: WrenchScrewdriverIcon },
-  { title: 'Music', description: 'Playlists and quick media shortcuts for the car.', to: '/music', icon: MusicalNoteIcon },
-  { title: 'Settings', description: 'Profiles, backup, app preferences and setup.', to: '/settings', icon: Cog6ToothIcon }
+  { title: 'Karte', description: 'Gespeicherte Orte und Schnellnavigation.', to: '/map', icon: MapPinIcon, action: 'Zu Karte' },
+  { title: 'Wartung', description: 'Aufgaben, Dashboard und Serviceprotokolle.', to: '/maintenance', icon: WrenchScrewdriverIcon, action: 'Zu Wartung' },
+  { title: 'Musik', description: 'Playlists und Medien-Shortcuts fürs Auto.', to: '/music', icon: MusicalNoteIcon, action: 'Zu Musik' },
+  { title: 'Einstellungen', description: 'Profile, Backup und Modul-Konfiguration.', to: '/settings', icon: Cog6ToothIcon, action: 'Zu Einstellungen' }
 ];
+
+const currentDate = computed(() => new Date());
+const filteredTasks = computed(() => maintenanceTasks.value.filter((task) => task.vehicleId === activeVehicle.value.id && !task.isArchived));
+const enrichedTasks = computed(() => enrichTasks(filteredTasks.value, currentDate.value));
+const filteredLogs = computed(() => logs.value.filter((log) => log.vehicleId === activeVehicle.value.id));
+
+const quickStats = computed(() => {
+  const overdue = enrichedTasks.value.filter((task) => task.status === 'overdue').length;
+  const dueSoon = enrichedTasks.value.filter((task) => task.status === 'dueSoon' || task.status === 'dueNow').length;
+  const open = enrichedTasks.value.filter((task) => task.status === 'pending').length;
+  const completed = enrichedTasks.value.filter((task) => task.status === 'done').length;
+
+  return [
+    { label: 'Überfällig', value: overdue, tone: 'text-red-600 bg-red-50' },
+    { label: 'Bald fällig', value: dueSoon, tone: 'text-orange-600 bg-orange-50' },
+    { label: 'Offen', value: open, tone: 'text-yellow-700 bg-yellow-50' },
+    { label: 'Erledigt', value: completed, tone: 'text-green-600 bg-green-50' }
+  ];
+});
+
+const nextTask = computed(() => {
+  const candidate = enrichedTasks.value
+    .filter((task) => ['overdue', 'dueNow', 'dueSoon', 'pending'].includes(task.status))
+    .sort((a, b) => {
+      const aDate = a.scheduleType === 'scheduled' ? a.dueDate : a.nextCheck;
+      const bDate = b.scheduleType === 'scheduled' ? b.dueDate : b.nextCheck;
+
+      if (aDate && bDate) return new Date(aDate).getTime() - new Date(bDate).getTime();
+      if (aDate && !bDate) return -1;
+      if (!aDate && bDate) return 1;
+      return 0;
+    })[0];
+
+  if (!candidate) return null;
+
+  return {
+    title: candidate.description,
+    meta: `${candidate.category} · ${candidate.scheduleType === 'scheduled' ? 'Geplant' : 'Wiederholend'}`,
+    date: formatDisplayDate(candidate.scheduleType === 'scheduled' ? candidate.dueDate ?? null : candidate.nextCheck)
+  };
+});
+
+const recentCompletions = computed(() => filteredLogs.value.slice(0, 3));
 </script>
 
 <template>
@@ -16,29 +77,104 @@ const modules = [
       <div class="flex items-start gap-4">
         <HomeIcon class="h-8 w-8 text-blue-600" />
         <div>
-          <h2 class="text-xl font-semibold text-gray-900">Home</h2>
+          <h2 class="text-xl font-semibold text-gray-900">Start</h2>
           <p class="mt-1 text-sm text-gray-600">
-            This will become the customizable landing page with dashboard widgets and quick shortcuts to all modules.
+            Schnellzugriff auf deine Module, den aktuellen Fahrzeugstatus und die wichtigsten nächsten Schritte.
           </p>
         </div>
       </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <RouterLink
-        v-for="module in modules"
-        :key="module.to"
-        :to="module.to"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
-      >
-        <div class="flex items-start gap-4">
-          <component :is="module.icon" class="h-6 w-6 text-blue-600 mt-0.5" />
-          <div>
-            <h3 class="font-semibold text-gray-900">{{ module.title }}</h3>
-            <p class="mt-1 text-sm text-gray-600">{{ module.description }}</p>
+    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+      <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Aktives Fahrzeug</h3>
+          <p class="text-sm text-gray-600">
+            {{ activeVehicle.name }}<span v-if="activeVehicle.brand || activeVehicle.model"> · {{ [activeVehicle.brand, activeVehicle.model].filter(Boolean).join(' ') }}</span>
+          </p>
+        </div>
+        <RouterLink to="/settings" class="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700">
+          <Cog6ToothIcon class="h-4 w-4" />
+          Fahrzeugprofil öffnen
+        </RouterLink>
+      </div>
+
+      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
+        <div v-for="item in quickStats" :key="item.label" class="rounded-xl px-4 py-4" :class="item.tone">
+          <p class="text-sm font-medium">{{ item.label }}</p>
+          <p class="mt-2 text-2xl font-semibold">{{ item.value }}</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-lg font-semibold text-gray-900">Nächste Aufgabe</h3>
+          <RouterLink to="/maintenance" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
+            Zur Wartung
+            <ArrowTopRightOnSquareIcon class="h-4 w-4" />
+          </RouterLink>
+        </div>
+
+        <div v-if="nextTask" class="mt-4 rounded-xl bg-gray-50 px-4 py-4">
+          <p class="font-medium text-gray-900">{{ nextTask.title }}</p>
+          <p class="mt-1 text-sm text-gray-600">{{ nextTask.meta }}</p>
+          <p class="mt-2 text-sm text-gray-500">{{ nextTask.date ? `Termin: ${nextTask.date}` : 'Noch kein Termin hinterlegt' }}</p>
+        </div>
+        <p v-else class="mt-4 text-sm text-gray-500">Aktuell gibt es keine offenen oder bald fälligen Aufgaben.</p>
+      </section>
+
+      <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-lg font-semibold text-gray-900">Zuletzt erledigt</h3>
+          <RouterLink to="/maintenance" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
+            Protokolle ansehen
+            <ArrowTopRightOnSquareIcon class="h-4 w-4" />
+          </RouterLink>
+        </div>
+
+        <div v-if="recentCompletions.length > 0" class="mt-4 space-y-3">
+          <div v-for="entry in recentCompletions" :key="entry.id" class="rounded-xl bg-gray-50 px-4 py-3">
+            <p class="font-medium text-gray-900">{{ entry.taskDescription }}</p>
+            <p class="mt-1 text-sm text-gray-600">{{ entry.category }}{{ entry.frequency ? ` · ${entry.frequency}` : ' · Geplant' }}</p>
+            <p class="mt-1 text-sm text-gray-500">Erledigt am {{ formatDisplayDate(entry.checkedAt) }}</p>
           </div>
         </div>
-      </RouterLink>
+        <p v-else class="mt-4 text-sm text-gray-500">Noch keine erledigten Einträge vorhanden.</p>
+      </section>
     </div>
+
+    <section class="space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-lg font-semibold text-gray-900">Module</h3>
+        <RouterLink to="/maintenance" class="inline-flex items-center gap-2 text-sm font-medium text-emerald-600 hover:text-emerald-700">
+          <PlusCircleIcon class="h-4 w-4" />
+          Neue Wartungsaufgabe
+        </RouterLink>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <RouterLink
+          v-for="module in modules"
+          :key="module.to"
+          :to="module.to"
+          class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
+        >
+          <div class="flex items-start gap-4">
+            <component :is="module.icon" class="h-6 w-6 text-blue-600 mt-0.5" />
+            <div class="flex-1">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <h4 class="font-semibold text-gray-900">{{ module.title }}</h4>
+                  <p class="mt-1 text-sm text-gray-600">{{ module.description }}</p>
+                </div>
+                <span class="text-xs font-medium text-blue-600">{{ module.action }}</span>
+              </div>
+            </div>
+          </div>
+        </RouterLink>
+      </div>
+    </section>
   </section>
 </template>

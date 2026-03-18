@@ -1,28 +1,24 @@
 <script setup lang="ts">
 import { computed, onErrorCaptured, onMounted, onUnmounted, ref, watch } from 'vue';
 import AppHeader from '../components/AppHeader.vue';
-import BackupPanel from '../components/BackupPanel.vue';
 import DashboardOverview from '../components/DashboardOverview.vue';
 import LogModal from '../components/LogModal.vue';
 import TaskFormModal from '../components/TaskFormModal.vue';
 import TaskGroup from '../components/TaskGroup.vue';
-import VehicleProfileCard from '../components/VehicleProfileCard.vue';
 import { FREQUENCY_ORDER } from '../constants/maintenance';
 import { useMaintenanceData } from '../composables/useMaintenanceData';
 import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
 import { useVehicleProfile } from '../composables/useVehicleProfile';
-import type { MaintenanceTask, TaskGroupKey, VehicleProfile } from '../types/maintenance';
-import { createBackupPayload, downloadBackup, validateBackupPayload } from '../utils/backup';
+import type { MaintenanceTask, TaskGroupKey } from '../types/maintenance';
 import { formatDisplayDate, getCurrentDate, getNextCheckDate, toDateInputValue } from '../utils/maintenanceDates';
 import { buildDefaultCollapsedGroups, enrichTasks, getAutoCollapsedGroups, groupTasksByFrequency } from '../utils/maintenanceTasks';
 
-const { maintenanceTasks, updateTask, saveTask, archiveTask, replaceTasks, resetTasks } = useMaintenanceData();
-const { logs, addLog, isLoading, openLogModal, replaceLogs } = useMaintenanceLogs();
-const { vehicles, activeVehicle, updateVehicle, replaceVehicles } = useVehicleProfile();
+const { maintenanceTasks, updateTask, saveTask, archiveTask, resetTasks } = useMaintenanceData();
+const { logs, addLog, isLoading, openLogModal } = useMaintenanceLogs();
+const { activeVehicle } = useVehicleProfile();
 
 const showDebug = ref(false);
 const isTaskModalOpen = ref(false);
-const isImportingBackup = ref(false);
 const editingTask = ref<MaintenanceTask | null>(null);
 const simulatedDate = ref<string>(toDateInputValue(new Date()));
 const useSimulatedDate = ref(false);
@@ -51,10 +47,7 @@ const summaryCards = computed(() => {
 const nextDueItem = computed(() => {
   const tasksWithDates = enrichedTasks.value
     .filter((task) => ['overdue', 'dueNow', 'dueSoon'].includes(task.status) || (task.scheduleType === 'scheduled' ? task.dueDate : task.nextCheck))
-    .map((task) => ({
-      task,
-      date: task.scheduleType === 'scheduled' ? task.dueDate : task.nextCheck
-    }))
+    .map((task) => ({ task, date: task.scheduleType === 'scheduled' ? task.dueDate : task.nextCheck }))
     .filter((item): item is { task: typeof enrichedTasks.value[number]; date: string } => Boolean(item.date))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
 
@@ -85,7 +78,6 @@ const monthSummary = computed(() => {
 
 const debug = computed(() => ({
   activeVehicle: activeVehicle.value,
-  vehiclesLoaded: vehicles.value.length,
   logsLoaded: logs.value.length,
   tasksLoaded: maintenanceTasks.value.length,
   filteredTasksLoaded: filteredTasks.value.length,
@@ -115,31 +107,6 @@ onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 
 const toggleGroup = (frequency: TaskGroupKey) => {
   collapsedGroups.value[frequency] = !collapsedGroups.value[frequency];
-};
-
-const saveVehicleProfile = (vehicle: VehicleProfile) => updateVehicle(vehicle);
-const exportBackup = () => downloadBackup(createBackupPayload(vehicles.value, maintenanceTasks.value, logs.value));
-
-const importBackup = async (file: File) => {
-  try {
-    isImportingBackup.value = true;
-    const parsed = JSON.parse(await file.text()) as unknown;
-
-    if (!validateBackupPayload(parsed)) {
-      alert('Ungültiges Backup-Format. Bitte eine gültige Omiigo-Car-JSON-Datei wählen.');
-      return;
-    }
-
-    replaceVehicles(parsed.vehicles);
-    replaceTasks(parsed.tasks);
-    replaceLogs(parsed.logs);
-    alert('Backup erfolgreich importiert.');
-  } catch (error) {
-    console.error('Error importing backup:', error);
-    alert('Backup konnte nicht importiert werden. Bitte JSON-Datei prüfen.');
-  } finally {
-    isImportingBackup.value = false;
-  }
 };
 
 const openCreateTaskModal = () => {
@@ -216,9 +183,20 @@ onErrorCaptured((err, instance, info) => {
       @open-logs="openLogModal"
     />
 
-    <VehicleProfileCard :vehicle="activeVehicle" @save="saveVehicleProfile" @create-task="openCreateTaskModal" />
+    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <h2 class="text-xl font-semibold text-gray-900">Wartung</h2>
+        <p class="text-sm text-gray-600">Wartungsaufgaben, Protokolle und Fälligkeiten für das aktive Fahrzeug.</p>
+      </div>
+      <button
+        @click="openCreateTaskModal"
+        class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow text-sm font-medium"
+      >
+        Neue Aufgabe
+      </button>
+    </section>
+
     <DashboardOverview :summary="summaryCards" :next-due-item="nextDueItem" :recent-items="recentItems" :month-summary="monthSummary" />
-    <BackupPanel :is-importing="isImportingBackup" @export="exportBackup" @import-file="importBackup" />
 
     <TaskGroup
       v-for="frequency in FREQUENCY_ORDER"
