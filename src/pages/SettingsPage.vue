@@ -54,20 +54,6 @@ const importBackup = async (file: File) => {
       </p>
     </section>
 
-    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-3">
-      <h3 class="text-lg font-semibold text-gray-900">Deep-Link / NFC vorbereiten</h3>
-      <p class="text-sm text-gray-600">
-        Diese URLs kannst du später in NFC-Tags, QR-Codes oder Shortcuts verwenden.
-      </p>
-      <div class="space-y-2 text-sm font-mono text-gray-700 bg-gray-50 rounded-xl p-4 overflow-auto">
-        <div>/ ?module=map</div>
-        <div>/ ?module=music</div>
-        <div>/ ?module=maintenance&amp;action=create-task</div>
-        <div>/map?action=navigate&amp;place=place-home</div>
-        <div>/music?action=play&amp;shortcut=playlist-roadtrip</div>
-      </div>
-    </section>
-
     <VehicleProfileCard :vehicle="activeVehicle" @save="saveVehicleProfile" />
     <BackupPanel :is-importing="isImportingBackup" @export="exportBackup" @import-file="importBackup" />
   </section>
