@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MusicalNoteIcon, PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { usePlaylistShortcuts } from '../composables/usePlaylistShortcuts';
@@ -88,18 +88,6 @@ const groupedCounts = computed(() => {
 
 <template>
   <section class="space-y-6">
-    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-3">
-      <div class="flex items-start gap-4">
-        <MusicalNoteIcon class="h-8 w-8 text-blue-600" />
-        <div>
-          <h2 class="text-xl font-semibold text-gray-900">Musik</h2>
-          <p class="text-sm text-gray-600">
-            Playlist-Shortcuts für Spotify, YouTube Music und andere Dienste – optimiert für den schnellen Start im Auto.
-          </p>
-        </div>
-      </div>
-    </section>
-
     <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
       <div class="flex items-center justify-between gap-3">
         <h3 class="text-lg font-semibold text-gray-900">Shortcut speichern</h3>

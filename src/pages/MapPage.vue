@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { MapPinIcon, PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSavedPlaces } from '../composables/useSavedPlaces';
@@ -100,18 +100,6 @@ watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
 
 <template>
   <section class="space-y-6">
-    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-3">
-      <div class="flex items-start gap-4">
-        <MapPinIcon class="h-8 w-8 text-blue-600" />
-        <div>
-          <h2 class="text-xl font-semibold text-gray-900">Karte</h2>
-          <p class="text-sm text-gray-600">
-            Gespeicherte Ziele und Schnellzugriffe für externe Navigation mit Google Maps, Apple Karten oder Waze.
-          </p>
-        </div>
-      </div>
-    </section>
-
     <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
       <div class="flex items-center justify-between gap-3">
         <h3 class="text-lg font-semibold text-gray-900">Ort speichern</h3>

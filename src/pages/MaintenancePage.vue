@@ -192,18 +192,14 @@ onErrorCaptured((err, instance, info) => {
       @open-logs="openLogModal"
     />
 
-    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>
-        <h2 class="text-xl font-semibold text-gray-900">Wartung</h2>
-        <p class="text-sm text-gray-600">Wartungsaufgaben, Protokolle und Fälligkeiten für das aktive Fahrzeug.</p>
-      </div>
+    <div class="flex justify-end">
       <button
         @click="openCreateTaskModal"
         class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow text-sm font-medium"
       >
         Neue Aufgabe
       </button>
-    </section>
+    </div>
 
     <DashboardOverview :summary="summaryCards" :next-due-item="nextDueItem" :recent-items="recentItems" :month-summary="monthSummary" />
 

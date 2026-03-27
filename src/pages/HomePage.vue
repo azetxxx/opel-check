@@ -2,7 +2,6 @@
 import {
   ArrowTopRightOnSquareIcon,
   Cog6ToothIcon,
-  HomeIcon,
   MapPinIcon,
   MusicalNoteIcon,
   PlusCircleIcon,
@@ -110,18 +109,6 @@ onMounted(() => {
 
 <template>
   <section class="space-y-6">
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <div class="flex items-start gap-4">
-        <HomeIcon class="h-8 w-8 text-blue-600" />
-        <div>
-          <h2 class="text-xl font-semibold text-gray-900">Start</h2>
-          <p class="mt-1 text-sm text-gray-600">
-            Schnellzugriff auf deine Module, den aktuellen Fahrzeugstatus und die wichtigsten nächsten Schritte.
-          </p>
-        </div>
-      </div>
-    </div>
-
     <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
       <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>

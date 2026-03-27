@@ -47,13 +47,6 @@ const importBackup = async (file: File) => {
 
 <template>
   <section class="space-y-6">
-    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-3">
-      <h2 class="text-xl font-semibold text-gray-900">Einstellungen</h2>
-      <p class="text-sm text-gray-600">
-        Fahrzeugprofil, Backup und spätere App-Einstellungen werden hier zentral verwaltet.
-      </p>
-    </section>
-
     <VehicleProfileCard :vehicle="activeVehicle" @save="saveVehicleProfile" />
     <BackupPanel :is-importing="isImportingBackup" @export="exportBackup" @import-file="importBackup" />
   </section>
