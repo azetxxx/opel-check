@@ -7,6 +7,7 @@ export interface PlaylistShortcut {
   url: string;
   notes?: string;
   icon?: string;
+  pinned: boolean;
   createdAt: string;
   updatedAt: string;
 }
