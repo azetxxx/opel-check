@@ -25,7 +25,7 @@ const router = useRouter();
 
 const { maintenanceTasks } = useMaintenanceData();
 const { logs } = useMaintenanceLogs();
-const { shortcuts } = usePlaylistShortcuts();
+const { shortcuts, markShortcutOpened } = usePlaylistShortcuts();
 const { places } = useSavedPlaces();
 const { activeVehicle } = useVehicleProfile();
 const { preferences } = useAppPreferences();
@@ -85,8 +85,17 @@ const quickPlaces = computed(() => {
   return favoritePlace.value ? [favoritePlace.value, ...remaining].slice(0, 4) : remaining.slice(0, 4);
 });
 const quickPlaylists = computed(() => {
-  const remaining = shortcuts.value.filter((item) => item.id !== favoritePlaylist.value?.id);
-  return favoritePlaylist.value ? [favoritePlaylist.value, ...remaining].slice(0, 4) : remaining.slice(0, 4);
+  const sorted = [...shortcuts.value].sort((a, b) => {
+    if (a.id === favoritePlaylist.value?.id) return -1;
+    if (b.id === favoritePlaylist.value?.id) return 1;
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    if (a.lastOpenedAt && b.lastOpenedAt) return new Date(b.lastOpenedAt).getTime() - new Date(a.lastOpenedAt).getTime();
+    if (a.lastOpenedAt && !b.lastOpenedAt) return -1;
+    if (!a.lastOpenedAt && b.lastOpenedAt) return 1;
+    return a.title.localeCompare(b.title, 'de');
+  });
+  return sorted.slice(0, 4);
 });
 
 const providerLabel: Record<NavigationProvider, string> = {
@@ -115,7 +124,8 @@ const openPlace = (place: SavedPlace) => {
   window.open(urls[provider], '_blank', 'noopener,noreferrer');
 };
 
-const openPlaylist = (url: string) => {
+const openPlaylist = (id: string, url: string) => {
+  markShortcutOpened(id);
   window.open(url, '_blank', 'noopener,noreferrer');
 };
 
@@ -235,7 +245,7 @@ onMounted(() => {
           </RouterLink>
         </div>
         <div v-if="quickPlaylists.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button v-for="item in quickPlaylists" :key="item.id" @click="openPlaylist(item.url)" class="text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors">
+          <button v-for="item in quickPlaylists" :key="item.id" @click="openPlaylist(item.id, item.url)" class="text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors">
             <div class="flex items-start justify-between gap-3">
               <div>
                 <p class="text-2xl">{{ item.icon || '🎶' }}</p>

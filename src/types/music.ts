@@ -8,6 +8,7 @@ export interface PlaylistShortcut {
   notes?: string;
   icon?: string;
   pinned: boolean;
+  lastOpenedAt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

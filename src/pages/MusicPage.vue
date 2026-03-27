@@ -7,7 +7,7 @@ import { useAppPreferences } from '../composables/useAppPreferences';
 import type { MusicProvider, PlaylistShortcut } from '../types/music';
 
 const route = useRoute();
-const { shortcuts, upsertShortcut, removeShortcut } = usePlaylistShortcuts();
+const { shortcuts, upsertShortcut, markShortcutOpened, removeShortcut } = usePlaylistShortcuts();
 const { preferences, updatePreferences } = useAppPreferences();
 
 const editingId = ref<string | null>(null);
@@ -37,8 +37,18 @@ const sortedShortcuts = computed(() => {
     if (b.id === favoritePlaylistId.value) return 1;
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
+    if (a.lastOpenedAt && b.lastOpenedAt) return new Date(b.lastOpenedAt).getTime() - new Date(a.lastOpenedAt).getTime();
+    if (a.lastOpenedAt && !b.lastOpenedAt) return -1;
+    if (!a.lastOpenedAt && b.lastOpenedAt) return 1;
     return a.title.localeCompare(b.title, 'de');
   });
+});
+
+const favoriteShortcut = computed(() => sortedShortcuts.value.find((item) => item.id === favoritePlaylistId.value) ?? null);
+const lastOpenedShortcut = computed(() => {
+  return [...shortcuts.value]
+    .filter((item) => item.lastOpenedAt)
+    .sort((a, b) => new Date(b.lastOpenedAt!).getTime() - new Date(a.lastOpenedAt!).getTime())[0] ?? null;
 });
 
 const resetForm = () => {
@@ -78,6 +88,7 @@ const editShortcut = (item: PlaylistShortcut) => {
 };
 
 const openShortcut = (item: PlaylistShortcut) => {
+  markShortcutOpened(item.id);
   window.open(item.url, '_blank', 'noopener,noreferrer');
 };
 
@@ -111,6 +122,38 @@ const groupedCounts = computed(() => {
 
 <template>
   <section class="space-y-6">
+    <div v-if="favoriteShortcut || lastOpenedShortcut" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <section v-if="favoriteShortcut" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-lg font-semibold text-gray-900">Lieblingsplaylist</h3>
+          <span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Favorit</span>
+        </div>
+        <div class="mt-4 rounded-xl bg-gray-50 px-4 py-4">
+          <p class="text-2xl">{{ favoriteShortcut.icon || '🎶' }}</p>
+          <p class="mt-2 font-semibold text-gray-900">{{ favoriteShortcut.title }}</p>
+          <p class="mt-1 text-sm text-gray-600">{{ providerLabels[favoriteShortcut.provider] }}</p>
+          <button @click="openShortcut(favoriteShortcut)" class="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+            Jetzt abspielen
+          </button>
+        </div>
+      </section>
+
+      <section v-if="lastOpenedShortcut" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <div class="flex items-center justify-between gap-3">
+          <h3 class="text-lg font-semibold text-gray-900">Zuletzt geöffnet</h3>
+          <span class="text-xs text-gray-500">{{ lastOpenedShortcut.lastOpenedAt ? new Date(lastOpenedShortcut.lastOpenedAt).toLocaleString('de-DE') : '' }}</span>
+        </div>
+        <div class="mt-4 rounded-xl bg-gray-50 px-4 py-4">
+          <p class="text-2xl">{{ lastOpenedShortcut.icon || '🎶' }}</p>
+          <p class="mt-2 font-semibold text-gray-900">{{ lastOpenedShortcut.title }}</p>
+          <p class="mt-1 text-sm text-gray-600">{{ providerLabels[lastOpenedShortcut.provider] }}</p>
+          <button @click="openShortcut(lastOpenedShortcut)" class="mt-4 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-black">
+            Erneut öffnen
+          </button>
+        </div>
+      </section>
+    </div>
+
     <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
       <div class="flex items-center justify-between gap-3">
         <h3 class="text-lg font-semibold text-gray-900">Shortcut speichern</h3>
@@ -206,6 +249,7 @@ const groupedCounts = computed(() => {
           <div class="flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-4 py-3">
             <div class="min-w-0">
               <p class="text-sm font-medium text-gray-900 truncate">{{ item.url }}</p>
+              <p v-if="item.lastOpenedAt" class="mt-1 text-xs text-gray-500">Zuletzt geöffnet: {{ new Date(item.lastOpenedAt).toLocaleString('de-DE') }}</p>
             </div>
             <button @click="openShortcut(item)" class="px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-black whitespace-nowrap">
               Öffnen

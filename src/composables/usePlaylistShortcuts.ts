@@ -122,6 +122,18 @@ export function usePlaylistShortcuts() {
     saveShortcuts();
   };
 
+  const markShortcutOpened = (shortcutId: string) => {
+    const index = shortcuts.value.findIndex((entry) => entry.id === shortcutId);
+    if (index === -1) return;
+
+    shortcuts.value[index] = normalizeShortcut({
+      ...shortcuts.value[index],
+      lastOpenedAt: nowIso(),
+      updatedAt: nowIso()
+    });
+    saveShortcuts();
+  };
+
   const removeShortcut = (shortcutId: string) => {
     shortcuts.value = shortcuts.value.filter((entry) => entry.id !== shortcutId);
     saveShortcuts();
@@ -135,6 +147,7 @@ export function usePlaylistShortcuts() {
   return {
     shortcuts,
     upsertShortcut,
+    markShortcutOpened,
     removeShortcut
   };
 }
