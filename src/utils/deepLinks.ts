@@ -20,8 +20,8 @@ export const normalizeQueryString = (value: unknown) => {
   return typeof value === 'string' ? value : null;
 };
 
-export const applyRootDeepLinkRedirect = (route: RouteLocationNormalizedLoaded, router: Router) => {
-  const moduleName = normalizeQueryString(route.query.module);
+export const applyRootDeepLinkRedirect = (route: RouteLocationNormalizedLoaded, router: Router, fallbackModule?: string | null) => {
+  const moduleName = normalizeQueryString(route.query.module) ?? fallbackModule ?? null;
   const target = resolveModulePath(moduleName);
 
   if (!target || target === route.path) return;

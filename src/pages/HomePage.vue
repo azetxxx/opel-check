@@ -14,6 +14,7 @@ import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
 import { usePlaylistShortcuts } from '../composables/usePlaylistShortcuts';
 import { useSavedPlaces } from '../composables/useSavedPlaces';
 import { useVehicleProfile } from '../composables/useVehicleProfile';
+import { useAppPreferences } from '../composables/useAppPreferences';
 import type { NavigationProvider, SavedPlace } from '../types/map';
 import { formatDisplayDate } from '../utils/maintenanceDates';
 import { enrichTasks } from '../utils/maintenanceTasks';
@@ -27,6 +28,7 @@ const { logs } = useMaintenanceLogs();
 const { shortcuts } = usePlaylistShortcuts();
 const { places } = useSavedPlaces();
 const { activeVehicle } = useVehicleProfile();
+const { preferences } = useAppPreferences();
 
 const modules = [
   { title: 'Karte', description: 'Gespeicherte Orte und Schnellnavigation.', to: '/map', icon: MapPinIcon, action: 'Zu Karte' },
@@ -60,7 +62,6 @@ const nextTask = computed(() => {
     .sort((a, b) => {
       const aDate = a.scheduleType === 'scheduled' ? a.dueDate : a.nextCheck;
       const bDate = b.scheduleType === 'scheduled' ? b.dueDate : b.nextCheck;
-
       if (aDate && bDate) return new Date(aDate).getTime() - new Date(bDate).getTime();
       if (aDate && !bDate) return -1;
       if (!aDate && bDate) return 1;
@@ -77,13 +78,29 @@ const nextTask = computed(() => {
 });
 
 const recentCompletions = computed(() => filteredLogs.value.slice(0, 3));
-const quickPlaces = computed(() => places.value.slice(0, 4));
-const quickPlaylists = computed(() => shortcuts.value.slice(0, 4));
+const favoritePlace = computed(() => places.value.find((place) => place.id === preferences.value.favoritePlaceId) ?? null);
+const favoritePlaylist = computed(() => shortcuts.value.find((item) => item.id === preferences.value.favoritePlaylistId) ?? null);
+const quickPlaces = computed(() => {
+  const remaining = places.value.filter((place) => place.id !== favoritePlace.value?.id);
+  return favoritePlace.value ? [favoritePlace.value, ...remaining].slice(0, 4) : remaining.slice(0, 4);
+});
+const quickPlaylists = computed(() => {
+  const remaining = shortcuts.value.filter((item) => item.id !== favoritePlaylist.value?.id);
+  return favoritePlaylist.value ? [favoritePlaylist.value, ...remaining].slice(0, 4) : remaining.slice(0, 4);
+});
 
 const providerLabel: Record<NavigationProvider, string> = {
   google: 'Google Maps',
   apple: 'Apple Karten',
   waze: 'Waze'
+};
+
+const startupModuleLabel: Record<string, string> = {
+  home: 'Start',
+  map: 'Karte',
+  maintenance: 'Wartung',
+  music: 'Musik',
+  settings: 'Einstellungen'
 };
 
 const openPlace = (place: SavedPlace) => {
@@ -103,7 +120,7 @@ const openPlaylist = (url: string) => {
 };
 
 onMounted(() => {
-  applyRootDeepLinkRedirect(route, router);
+  applyRootDeepLinkRedirect(route, router, preferences.value.preferredStartupModule === 'home' ? null : preferences.value.preferredStartupModule);
 });
 </script>
 
@@ -119,11 +136,29 @@ onMounted(() => {
         </div>
         <RouterLink to="/settings" class="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700">
           <Cog6ToothIcon class="h-4 w-4" />
-          Fahrzeugprofil öffnen
+          Startseite anpassen
         </RouterLink>
       </div>
 
-      <div class="grid grid-cols-2 xl:grid-cols-4 gap-3">
+      <div v-if="favoritePlace || favoritePlaylist || preferences.preferredStartupModule !== 'home'" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div v-if="favoritePlace" class="rounded-xl bg-blue-50 px-4 py-4">
+          <p class="text-sm font-medium text-blue-700">Favorit: Ziel</p>
+          <p class="mt-2 font-semibold text-gray-900">{{ favoritePlace.label }}</p>
+          <p class="mt-1 text-sm text-gray-600">{{ favoritePlace.address }}</p>
+        </div>
+        <div v-if="favoritePlaylist" class="rounded-xl bg-purple-50 px-4 py-4">
+          <p class="text-sm font-medium text-purple-700">Favorit: Playlist</p>
+          <p class="mt-2 font-semibold text-gray-900">{{ favoritePlaylist.title }}</p>
+          <p class="mt-1 text-sm text-gray-600">{{ favoritePlaylist.provider }}</p>
+        </div>
+        <div v-if="preferences.preferredStartupModule !== 'home'" class="rounded-xl bg-emerald-50 px-4 py-4">
+          <p class="text-sm font-medium text-emerald-700">Bevorzugter Start</p>
+          <p class="mt-2 font-semibold text-gray-900">{{ startupModuleLabel[preferences.preferredStartupModule] }}</p>
+          <p class="mt-1 text-sm text-gray-600">Wird für spätere Schnellstarts verwendet.</p>
+        </div>
+      </div>
+
+      <div v-if="preferences.homeWidgets.stats" class="grid grid-cols-2 xl:grid-cols-4 gap-3">
         <div v-for="item in quickStats" :key="item.label" class="rounded-xl px-4 py-4" :class="item.tone">
           <p class="text-sm font-medium">{{ item.label }}</p>
           <p class="mt-2 text-2xl font-semibold">{{ item.value }}</p>
@@ -131,8 +166,8 @@ onMounted(() => {
       </div>
     </section>
 
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+    <div v-if="preferences.homeWidgets.nextTask || preferences.homeWidgets.recentCompletions" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <section v-if="preferences.homeWidgets.nextTask" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-lg font-semibold text-gray-900">Nächste Aufgabe</h3>
           <RouterLink to="/maintenance" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
@@ -140,7 +175,6 @@ onMounted(() => {
             <ArrowTopRightOnSquareIcon class="h-4 w-4" />
           </RouterLink>
         </div>
-
         <div v-if="nextTask" class="mt-4 rounded-xl bg-gray-50 px-4 py-4">
           <p class="font-medium text-gray-900">{{ nextTask.title }}</p>
           <p class="mt-1 text-sm text-gray-600">{{ nextTask.meta }}</p>
@@ -149,7 +183,7 @@ onMounted(() => {
         <p v-else class="mt-4 text-sm text-gray-500">Aktuell gibt es keine offenen oder bald fälligen Aufgaben.</p>
       </section>
 
-      <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <section v-if="preferences.homeWidgets.recentCompletions" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-lg font-semibold text-gray-900">Zuletzt erledigt</h3>
           <RouterLink to="/maintenance" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
@@ -157,7 +191,6 @@ onMounted(() => {
             <ArrowTopRightOnSquareIcon class="h-4 w-4" />
           </RouterLink>
         </div>
-
         <div v-if="recentCompletions.length > 0" class="mt-4 space-y-3">
           <div v-for="entry in recentCompletions" :key="entry.id" class="rounded-xl bg-gray-50 px-4 py-3">
             <p class="font-medium text-gray-900">{{ entry.taskDescription }}</p>
@@ -169,8 +202,8 @@ onMounted(() => {
       </section>
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+    <div v-if="preferences.homeWidgets.quickPlaces || preferences.homeWidgets.quickPlaylists" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <section v-if="preferences.homeWidgets.quickPlaces" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-lg font-semibold text-gray-900">Schnellziele</h3>
           <RouterLink to="/map" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
@@ -178,14 +211,8 @@ onMounted(() => {
             <ArrowTopRightOnSquareIcon class="h-4 w-4" />
           </RouterLink>
         </div>
-
         <div v-if="quickPlaces.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            v-for="place in quickPlaces"
-            :key="place.id"
-            @click="openPlace(place)"
-            class="text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors"
-          >
+          <button v-for="place in quickPlaces" :key="place.id" @click="openPlace(place)" class="text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors">
             <div class="flex items-start justify-between gap-3">
               <div>
                 <p class="text-2xl">{{ place.icon || '📍' }}</p>
@@ -199,7 +226,7 @@ onMounted(() => {
         <p v-else class="text-sm text-gray-500">Noch keine Schnellziele gespeichert.</p>
       </section>
 
-      <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+      <section v-if="preferences.homeWidgets.quickPlaylists" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-lg font-semibold text-gray-900">Musik-Shortcuts</h3>
           <RouterLink to="/music" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
@@ -207,14 +234,8 @@ onMounted(() => {
             <ArrowTopRightOnSquareIcon class="h-4 w-4" />
           </RouterLink>
         </div>
-
         <div v-if="quickPlaylists.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            v-for="item in quickPlaylists"
-            :key="item.id"
-            @click="openPlaylist(item.url)"
-            class="text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors"
-          >
+          <button v-for="item in quickPlaylists" :key="item.id" @click="openPlaylist(item.url)" class="text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors">
             <div class="flex items-start justify-between gap-3">
               <div>
                 <p class="text-2xl">{{ item.icon || '🎶' }}</p>
@@ -229,7 +250,7 @@ onMounted(() => {
       </section>
     </div>
 
-    <section class="space-y-4">
+    <section v-if="preferences.homeWidgets.modules" class="space-y-4">
       <div class="flex items-center justify-between gap-3">
         <h3 class="text-lg font-semibold text-gray-900">Module</h3>
         <RouterLink to="/maintenance" class="inline-flex items-center gap-2 text-sm font-medium text-emerald-600 hover:text-emerald-700">
@@ -239,12 +260,7 @@ onMounted(() => {
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <RouterLink
-          v-for="module in modules"
-          :key="module.to"
-          :to="module.to"
-          class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow"
-        >
+        <RouterLink v-for="module in modules" :key="module.to" :to="module.to" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
           <div class="flex items-start gap-4">
             <component :is="module.icon" class="h-6 w-6 text-blue-600 mt-0.5" />
             <div class="flex-1">

@@ -1,16 +1,24 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import BackupPanel from '../components/BackupPanel.vue';
+import HomePreferencesCard from '../components/HomePreferencesCard.vue';
 import VehicleProfileCard from '../components/VehicleProfileCard.vue';
 import { useMaintenanceData } from '../composables/useMaintenanceData';
 import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
+import { usePlaylistShortcuts } from '../composables/usePlaylistShortcuts';
+import { useSavedPlaces } from '../composables/useSavedPlaces';
 import { useVehicleProfile } from '../composables/useVehicleProfile';
+import { useAppPreferences } from '../composables/useAppPreferences';
 import type { VehicleProfile } from '../types/maintenance';
+import type { AppPreferences } from '../types/preferences';
 import { createBackupPayload, downloadBackup, validateBackupPayload } from '../utils/backup';
-import { ref } from 'vue';
 
 const { maintenanceTasks, replaceTasks } = useMaintenanceData();
 const { logs, replaceLogs } = useMaintenanceLogs();
 const { vehicles, activeVehicle, updateVehicle, replaceVehicles } = useVehicleProfile();
+const { places } = useSavedPlaces();
+const { shortcuts } = usePlaylistShortcuts();
+const { preferences, updatePreferences } = useAppPreferences();
 
 const isImportingBackup = ref(false);
 
@@ -43,10 +51,29 @@ const importBackup = async (file: File) => {
     isImportingBackup.value = false;
   }
 };
+
+const toggleWidget = (key: keyof AppPreferences['homeWidgets'], value: boolean) => {
+  updatePreferences({
+    homeWidgets: {
+      ...preferences.value.homeWidgets,
+      [key]: value
+    }
+  });
+};
 </script>
 
 <template>
   <section class="space-y-6">
+    <HomePreferencesCard
+      :preferences="preferences"
+      :places="places"
+      :playlists="shortcuts"
+      @update:favorite-place-id="updatePreferences({ favoritePlaceId: $event })"
+      @update:favorite-playlist-id="updatePreferences({ favoritePlaylistId: $event })"
+      @update:preferred-startup-module="updatePreferences({ preferredStartupModule: $event })"
+      @toggle-widget="toggleWidget"
+    />
+
     <VehicleProfileCard :vehicle="activeVehicle" @save="saveVehicleProfile" />
     <BackupPanel :is-importing="isImportingBackup" @export="exportBackup" @import-file="importBackup" />
   </section>
