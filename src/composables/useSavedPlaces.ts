@@ -16,6 +16,7 @@ const defaultPlaces: SavedPlace[] = [
     icon: '🏠',
     notes: 'Beispieladresse',
     providers: ['google', 'apple', 'waze'],
+    defaultProvider: 'google',
     createdAt: nowIso(),
     updatedAt: nowIso()
   },
@@ -37,6 +38,7 @@ let initialized = false;
 
 const normalizePlace = (place: Partial<SavedPlace>): SavedPlace => {
   const createdAt = place.createdAt ?? nowIso();
+  const providers = place.providers?.length ? place.providers : ['google', 'apple'];
 
   return {
     id: place.id ?? crypto.randomUUID(),
@@ -44,7 +46,8 @@ const normalizePlace = (place: Partial<SavedPlace>): SavedPlace => {
     address: place.address ?? '',
     notes: place.notes ?? '',
     icon: place.icon ?? '📍',
-    providers: place.providers?.length ? place.providers : ['google', 'apple'],
+    providers,
+    defaultProvider: place.defaultProvider ?? providers[0] ?? 'google',
     createdAt,
     updatedAt: place.updatedAt ?? createdAt
   };
@@ -90,12 +93,14 @@ export function useSavedPlaces() {
       }
     }
 
-    places.value.unshift(normalizePlace({
-      ...place,
-      id: crypto.randomUUID(),
-      createdAt: nowIso(),
-      updatedAt: nowIso()
-    }));
+    places.value.unshift(
+      normalizePlace({
+        ...place,
+        id: crypto.randomUUID(),
+        createdAt: nowIso(),
+        updatedAt: nowIso()
+      })
+    );
     savePlaces();
   };
 
@@ -111,11 +116,6 @@ export function useSavedPlaces() {
 
   return {
     places,
-    upsertPlace,
-    removePlace
-  };
-}
-   places,
     upsertPlace,
     removePlace
   };
