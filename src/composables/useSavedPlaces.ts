@@ -38,7 +38,7 @@ let initialized = false;
 
 const normalizePlace = (place: Partial<SavedPlace>): SavedPlace => {
   const createdAt = place.createdAt ?? nowIso();
-  const providers = place.providers?.length ? place.providers : ['google', 'apple'];
+  const providers: SavedPlace['providers'] = place.providers?.length ? place.providers : ['google', 'apple'];
 
   return {
     id: place.id ?? crypto.randomUUID(),
