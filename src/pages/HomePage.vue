@@ -113,7 +113,7 @@ const startupModuleLabel: Record<string, string> = {
 };
 
 const openPlace = (place: SavedPlace) => {
-  const provider = place.providers[0] ?? 'google';
+  const provider = place.defaultProvider ?? place.providers[0] ?? 'google';
   const encoded = encodeURIComponent(place.address);
   const urls: Record<NavigationProvider, string> = {
     google: `https://www.google.com/maps/search/?api=1&query=${encoded}`,
@@ -151,16 +151,26 @@ onMounted(() => {
       </div>
 
       <div v-if="favoritePlace || favoritePlaylist || preferences.preferredStartupModule !== 'home'" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div v-if="favoritePlace" class="rounded-xl bg-blue-50 px-4 py-4">
-          <p class="text-sm font-medium text-blue-700">Favorit: Ziel</p>
-          <p class="mt-2 font-semibold text-gray-900">{{ favoritePlace.label }}</p>
-          <p class="mt-1 text-sm text-gray-600">{{ favoritePlace.address }}</p>
-        </div>
-        <div v-if="favoritePlaylist" class="rounded-xl bg-purple-50 px-4 py-4">
-          <p class="text-sm font-medium text-purple-700">Favorit: Playlist</p>
-          <p class="mt-2 font-semibold text-gray-900">{{ favoritePlaylist.title }}</p>
-          <p class="mt-1 text-sm text-gray-600">{{ favoritePlaylist.provider }}</p>
-        </div>
+        <button v-if="favoritePlace" @click="openPlace(favoritePlace)" class="rounded-xl bg-blue-50 px-4 py-4 text-left hover:bg-blue-100 transition-colors">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-sm font-medium text-blue-700">Favorit: Ziel</p>
+              <p class="mt-2 font-semibold text-gray-900">{{ favoritePlace.label }}</p>
+              <p class="mt-1 text-sm text-gray-600">{{ favoritePlace.address }}</p>
+            </div>
+            <span class="text-xs font-medium text-blue-600">{{ providerLabel[favoritePlace.defaultProvider ?? favoritePlace.providers[0] ?? 'google'] }}</span>
+          </div>
+        </button>
+        <button v-if="favoritePlaylist" @click="openPlaylist(favoritePlaylist.id, favoritePlaylist.url)" class="rounded-xl bg-purple-50 px-4 py-4 text-left hover:bg-purple-100 transition-colors">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-sm font-medium text-purple-700">Favorit: Playlist</p>
+              <p class="mt-2 font-semibold text-gray-900">{{ favoritePlaylist.title }}</p>
+              <p class="mt-1 text-sm text-gray-600">{{ favoritePlaylist.provider }}</p>
+            </div>
+            <span class="text-xs font-medium text-purple-600">Abspielen</span>
+          </div>
+        </button>
         <div v-if="preferences.preferredStartupModule !== 'home'" class="rounded-xl bg-emerald-50 px-4 py-4">
           <p class="text-sm font-medium text-emerald-700">Bevorzugter Start</p>
           <p class="mt-2 font-semibold text-gray-900">{{ startupModuleLabel[preferences.preferredStartupModule] }}</p>
