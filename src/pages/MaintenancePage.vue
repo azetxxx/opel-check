@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onErrorCaptured, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import AppHeader from '../components/AppHeader.vue';
 import DashboardOverview from '../components/DashboardOverview.vue';
 import LogModal from '../components/LogModal.vue';
@@ -12,6 +13,8 @@ import { useVehicleProfile } from '../composables/useVehicleProfile';
 import type { MaintenanceTask, TaskGroupKey } from '../types/maintenance';
 import { formatDisplayDate, getCurrentDate, getNextCheckDate, toDateInputValue } from '../utils/maintenanceDates';
 import { buildDefaultCollapsedGroups, enrichTasks, getAutoCollapsedGroups, groupTasksByFrequency } from '../utils/maintenanceTasks';
+
+const route = useRoute();
 
 const { maintenanceTasks, updateTask, saveTask, archiveTask, resetTasks } = useMaintenanceData();
 const { logs, addLog, isLoading, openLogModal } = useMaintenanceLogs();
@@ -102,16 +105,22 @@ watch(groupedTasks, (groups) => {
   collapsedGroups.value = getAutoCollapsedGroups(groups);
 }, { immediate: true });
 
+const openCreateTaskModal = () => {
+  editingTask.value = null;
+  isTaskModalOpen.value = true;
+};
+
+watch(() => route.query.action, (action) => {
+  if (action === 'create-task') {
+    openCreateTaskModal();
+  }
+}, { immediate: true });
+
 onMounted(() => window.addEventListener('keydown', handleKeydown));
 onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 
 const toggleGroup = (frequency: TaskGroupKey) => {
   collapsedGroups.value[frequency] = !collapsedGroups.value[frequency];
-};
-
-const openCreateTaskModal = () => {
-  editingTask.value = null;
-  isTaskModalOpen.value = true;
 };
 
 const openEditTaskModal = (task: MaintenanceTask) => {

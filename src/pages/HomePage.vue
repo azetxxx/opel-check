@@ -8,8 +8,8 @@ import {
   PlusCircleIcon,
   WrenchScrewdriverIcon
 } from '@heroicons/vue/24/outline';
-import { computed } from 'vue';
-import { RouterLink } from 'vue-router';
+import { computed, onMounted } from 'vue';
+import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useMaintenanceData } from '../composables/useMaintenanceData';
 import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
 import { usePlaylistShortcuts } from '../composables/usePlaylistShortcuts';
@@ -18,6 +18,10 @@ import { useVehicleProfile } from '../composables/useVehicleProfile';
 import type { NavigationProvider, SavedPlace } from '../types/map';
 import { formatDisplayDate } from '../utils/maintenanceDates';
 import { enrichTasks } from '../utils/maintenanceTasks';
+import { applyRootDeepLinkRedirect } from '../utils/deepLinks';
+
+const route = useRoute();
+const router = useRouter();
 
 const { maintenanceTasks } = useMaintenanceData();
 const { logs } = useMaintenanceLogs();
@@ -98,6 +102,10 @@ const openPlace = (place: SavedPlace) => {
 const openPlaylist = (url: string) => {
   window.open(url, '_blank', 'noopener,noreferrer');
 };
+
+onMounted(() => {
+  applyRootDeepLinkRedirect(route, router);
+});
 </script>
 
 <template>

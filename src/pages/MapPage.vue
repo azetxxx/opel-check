@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { MapPinIcon, PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { useSavedPlaces } from '../composables/useSavedPlaces';
 import type { NavigationProvider, SavedPlace } from '../types/map';
 
+const route = useRoute();
 const { places, upsertPlace, removePlace } = useSavedPlaces();
 
 const editingId = ref<string | null>(null);
@@ -79,6 +81,21 @@ const openProvider = (place: SavedPlace, provider: NavigationProvider) => {
 
   window.open(urls[provider], '_blank', 'noopener,noreferrer');
 };
+
+const applyDeepLinkAction = () => {
+  const action = typeof route.query.action === 'string' ? route.query.action : null;
+  const placeId = typeof route.query.place === 'string' ? route.query.place : null;
+  const provider = typeof route.query.provider === 'string' ? route.query.provider as NavigationProvider : null;
+
+  if (action !== 'navigate' || !placeId) return;
+
+  const place = places.value.find((item) => item.id === placeId);
+  if (!place) return;
+
+  openProvider(place, provider && place.providers.includes(provider) ? provider : (place.providers[0] ?? 'google'));
+};
+
+watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
 </script>
 
 <template>

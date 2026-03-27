@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { MusicalNoteIcon, PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import { usePlaylistShortcuts } from '../composables/usePlaylistShortcuts';
 import type { MusicProvider, PlaylistShortcut } from '../types/music';
 
+const route = useRoute();
 const { shortcuts, upsertShortcut, removeShortcut } = usePlaylistShortcuts();
 
 const editingId = ref<string | null>(null);
@@ -61,6 +63,20 @@ const editShortcut = (item: PlaylistShortcut) => {
 const openShortcut = (item: PlaylistShortcut) => {
   window.open(item.url, '_blank', 'noopener,noreferrer');
 };
+
+const applyDeepLinkAction = () => {
+  const action = typeof route.query.action === 'string' ? route.query.action : null;
+  const shortcutId = typeof route.query.shortcut === 'string' ? route.query.shortcut : null;
+
+  if (action !== 'play' || !shortcutId) return;
+
+  const shortcut = shortcuts.value.find((item) => item.id === shortcutId);
+  if (!shortcut) return;
+
+  openShortcut(shortcut);
+};
+
+watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
 
 const groupedCounts = computed(() => {
   return providerOptions.map((provider) => ({
