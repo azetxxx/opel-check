@@ -219,7 +219,7 @@ onMounted(() => {
                 <p class="mt-2 font-medium text-gray-900">{{ place.label }}</p>
                 <p class="mt-1 text-sm text-gray-600 line-clamp-2">{{ place.address }}</p>
               </div>
-              <span class="text-xs font-medium text-blue-600">{{ providerLabel[place.providers[0] ?? 'google'] }}</span>
+              <span class="text-xs font-medium text-blue-600">{{ providerLabel[place.defaultProvider ?? place.providers[0] ?? 'google'] }}</span>
             </div>
           </button>
         </div>

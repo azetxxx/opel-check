@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { MapPinIcon, PencilSquareIcon, PlusIcon, StarIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSavedPlaces } from '../composables/useSavedPlaces';
+import { useAppPreferences } from '../composables/useAppPreferences';
 import type { NavigationProvider, SavedPlace } from '../types/map';
 
 const route = useRoute();
 const { places, upsertPlace, removePlace } = useSavedPlaces();
+const { preferences, updatePreferences } = useAppPreferences();
 
 const editingId = ref<string | null>(null);
 const form = reactive({
@@ -14,6 +16,7 @@ const form = reactive({
   address: '',
   notes: '',
   icon: '📍',
+  defaultProvider: 'google' as NavigationProvider,
   google: true,
   apple: true,
   waze: false
@@ -31,6 +34,7 @@ const resetForm = () => {
   form.address = '';
   form.notes = '';
   form.icon = '📍';
+  form.defaultProvider = 'google';
   form.google = true;
   form.apple = true;
   form.waze = false;
@@ -44,6 +48,21 @@ const selectedProviders = computed<NavigationProvider[]>(() => {
   ].filter(Boolean) as NavigationProvider[];
 });
 
+const effectiveDefaultProvider = computed<NavigationProvider>(() => {
+  return selectedProviders.value.includes(form.defaultProvider)
+    ? form.defaultProvider
+    : (selectedProviders.value[0] ?? 'google');
+});
+
+const favoritePlaceId = computed(() => preferences.value.favoritePlaceId);
+const sortedPlaces = computed(() => {
+  return [...places.value].sort((a, b) => {
+    if (a.id === favoritePlaceId.value) return -1;
+    if (b.id === favoritePlaceId.value) return 1;
+    return a.label.localeCompare(b.label, 'de');
+  });
+});
+
 const submit = () => {
   if (!form.label.trim() || !form.address.trim()) return;
 
@@ -53,7 +72,8 @@ const submit = () => {
     address: form.address.trim(),
     notes: form.notes.trim(),
     icon: form.icon.trim() || '📍',
-    providers: selectedProviders.value.length > 0 ? selectedProviders.value : ['google', 'apple']
+    providers: selectedProviders.value.length > 0 ? selectedProviders.value : ['google', 'apple'],
+    defaultProvider: effectiveDefaultProvider.value
   });
 
   resetForm();
@@ -65,6 +85,7 @@ const editPlace = (place: SavedPlace) => {
   form.address = place.address;
   form.notes = place.notes ?? '';
   form.icon = place.icon ?? '📍';
+  form.defaultProvider = place.defaultProvider ?? 'google';
   form.google = place.providers.includes('google');
   form.apple = place.providers.includes('apple');
   form.waze = place.providers.includes('waze');
@@ -82,6 +103,16 @@ const openProvider = (place: SavedPlace, provider: NavigationProvider) => {
   window.open(urls[provider], '_blank', 'noopener,noreferrer');
 };
 
+const openDefaultProvider = (place: SavedPlace) => {
+  openProvider(place, place.defaultProvider ?? place.providers[0] ?? 'google');
+};
+
+const toggleFavorite = (place: SavedPlace) => {
+  updatePreferences({
+    favoritePlaceId: favoritePlaceId.value === place.id ? null : place.id
+  });
+};
+
 const applyDeepLinkAction = () => {
   const action = typeof route.query.action === 'string' ? route.query.action : null;
   const placeId = typeof route.query.place === 'string' ? route.query.place : null;
@@ -92,10 +123,15 @@ const applyDeepLinkAction = () => {
   const place = places.value.find((item) => item.id === placeId);
   if (!place) return;
 
-  openProvider(place, provider && place.providers.includes(provider) ? provider : (place.providers[0] ?? 'google'));
+  openProvider(place, provider && place.providers.includes(provider) ? provider : (place.defaultProvider ?? place.providers[0] ?? 'google'));
 };
 
 watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
+watch(selectedProviders, (providers) => {
+  if (!providers.includes(form.defaultProvider)) {
+    form.defaultProvider = providers[0] ?? 'google';
+  }
+});
 </script>
 
 <template>
@@ -128,12 +164,21 @@ watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
         </div>
       </div>
 
-      <div>
-        <p class="text-sm font-medium text-gray-700 mb-2">Navigation</p>
-        <div class="flex flex-wrap gap-4 text-sm text-gray-700">
-          <label class="inline-flex items-center gap-2"><input v-model="form.google" type="checkbox"> Google Maps</label>
-          <label class="inline-flex items-center gap-2"><input v-model="form.apple" type="checkbox"> Apple Karten</label>
-          <label class="inline-flex items-center gap-2"><input v-model="form.waze" type="checkbox"> Waze</label>
+      <div class="space-y-3">
+        <div>
+          <p class="text-sm font-medium text-gray-700 mb-2">Navigation</p>
+          <div class="flex flex-wrap gap-4 text-sm text-gray-700">
+            <label class="inline-flex items-center gap-2"><input v-model="form.google" type="checkbox"> Google Maps</label>
+            <label class="inline-flex items-center gap-2"><input v-model="form.apple" type="checkbox"> Apple Karten</label>
+            <label class="inline-flex items-center gap-2"><input v-model="form.waze" type="checkbox"> Waze</label>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Standardanbieter</label>
+          <select v-model="form.defaultProvider" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+            <option v-for="provider in selectedProviders" :key="provider" :value="provider">{{ providerLabels[provider] }}</option>
+          </select>
         </div>
       </div>
 
@@ -151,16 +196,23 @@ watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
         <p class="text-sm text-gray-500">{{ places.length }} Orte gespeichert</p>
       </div>
 
-      <div v-if="places.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div v-for="place in places" :key="place.id" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
+      <div v-if="sortedPlaces.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div v-for="place in sortedPlaces" :key="place.id" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <p class="text-2xl">{{ place.icon || '📍' }}</p>
+              <div class="flex items-center gap-2">
+                <p class="text-2xl">{{ place.icon || '📍' }}</p>
+                <span v-if="favoritePlaceId === place.id" class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Favorit</span>
+              </div>
               <h4 class="mt-2 font-semibold text-gray-900">{{ place.label }}</h4>
               <p class="text-sm text-gray-600 mt-1">{{ place.address }}</p>
               <p v-if="place.notes" class="text-sm text-gray-500 mt-2">{{ place.notes }}</p>
+              <p class="text-xs text-gray-500 mt-2">Standard: {{ providerLabels[place.defaultProvider] }}</p>
             </div>
             <div class="flex items-center gap-2">
+              <button @click="toggleFavorite(place)" class="p-2 rounded-lg border border-yellow-200 text-yellow-600 hover:bg-yellow-50">
+                <StarIcon class="h-4 w-4" />
+              </button>
               <button @click="editPlace(place)" class="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
                 <PencilSquareIcon class="h-4 w-4" />
               </button>
@@ -171,6 +223,9 @@ watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
           </div>
 
           <div class="flex flex-wrap gap-2">
+            <button @click="openDefaultProvider(place)" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+              Standard öffnen
+            </button>
             <button
               v-for="provider in place.providers"
               :key="provider"

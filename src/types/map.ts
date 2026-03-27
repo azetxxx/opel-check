@@ -7,6 +7,7 @@ export interface SavedPlace {
   notes?: string;
   icon?: string;
   providers: NavigationProvider[];
+  defaultProvider: NavigationProvider;
   createdAt: string;
   updatedAt: string;
 }

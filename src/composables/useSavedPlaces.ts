@@ -26,6 +26,7 @@ const defaultPlaces: SavedPlace[] = [
     icon: '💼',
     notes: 'Arbeitsweg',
     providers: ['google', 'apple'],
+    defaultProvider: 'google',
     createdAt: nowIso(),
     updatedAt: nowIso()
   }
@@ -110,6 +111,11 @@ export function useSavedPlaces() {
 
   return {
     places,
+    upsertPlace,
+    removePlace
+  };
+}
+   places,
     upsertPlace,
     removePlace
   };
