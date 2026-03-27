@@ -16,6 +16,7 @@ const defaultShortcuts: PlaylistShortcut[] = [
     url: 'https://open.spotify.com/',
     notes: 'Beispiel-Link',
     icon: '🚗',
+    pinned: true,
     createdAt: nowIso(),
     updatedAt: nowIso()
   },
@@ -35,16 +36,36 @@ const defaultShortcuts: PlaylistShortcut[] = [
 const shortcuts = ref<PlaylistShortcut[]>([]);
 let initialized = false;
 
+const normalizeMusicUrl = (provider: PlaylistShortcut['provider'], url: string) => {
+  if (provider !== 'youtube-music' || !url) return url;
+
+  try {
+    const parsed = new URL(url);
+    const listId = parsed.searchParams.get('list');
+
+    if (!listId) return url;
+
+    return `https://music.youtube.com/watch?list=${encodeURIComponent(listId)}`;
+  } catch {
+    const match = url.match(/[?&]list=([^&]+)/);
+    if (!match?.[1]) return url;
+    return `https://music.youtube.com/watch?list=${encodeURIComponent(match[1])}`;
+  }
+};
+
 const normalizeShortcut = (item: Partial<PlaylistShortcut>): PlaylistShortcut => {
   const createdAt = item.createdAt ?? nowIso();
+  const provider = item.provider ?? 'other';
+  const url = normalizeMusicUrl(provider, item.url ?? '');
 
   return {
     id: item.id ?? crypto.randomUUID(),
     title: item.title ?? 'Neue Playlist',
-    provider: item.provider ?? 'other',
-    url: item.url ?? '',
+    provider,
+    url,
     notes: item.notes ?? '',
     icon: item.icon ?? '🎶',
+    pinned: item.pinned ?? false,
     createdAt,
     updatedAt: item.updatedAt ?? createdAt
   };
@@ -90,12 +111,14 @@ export function usePlaylistShortcuts() {
       }
     }
 
-    shortcuts.value.unshift(normalizeShortcut({
-      ...item,
-      id: crypto.randomUUID(),
-      createdAt: nowIso(),
-      updatedAt: nowIso()
-    }));
+    shortcuts.value.unshift(
+      normalizeShortcut({
+        ...item,
+        id: crypto.randomUUID(),
+        createdAt: nowIso(),
+        updatedAt: nowIso()
+      })
+    );
     saveShortcuts();
   };
 
@@ -113,8 +136,5 @@ export function usePlaylistShortcuts() {
     shortcuts,
     upsertShortcut,
     removeShortcut
-  };
-}
-hortcut
   };
 }
