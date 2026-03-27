@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { PencilSquareIcon, PlusIcon, StarIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { usePlaylistShortcuts } from '../composables/usePlaylistShortcuts';
+import { useAppPreferences } from '../composables/useAppPreferences';
 import type { MusicProvider, PlaylistShortcut } from '../types/music';
 
 const route = useRoute();
 const { shortcuts, upsertShortcut, removeShortcut } = usePlaylistShortcuts();
+const { preferences, updatePreferences } = useAppPreferences();
 
 const editingId = ref<string | null>(null);
 const form = reactive({
@@ -14,7 +16,8 @@ const form = reactive({
   provider: 'spotify' as MusicProvider,
   url: '',
   notes: '',
-  icon: '🎶'
+  icon: '🎶',
+  pinned: false
 });
 
 const providerLabels: Record<MusicProvider, string> = {
@@ -26,6 +29,17 @@ const providerLabels: Record<MusicProvider, string> = {
 };
 
 const providerOptions: MusicProvider[] = ['spotify', 'youtube-music', 'apple-music', 'soundcloud', 'other'];
+const favoritePlaylistId = computed(() => preferences.value.favoritePlaylistId);
+
+const sortedShortcuts = computed(() => {
+  return [...shortcuts.value].sort((a, b) => {
+    if (a.id === favoritePlaylistId.value) return -1;
+    if (b.id === favoritePlaylistId.value) return 1;
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return a.title.localeCompare(b.title, 'de');
+  });
+});
 
 const resetForm = () => {
   editingId.value = null;
@@ -34,6 +48,7 @@ const resetForm = () => {
   form.url = '';
   form.notes = '';
   form.icon = '🎶';
+  form.pinned = false;
 };
 
 const submit = () => {
@@ -45,7 +60,8 @@ const submit = () => {
     provider: form.provider,
     url: form.url.trim(),
     notes: form.notes.trim(),
-    icon: form.icon.trim() || '🎶'
+    icon: form.icon.trim() || '🎶',
+    pinned: form.pinned
   });
 
   resetForm();
@@ -58,10 +74,17 @@ const editShortcut = (item: PlaylistShortcut) => {
   form.url = item.url;
   form.notes = item.notes ?? '';
   form.icon = item.icon ?? '🎶';
+  form.pinned = item.pinned;
 };
 
 const openShortcut = (item: PlaylistShortcut) => {
   window.open(item.url, '_blank', 'noopener,noreferrer');
+};
+
+const toggleFavorite = (item: PlaylistShortcut) => {
+  updatePreferences({
+    favoritePlaylistId: favoritePlaylistId.value === item.id ? null : item.id
+  });
 };
 
 const applyDeepLinkAction = () => {
@@ -111,6 +134,9 @@ const groupedCounts = computed(() => {
         <div class="md:col-span-2">
           <label class="block text-sm font-medium text-gray-700 mb-1">URL</label>
           <input v-model="form.url" type="url" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="https://open.spotify.com/...">
+          <p v-if="form.provider === 'youtube-music'" class="mt-1 text-xs text-gray-500">
+            YouTube Music Playlist-Links werden automatisch in das bessere <span class="font-mono">watch?list=...</span>-Format umgewandelt.
+          </p>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Icon / Emoji</label>
@@ -121,6 +147,11 @@ const groupedCounts = computed(() => {
           <input v-model="form.notes" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="optional">
         </div>
       </div>
+
+      <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+        <input v-model="form.pinned" type="checkbox">
+        Oben anheften
+      </label>
 
       <div class="flex justify-end gap-3">
         <button @click="resetForm" class="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm">Zurücksetzen</button>
@@ -146,16 +177,23 @@ const groupedCounts = computed(() => {
         <p class="text-sm text-gray-500">{{ shortcuts.length }} Einträge gespeichert</p>
       </div>
 
-      <div v-if="shortcuts.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div v-for="item in shortcuts" :key="item.id" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
+      <div v-if="sortedShortcuts.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div v-for="item in sortedShortcuts" :key="item.id" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <p class="text-2xl">{{ item.icon || '🎶' }}</p>
+              <div class="flex items-center gap-2">
+                <p class="text-2xl">{{ item.icon || '🎶' }}</p>
+                <span v-if="favoritePlaylistId === item.id" class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Favorit</span>
+                <span v-else-if="item.pinned" class="px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700">Angeheftet</span>
+              </div>
               <h4 class="mt-2 font-semibold text-gray-900">{{ item.title }}</h4>
               <p class="text-sm text-gray-600 mt-1">{{ providerLabels[item.provider] }}</p>
               <p v-if="item.notes" class="text-sm text-gray-500 mt-2">{{ item.notes }}</p>
             </div>
             <div class="flex items-center gap-2">
+              <button @click="toggleFavorite(item)" class="p-2 rounded-lg border border-yellow-200 text-yellow-600 hover:bg-yellow-50">
+                <StarIcon class="h-4 w-4" />
+              </button>
               <button @click="editShortcut(item)" class="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
                 <PencilSquareIcon class="h-4 w-4" />
               </button>

@@ -26,6 +26,7 @@ const defaultShortcuts: PlaylistShortcut[] = [
     url: 'https://music.youtube.com/',
     notes: 'Beispiel-Link',
     icon: '🎵',
+    pinned: false,
     createdAt: nowIso(),
     updatedAt: nowIso()
   }
@@ -112,5 +113,8 @@ export function usePlaylistShortcuts() {
     shortcuts,
     upsertShortcut,
     removeShortcut
+  };
+}
+hortcut
   };
 }
