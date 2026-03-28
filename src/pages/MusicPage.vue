@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PencilSquareIcon, PlusIcon, StarIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
+import { EllipsisHorizontalIcon } from '@heroicons/vue/20/solid';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import MusicProviderIcon from '../components/MusicProviderIcon.vue';
@@ -16,6 +17,7 @@ const editingId = ref<string | null>(null);
 const isFormOpen = ref(false);
 const topCreateButton = ref<HTMLElement | null>(null);
 const showFloatingCreateButton = ref(false);
+const activeActionMenuId = ref<string | null>(null);
 let createButtonObserver: IntersectionObserver | null = null;
 const preferredMusicProvider = computed(() => preferences.value.preferredMusicProvider);
 
@@ -125,6 +127,10 @@ const toggleFavorite = (item: PlaylistShortcut) => {
   updatePreferences({
     favoritePlaylistId: favoritePlaylistId.value === item.id ? null : item.id
   });
+};
+
+const toggleActionMenu = (itemId: string) => {
+  activeActionMenuId.value = activeActionMenuId.value === itemId ? null : itemId;
 };
 
 const applyDeepLinkAction = () => {
@@ -243,23 +249,38 @@ onBeforeUnmount(() => {
               <button @click="toggleFavorite(item)" class="p-2.5 rounded-lg border border-yellow-200 text-yellow-600 hover:bg-yellow-50">
                 <StarIcon class="h-4 w-4" />
               </button>
-              <button @click="editShortcut(item)" class="p-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
-                <PencilSquareIcon class="h-4 w-4" />
-              </button>
-              <button @click="removeShortcut(item.id)" class="p-2.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">
-                <TrashIcon class="h-4 w-4" />
-              </button>
             </div>
           </div>
 
-          <div class="flex items-center justify-between gap-3 rounded-xl bg-gray-50 px-4 py-3">
-            <div class="min-w-0">
+          <div class="space-y-2">
+            <div class="flex gap-2">
+              <button @click="openShortcut(item)" class="flex-1 min-h-11 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-black">
+                In der App öffnen
+              </button>
+              <button
+                @click="toggleActionMenu(item.id)"
+                class="min-h-11 min-w-11 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center"
+              >
+                <EllipsisHorizontalIcon class="h-5 w-5" />
+              </button>
+            </div>
+
+            <div class="rounded-xl bg-gray-50 px-4 py-3">
               <p class="text-sm font-medium text-gray-900 truncate">{{ item.url }}</p>
               <p v-if="item.lastOpenedAt" class="mt-1 text-xs text-gray-500">Zuletzt geöffnet: {{ new Date(item.lastOpenedAt).toLocaleString('de-DE') }}</p>
             </div>
-            <button @click="openShortcut(item)" class="min-h-11 px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-black whitespace-nowrap">
-              Öffnen
-            </button>
+
+            <div v-if="activeActionMenuId === item.id" class="flex flex-col sm:flex-row gap-2">
+              <button @click="editShortcut(item); activeActionMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                <PencilSquareIcon class="h-4 w-4" />
+                Bearbeiten
+              </button>
+
+              <button @click="removeShortcut(item.id); activeActionMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+                <TrashIcon class="h-4 w-4" />
+                Löschen
+              </button>
+            </div>
           </div>
         </div>
       </div>
