@@ -229,7 +229,7 @@ onBeforeUnmount(() => {
           <div class="space-y-2">
             <div class="flex gap-2">
               <button @click="openDefaultProvider(place)" class="flex-1 min-h-11 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
-                Standard öffnen
+                In der Karten-App öffnen
               </button>
               <button
                 @click="toggleProviderMenu(place.id)"
