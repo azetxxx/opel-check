@@ -53,7 +53,7 @@ const getButtonText = (task: EnrichedMaintenanceTask) => {
 </script>
 
 <template>
-  <div class="p-4 hover:bg-gray-50 transition-colors duration-200">
+  <div class="p-4 sm:p-5 hover:bg-gray-50 transition-colors duration-200">
     <div class="flex flex-col gap-3">
       <div class="flex justify-between items-start gap-4">
         <div class="flex-1">
@@ -110,7 +110,7 @@ const getButtonText = (task: EnrichedMaintenanceTask) => {
         </div>
       </div>
 
-      <div v-if="task.notes || task.lastMileage != null" class="text-sm text-gray-600 bg-gray-50 rounded-lg px-3 py-2">
+      <div v-if="task.notes || task.lastMileage != null" class="text-sm text-gray-600 bg-gray-50 rounded-xl px-3 py-3">
         <div v-if="task.notes">{{ task.notes }}</div>
         <div v-if="task.lastMileage != null" class="mt-1">Letzter km-Stand: {{ task.lastMileage.toLocaleString('de-DE') }} km</div>
       </div>
@@ -119,7 +119,7 @@ const getButtonText = (task: EnrichedMaintenanceTask) => {
         <button
           @click="emit('mark-checked', task)"
           :class="[
-            'flex-1 px-4 py-2 text-white rounded-lg transform hover:scale-[1.01] transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2',
+            'flex-1 min-h-11 px-4 py-2 text-white rounded-lg transform hover:scale-[1.01] transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2',
             {
               'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700': task.status === 'overdue',
               'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600': task.status === 'dueNow',
@@ -135,12 +135,12 @@ const getButtonText = (task: EnrichedMaintenanceTask) => {
           {{ getButtonText(task) }}
         </button>
 
-        <button @click="emit('edit', task)" class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center gap-2" :disabled="isLoading">
+        <button @click="emit('edit', task)" class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center gap-2" :disabled="isLoading">
           <PencilSquareIcon class="h-4 w-4" />
           Bearbeiten
         </button>
 
-        <button v-if="task.isCustom" @click="emit('delete', task.id)" class="px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2" :disabled="isLoading">
+        <button v-if="task.isCustom" @click="emit('delete', task.id)" class="min-h-11 px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2" :disabled="isLoading">
           <TrashIcon class="h-4 w-4" />
           Löschen
         </button>

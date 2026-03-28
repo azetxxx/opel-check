@@ -10,7 +10,7 @@
             </h2>
             <p class="text-gray-600 text-sm mt-1">Übersicht aller durchgeführten Wartungen</p>
           </div>
-          <button @click="closeLogModal" class="text-gray-400 hover:text-gray-600 transition-colors duration-200">
+          <button @click="closeLogModal" class="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors duration-200">
             <XMarkIcon class="w-6 h-6" />
           </button>
         </div>
@@ -20,7 +20,7 @@
         </div>
 
         <div v-else class="flex-1 overflow-auto px-5 py-5 sm:px-6">
-          <div v-if="logs.length === 0" class="text-center text-gray-500 py-12 bg-gray-50 rounded-xl">
+          <div v-if="logs.length === 0" class="text-center text-gray-500 py-12 bg-gray-50 rounded-xl border border-dashed border-gray-200">
             <ClipboardDocumentListIcon class="h-16 w-16 mx-auto mb-4 text-gray-400" />
             <p>Keine Wartungsprotokolle vorhanden</p>
           </div>

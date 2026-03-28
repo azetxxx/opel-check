@@ -39,7 +39,7 @@ const handleFileChange = (event: Event) => {
     <div class="flex flex-col sm:flex-row gap-3">
       <button
         @click="emit('export')"
-        class="px-4 py-2 bg-gradient-to-r from-slate-700 to-slate-900 text-white rounded-lg hover:from-slate-800 hover:to-black transition-all duration-200 shadow-sm hover:shadow text-sm font-medium flex items-center justify-center gap-2"
+        class="min-h-11 px-4 py-2 bg-gradient-to-r from-slate-700 to-slate-900 text-white rounded-lg hover:from-slate-800 hover:to-black transition-all duration-200 shadow-sm hover:shadow text-sm font-medium flex items-center justify-center gap-2"
       >
         <ArrowDownTrayIcon class="h-4 w-4" />
         Backup exportieren
@@ -48,7 +48,7 @@ const handleFileChange = (event: Event) => {
       <button
         @click="openFilePicker"
         :disabled="isImporting"
-        class="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+        class="min-h-11 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
       >
         <ArrowUpTrayIcon class="h-4 w-4" />
         Backup importieren

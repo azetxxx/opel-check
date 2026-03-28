@@ -94,7 +94,7 @@ const submit = () => {
             <h2 class="text-2xl font-bold text-gray-900">{{ isEditing ? 'Aufgabe bearbeiten' : 'Neue Aufgabe' }}</h2>
             <p class="text-gray-600 text-sm mt-1">Wartungsaufgabe für das aktuelle Fahrzeug konfigurieren</p>
           </div>
-          <button @click="emit('close')" class="text-gray-400 hover:text-gray-600 transition-colors duration-200">
+          <button @click="emit('close')" class="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors duration-200">
             <XMarkIcon class="w-6 h-6" />
           </button>
         </div>

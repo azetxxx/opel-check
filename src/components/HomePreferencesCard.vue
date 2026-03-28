@@ -35,7 +35,7 @@ const widgetLabels: Record<keyof AppPreferences['homeWidgets'], string> = {
 </script>
 
 <template>
-  <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-5">
+  <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 space-y-5">
     <div>
       <h3 class="text-lg font-semibold text-gray-900">Startseite anpassen</h3>
       <p class="text-sm text-gray-600 mt-1">Lege Favoriten und sichtbare Widgets für die Startseite fest.</p>

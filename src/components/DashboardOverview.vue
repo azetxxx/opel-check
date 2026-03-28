@@ -29,7 +29,7 @@ const icons = [ExclamationTriangleIcon, ClockIcon, ListBulletIcon, CheckCircleIc
       <div
         v-for="(item, index) in summary"
         :key="item.title"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-4"
+        class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5"
       >
         <div class="flex items-start justify-between gap-3">
           <div>
@@ -43,7 +43,7 @@ const icons = [ExclamationTriangleIcon, ClockIcon, ListBulletIcon, CheckCircleIc
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
         <h2 class="text-lg font-semibold text-gray-900">Nächster fälliger Punkt</h2>
         <div v-if="nextDueItem" class="mt-4">
           <p class="font-medium text-gray-900">{{ nextDueItem.title }}</p>
@@ -53,13 +53,13 @@ const icons = [ExclamationTriangleIcon, ClockIcon, ListBulletIcon, CheckCircleIc
         <p v-else class="mt-4 text-sm text-gray-500">Aktuell ist nichts fällig.</p>
       </div>
 
-      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
         <h2 class="text-lg font-semibold text-gray-900">Diesen Monat</h2>
         <p class="mt-4 text-sm text-gray-600">{{ monthSummary }}</p>
       </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
       <h2 class="text-lg font-semibold text-gray-900">Zuletzt erledigt</h2>
       <div v-if="recentItems.length > 0" class="mt-4 space-y-3">
         <div v-for="item in recentItems" :key="`${item.title}-${item.meta}`" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 rounded-lg bg-gray-50 px-4 py-3">
