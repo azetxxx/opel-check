@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import AppPreferencesCard from '../components/AppPreferencesCard.vue';
 import BackupPanel from '../components/BackupPanel.vue';
 import HomePreferencesCard from '../components/HomePreferencesCard.vue';
 import VehicleProfileCard from '../components/VehicleProfileCard.vue';
@@ -60,10 +61,27 @@ const toggleWidget = (key: keyof AppPreferences['homeWidgets'], value: boolean) 
     }
   });
 };
+
+const toggleCarMode = (key: keyof AppPreferences['carMode'], value: boolean) => {
+  updatePreferences({
+    carMode: {
+      ...preferences.value.carMode,
+      [key]: value
+    }
+  });
+};
 </script>
 
 <template>
   <section class="space-y-6">
+    <AppPreferencesCard
+      :preferences="preferences"
+      @update:preferred-map-provider="updatePreferences({ preferredMapProvider: $event })"
+      @update:preferred-music-provider="updatePreferences({ preferredMusicProvider: $event })"
+      @update:preferred-startup-module="updatePreferences({ preferredStartupModule: $event })"
+      @toggle-car-mode="toggleCarMode"
+    />
+
     <HomePreferencesCard
       :preferences="preferences"
       :places="places"

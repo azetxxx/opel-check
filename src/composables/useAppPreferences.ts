@@ -8,7 +8,15 @@ const STORAGE_VERSION = 1;
 const defaultPreferences = (): AppPreferences => ({
   favoritePlaceId: null,
   favoritePlaylistId: null,
+  preferredMapProvider: 'google',
+  preferredMusicProvider: 'none',
   preferredStartupModule: 'home',
+  carMode: {
+    enabled: false,
+    autoOpenFavoritePlace: false,
+    autoPlayFavoritePlaylist: false,
+    simplifiedHome: true
+  },
   homeWidgets: {
     stats: true,
     nextTask: true,
@@ -28,7 +36,15 @@ const normalizePreferences = (value: Partial<AppPreferences> | null | undefined)
   return {
     favoritePlaceId: value?.favoritePlaceId ?? fallback.favoritePlaceId,
     favoritePlaylistId: value?.favoritePlaylistId ?? fallback.favoritePlaylistId,
+    preferredMapProvider: value?.preferredMapProvider ?? fallback.preferredMapProvider,
+    preferredMusicProvider: value?.preferredMusicProvider ?? fallback.preferredMusicProvider,
     preferredStartupModule: value?.preferredStartupModule ?? fallback.preferredStartupModule,
+    carMode: {
+      enabled: value?.carMode?.enabled ?? fallback.carMode.enabled,
+      autoOpenFavoritePlace: value?.carMode?.autoOpenFavoritePlace ?? fallback.carMode.autoOpenFavoritePlace,
+      autoPlayFavoritePlaylist: value?.carMode?.autoPlayFavoritePlaylist ?? fallback.carMode.autoPlayFavoritePlaylist,
+      simplifiedHome: value?.carMode?.simplifiedHome ?? fallback.carMode.simplifiedHome
+    },
     homeWidgets: {
       stats: value?.homeWidgets?.stats ?? fallback.homeWidgets.stats,
       nextTask: value?.homeWidgets?.nextTask ?? fallback.homeWidgets.nextTask,

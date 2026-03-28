@@ -1,3 +1,6 @@
+import type { NavigationProvider } from './map';
+import type { MusicProvider } from './music';
+
 export type StartupModule = 'home' | 'map' | 'maintenance' | 'music' | 'settings';
 
 export interface HomeWidgetVisibility {
@@ -9,9 +12,19 @@ export interface HomeWidgetVisibility {
   modules: boolean;
 }
 
+export interface CarModePreferences {
+  enabled: boolean;
+  autoOpenFavoritePlace: boolean;
+  autoPlayFavoritePlaylist: boolean;
+  simplifiedHome: boolean;
+}
+
 export interface AppPreferences {
   favoritePlaceId: string | null;
   favoritePlaylistId: string | null;
+  preferredMapProvider: NavigationProvider;
+  preferredMusicProvider: MusicProvider | 'none';
   preferredStartupModule: StartupModule;
+  carMode: CarModePreferences;
   homeWidgets: HomeWidgetVisibility;
 }
