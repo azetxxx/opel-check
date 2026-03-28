@@ -2,9 +2,11 @@
 import { PencilSquareIcon, PlusIcon, StarIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import MusicProviderIcon from '../components/MusicProviderIcon.vue';
 import { usePlaylistShortcuts } from '../composables/usePlaylistShortcuts';
 import { useAppPreferences } from '../composables/useAppPreferences';
 import type { MusicProvider, PlaylistShortcut } from '../types/music';
+import { getProviderIconFallback } from '../utils/musicIcons';
 
 const route = useRoute();
 const { shortcuts, upsertShortcut, markShortcutOpened, removeShortcut } = usePlaylistShortcuts();
@@ -60,13 +62,17 @@ const lastOpenedShortcut = computed(() => {
     .sort((a, b) => new Date(b.lastOpenedAt!).getTime() - new Date(a.lastOpenedAt!).getTime())[0] ?? null;
 });
 
+const syncProviderIcon = (provider: MusicProvider) => {
+  form.icon = getProviderIconFallback(provider);
+};
+
 const resetForm = () => {
   editingId.value = null;
   form.title = '';
   form.provider = getDefaultMusicProvider();
   form.url = '';
   form.notes = '';
-  form.icon = '🎶';
+  form.icon = getProviderIconFallback(form.provider);
   form.pinned = false;
 };
 
@@ -102,7 +108,7 @@ const editShortcut = (item: PlaylistShortcut) => {
   form.provider = item.provider;
   form.url = item.url;
   form.notes = item.notes ?? '';
-  form.icon = item.icon ?? '🎶';
+  form.icon = item.icon ?? getProviderIconFallback(item.provider);
   form.pinned = item.pinned;
   isFormOpen.value = true;
 };
@@ -136,6 +142,9 @@ const applyDeepLinkAction = () => {
 };
 
 watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
+watch(() => form.provider, (provider) => {
+  syncProviderIcon(provider);
+});
 
 </script>
 
@@ -148,7 +157,9 @@ watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
           <span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Favorit</span>
         </div>
         <div class="mt-4 rounded-xl bg-gray-50 px-4 py-4">
-          <p class="text-2xl">{{ favoriteShortcut.icon || '🎶' }}</p>
+          <div class="flex items-center gap-2 text-2xl">
+            <MusicProviderIcon :provider="favoriteShortcut.provider" class="h-6 w-6" />
+          </div>
           <p class="mt-2 font-semibold text-gray-900">{{ favoriteShortcut.title }}</p>
           <p class="mt-1 text-sm text-gray-600">{{ providerLabels[favoriteShortcut.provider] }}</p>
           <button @click="openShortcut(favoriteShortcut)" class="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
@@ -163,7 +174,9 @@ watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
           <span class="text-xs text-gray-500">{{ lastOpenedShortcut.lastOpenedAt ? new Date(lastOpenedShortcut.lastOpenedAt).toLocaleString('de-DE') : '' }}</span>
         </div>
         <div class="mt-4 rounded-xl bg-gray-50 px-4 py-4">
-          <p class="text-2xl">{{ lastOpenedShortcut.icon || '🎶' }}</p>
+          <div class="flex items-center gap-2 text-2xl">
+            <MusicProviderIcon :provider="lastOpenedShortcut.provider" class="h-6 w-6" />
+          </div>
           <p class="mt-2 font-semibold text-gray-900">{{ lastOpenedShortcut.title }}</p>
           <p class="mt-1 text-sm text-gray-600">{{ providerLabels[lastOpenedShortcut.provider] }}</p>
           <button @click="openShortcut(lastOpenedShortcut)" class="mt-4 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-black">
@@ -190,7 +203,9 @@ watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
           <div class="flex items-start justify-between gap-3">
             <div>
               <div class="flex items-center gap-2">
-                <p class="text-2xl">{{ item.icon || '🎶' }}</p>
+                <div class="flex items-center gap-2">
+                  <MusicProviderIcon :provider="item.provider" class="h-6 w-6" />
+                </div>
                 <span v-if="favoritePlaylistId === item.id" class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Favorit</span>
                 <span v-else-if="item.pinned" class="px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700">Angeheftet</span>
               </div>
@@ -267,8 +282,11 @@ watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Icon / Emoji</label>
-              <input v-model="form.icon" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="🎶">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Provider-Icon</label>
+              <div class="flex items-center gap-3 rounded-lg border border-gray-300 px-3 py-2 text-sm bg-gray-50">
+                <MusicProviderIcon :provider="form.provider" class="h-5 w-5" />
+                <span class="text-gray-600">Wird automatisch aus dem Anbieter übernommen</span>
+              </div>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Notizen</label>
