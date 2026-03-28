@@ -98,6 +98,30 @@ export function useVehicleProfile() {
     saveVehicles();
   };
 
+  const setActiveVehicle = (vehicleId: string) => {
+    if (vehicles.value.some((vehicle) => vehicle.id === vehicleId)) {
+      activeVehicleId.value = vehicleId;
+    }
+  };
+
+  const createVehicle = (partial?: Partial<VehicleProfile>) => {
+    const now = nowIso();
+    const base = createDefaultVehicleProfile();
+    const vehicle = normalizeVehicle({
+      ...base,
+      ...partial,
+      id: partial?.id ?? crypto.randomUUID(),
+      name: partial?.name ?? `Fahrzeug ${vehicles.value.length + 1}`,
+      createdAt: now,
+      updatedAt: now
+    });
+
+    vehicles.value.push(vehicle);
+    activeVehicleId.value = vehicle.id;
+    saveVehicles();
+    return vehicle;
+  };
+
   const activeVehicle = computed(() => {
     return vehicles.value.find((vehicle) => vehicle.id === activeVehicleId.value)
       ?? vehicles.value[0]
@@ -113,6 +137,8 @@ export function useVehicleProfile() {
     vehicles,
     activeVehicle,
     activeVehicleId,
+    setActiveVehicle,
+    createVehicle,
     updateVehicle,
     replaceVehicles
   };

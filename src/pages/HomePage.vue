@@ -27,7 +27,7 @@ const { maintenanceTasks } = useMaintenanceData();
 const { logs } = useMaintenanceLogs();
 const { shortcuts, markShortcutOpened } = usePlaylistShortcuts();
 const { places } = useSavedPlaces();
-const { activeVehicle } = useVehicleProfile();
+const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle } = useVehicleProfile();
 const { preferences } = useAppPreferences();
 
 const modules = [
@@ -155,7 +155,7 @@ onMounted(() => {
   <section class="space-y-5 sm:space-y-6 pb-4">
     <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 space-y-4">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div class="min-w-0">
           <div class="flex items-center gap-2">
             <h3 class="text-lg font-semibold text-gray-900">Aktives Fahrzeug</h3>
             <span v-if="isCarMode" class="px-2 py-0.5 text-xs rounded-full bg-slate-900 text-white">Car Mode</span>
@@ -164,10 +164,19 @@ onMounted(() => {
             {{ activeVehicle.name }}<span v-if="activeVehicle.brand || activeVehicle.model"> · {{ [activeVehicle.brand, activeVehicle.model].filter(Boolean).join(' ') }}</span>
           </p>
         </div>
-        <RouterLink to="/settings" class="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700">
-          <Cog6ToothIcon class="h-4 w-4" />
-          Einstellungen
-        </RouterLink>
+        <div class="flex flex-col gap-2 sm:items-end">
+          <select
+            :value="activeVehicleId"
+            @change="setActiveVehicle(($event.target as HTMLSelectElement).value)"
+            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700"
+          >
+            <option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">{{ vehicle.name }}</option>
+          </select>
+          <RouterLink to="/settings" class="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700">
+            <Cog6ToothIcon class="h-4 w-4" />
+            Einstellungen
+          </RouterLink>
+        </div>
       </div>
 
       <div v-if="isCarMode && (favoritePlace || favoritePlaylist)" class="grid grid-cols-1 xl:grid-cols-2 gap-4">

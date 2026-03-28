@@ -4,6 +4,7 @@ import AppPreferencesCard from '../components/AppPreferencesCard.vue';
 import BackupPanel from '../components/BackupPanel.vue';
 import HomePreferencesCard from '../components/HomePreferencesCard.vue';
 import VehicleProfileCard from '../components/VehicleProfileCard.vue';
+import VehicleSwitcherCard from '../components/VehicleSwitcherCard.vue';
 import { useMaintenanceData } from '../composables/useMaintenanceData';
 import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
 import { usePlaylistShortcuts } from '../composables/usePlaylistShortcuts';
@@ -16,7 +17,7 @@ import { createBackupPayload, downloadBackup, validateBackupPayload } from '../u
 
 const { maintenanceTasks, replaceTasks } = useMaintenanceData();
 const { logs, replaceLogs } = useMaintenanceLogs();
-const { vehicles, activeVehicle, updateVehicle, replaceVehicles } = useVehicleProfile();
+const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle, createVehicle, updateVehicle, replaceVehicles } = useVehicleProfile();
 const { places } = useSavedPlaces();
 const { shortcuts } = usePlaylistShortcuts();
 const { preferences, updatePreferences } = useAppPreferences();
@@ -25,6 +26,14 @@ const isImportingBackup = ref(false);
 
 const saveVehicleProfile = (vehicle: VehicleProfile) => {
   updateVehicle(vehicle);
+};
+
+const addVehicle = () => {
+  createVehicle({
+    name: `Fahrzeug ${vehicles.value.length + 1}`,
+    brand: 'Opel',
+    notes: 'Neues Fahrzeug'
+  });
 };
 
 const exportBackup = () => {
@@ -90,6 +99,13 @@ const toggleCarMode = (key: keyof AppPreferences['carMode'], value: boolean) => 
       @update:favorite-playlist-id="updatePreferences({ favoritePlaylistId: $event })"
       @update:preferred-startup-module="updatePreferences({ preferredStartupModule: $event })"
       @toggle-widget="toggleWidget"
+    />
+
+    <VehicleSwitcherCard
+      :vehicles="vehicles"
+      :active-vehicle-id="activeVehicleId"
+      @change="setActiveVehicle"
+      @create="addVehicle"
     />
 
     <VehicleProfileCard :vehicle="activeVehicle" @save="saveVehicleProfile" />
