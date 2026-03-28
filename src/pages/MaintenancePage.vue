@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { ClipboardDocumentListIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import { computed, onErrorCaptured, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import AppHeader from '../components/AppHeader.vue';
 import DashboardOverview from '../components/DashboardOverview.vue';
 import LogModal from '../components/LogModal.vue';
 import TaskFormModal from '../components/TaskFormModal.vue';
@@ -16,7 +16,7 @@ import { buildDefaultCollapsedGroups, enrichTasks, getAutoCollapsedGroups, group
 
 const route = useRoute();
 
-const { maintenanceTasks, updateTask, saveTask, archiveTask, resetTasks } = useMaintenanceData();
+const { maintenanceTasks, updateTask, saveTask, archiveTask } = useMaintenanceData();
 const { logs, addLog, isLoading, openLogModal } = useMaintenanceLogs();
 const { activeVehicle } = useVehicleProfile();
 
@@ -78,21 +78,6 @@ const monthSummary = computed(() => {
 
   return `${completedThisMonth} Aufgaben wurden in diesem Monat erledigt.`;
 });
-
-const debug = computed(() => ({
-  activeVehicle: activeVehicle.value,
-  logsLoaded: logs.value.length,
-  tasksLoaded: maintenanceTasks.value.length,
-  filteredTasksLoaded: filteredTasks.value.length,
-  groupedTasksCount: Object.values(groupedTasks.value).reduce((acc, tasks) => acc + tasks.length, 0),
-  groups: Object.fromEntries(Object.entries(groupedTasks.value).map(([key, tasks]) => [key, tasks.length])),
-  rawTasks: maintenanceTasks.value,
-  rawGroupedTasks: groupedTasks.value,
-  collapsedState: collapsedGroups.value,
-  simulatedDateEnabled: useSimulatedDate.value,
-  currentSimulatedDate: simulatedDate.value,
-  currentDate: currentDate.value.toISOString()
-}));
 
 const handleKeydown = (event: KeyboardEvent) => {
   if ((event.ctrlKey || event.metaKey) && event.key === 'd') {
@@ -179,27 +164,27 @@ onErrorCaptured((err, instance, info) => {
 
 <template>
   <section class="space-y-6">
-    <AppHeader
-      :show-debug="showDebug"
-      :simulated-date="simulatedDate"
-      :use-simulated-date="useSimulatedDate"
-      :is-loading="isLoading"
-      :debug="debug"
-      @close-debug="showDebug = false"
-      @update:simulated-date="simulatedDate = $event"
-      @update:use-simulated-date="useSimulatedDate = $event"
-      @reset="resetTasks"
-      @open-logs="openLogModal"
-    />
-
-    <div class="flex justify-end">
-      <button
-        @click="openCreateTaskModal"
-        class="px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg hover:from-emerald-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow text-sm font-medium"
-      >
-        Neue Aufgabe
-      </button>
-    </div>
+    <section class="space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-lg font-semibold text-gray-900">Aufgaben</h3>
+        <div class="flex items-center gap-2">
+          <button
+            @click="openLogModal"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100"
+          >
+            <ClipboardDocumentListIcon class="h-4 w-4" />
+            Protokolle
+          </button>
+          <button
+            @click="openCreateTaskModal"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100"
+          >
+            <PlusIcon class="h-4 w-4" />
+            Neu
+          </button>
+        </div>
+      </div>
+    </section>
 
     <DashboardOverview :summary="summaryCards" :next-due-item="nextDueItem" :recent-items="recentItems" :month-summary="monthSummary" />
 

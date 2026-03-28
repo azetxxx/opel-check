@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PencilSquareIcon, PlusIcon, StarIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { PencilSquareIcon, PlusIcon, StarIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSavedPlaces } from '../composables/useSavedPlaces';
@@ -11,6 +11,7 @@ const { places, upsertPlace, removePlace } = useSavedPlaces();
 const { preferences, updatePreferences } = useAppPreferences();
 
 const editingId = ref<string | null>(null);
+const isFormOpen = ref(false);
 const form = reactive({
   label: '',
   address: '',
@@ -38,6 +39,16 @@ const resetForm = () => {
   form.google = true;
   form.apple = true;
   form.waze = false;
+};
+
+const openCreateForm = () => {
+  resetForm();
+  isFormOpen.value = true;
+};
+
+const closeForm = () => {
+  isFormOpen.value = false;
+  resetForm();
 };
 
 const selectedProviders = computed<NavigationProvider[]>(() => {
@@ -76,7 +87,7 @@ const submit = () => {
     defaultProvider: effectiveDefaultProvider.value
   });
 
-  resetForm();
+  closeForm();
 };
 
 const editPlace = (place: SavedPlace) => {
@@ -89,6 +100,7 @@ const editPlace = (place: SavedPlace) => {
   form.google = place.providers.includes('google');
   form.apple = place.providers.includes('apple');
   form.waze = place.providers.includes('waze');
+  isFormOpen.value = true;
 };
 
 const openProvider = (place: SavedPlace, provider: NavigationProvider) => {
@@ -118,6 +130,11 @@ const applyDeepLinkAction = () => {
   const placeId = typeof route.query.place === 'string' ? route.query.place : null;
   const provider = typeof route.query.provider === 'string' ? route.query.provider as NavigationProvider : null;
 
+  if (action === 'create-task') {
+    openCreateForm();
+    return;
+  }
+
   if (action !== 'navigate' || !placeId) return;
 
   const place = places.value.find((item) => item.id === placeId);
@@ -136,64 +153,16 @@ watch(selectedProviders, (providers) => {
 
 <template>
   <section class="space-y-6">
-    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="text-lg font-semibold text-gray-900">Ort speichern</h3>
-        <button @click="resetForm" class="inline-flex items-center gap-2 text-sm font-medium text-emerald-600 hover:text-emerald-700">
-          <PlusIcon class="h-4 w-4" />
-          Neu
-        </button>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-          <input v-model="form.label" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="z. B. Zuhause">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-          <input v-model="form.address" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="z. B. Musterstraße 1, München">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Icon / Emoji</label>
-          <input v-model="form.icon" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="📍">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Notizen</label>
-          <input v-model="form.notes" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="optional">
-        </div>
-      </div>
-
-      <div class="space-y-3">
-        <div>
-          <p class="text-sm font-medium text-gray-700 mb-2">Navigation</p>
-          <div class="flex flex-wrap gap-4 text-sm text-gray-700">
-            <label class="inline-flex items-center gap-2"><input v-model="form.google" type="checkbox"> Google Maps</label>
-            <label class="inline-flex items-center gap-2"><input v-model="form.apple" type="checkbox"> Apple Karten</label>
-            <label class="inline-flex items-center gap-2"><input v-model="form.waze" type="checkbox"> Waze</label>
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Standardanbieter</label>
-          <select v-model="form.defaultProvider" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
-            <option v-for="provider in selectedProviders" :key="provider" :value="provider">{{ providerLabels[provider] }}</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="flex justify-end gap-3">
-        <button @click="resetForm" class="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm">Zurücksetzen</button>
-        <button @click="submit" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium">
-          {{ editingId ? 'Ort speichern' : 'Ort hinzufügen' }}
-        </button>
-      </div>
-    </section>
-
     <section class="space-y-4">
       <div class="flex items-center justify-between gap-3">
-        <h3 class="text-lg font-semibold text-gray-900">Gespeicherte Ziele</h3>
-        <p class="text-sm text-gray-500">{{ places.length }} Orte gespeichert</p>
+        <h3 class="text-lg font-semibold text-gray-900">Ziele</h3>
+        <div class="flex items-center gap-3">
+          <p class="text-sm text-gray-500">{{ places.length }} Orte gespeichert</p>
+          <button @click="openCreateForm" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
+            <PlusIcon class="h-4 w-4" />
+            Neu
+          </button>
+        </div>
       </div>
 
       <div v-if="sortedPlaces.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -238,9 +207,73 @@ watch(selectedProviders, (providers) => {
         </div>
       </div>
 
-      <section v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <p class="text-sm text-gray-500">Noch keine Ziele gespeichert. Lege oben deinen ersten Ort an.</p>
+      <section v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center space-y-4">
+        <p class="text-sm text-gray-500">Noch keine Ziele gespeichert.</p>
+        <button @click="openCreateForm" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
+          <PlusIcon class="h-4 w-4" />
+          Neu
+        </button>
       </section>
     </section>
+
+    <div v-if="isFormOpen" class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+      <div class="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 flex items-center justify-between gap-3 border-b border-gray-100 bg-white px-6 py-4 rounded-t-2xl">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900">{{ editingId ? 'Ort bearbeiten' : 'Ort hinzufügen' }}</h3>
+            <p class="text-sm text-gray-500">Gespeicherte Ziele für schnelle Navigation</p>
+          </div>
+          <button @click="closeForm" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+            <XMarkIcon class="h-5 w-5" />
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
+              <input v-model="form.label" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="z. B. Zuhause">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+              <input v-model="form.address" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="z. B. Musterstraße 1, München">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Icon / Emoji</label>
+              <input v-model="form.icon" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="📍">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Notizen</label>
+              <input v-model="form.notes" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="optional">
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-2">Navigation</p>
+              <div class="flex flex-wrap gap-4 text-sm text-gray-700">
+                <label class="inline-flex items-center gap-2"><input v-model="form.google" type="checkbox"> Google Maps</label>
+                <label class="inline-flex items-center gap-2"><input v-model="form.apple" type="checkbox"> Apple Karten</label>
+                <label class="inline-flex items-center gap-2"><input v-model="form.waze" type="checkbox"> Waze</label>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Standardanbieter</label>
+              <select v-model="form.defaultProvider" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+                <option v-for="provider in selectedProviders" :key="provider" :value="provider">{{ providerLabels[provider] }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="sticky bottom-0 flex justify-end gap-3 border-t border-gray-100 bg-white px-6 py-4 rounded-b-2xl">
+          <button @click="closeForm" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Abbrechen</button>
+          <button @click="submit" class="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white">
+            {{ editingId ? 'Ort speichern' : 'Ort hinzufügen' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </section>
 </template>

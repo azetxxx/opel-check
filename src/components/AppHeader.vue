@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ClipboardDocumentListIcon } from '@heroicons/vue/20/solid';
 import DebugPanel from './DebugPanel.vue';
 
 interface DebugData {
@@ -39,25 +38,13 @@ const emit = defineEmits<{
       />
 
       <div class="flex flex-col gap-2">
-        <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
-          Opel Wartungscheckliste
-        </h1>
-        <div class="flex justify-between items-center">
-          <div class="flex items-center gap-4">
-            <p class="text-sm text-gray-600">Fahrzeugwartung im Überblick</p>
-            <div class="flex gap-2">
-              <button
-                @click="emit('open-logs')"
-                class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg
-                       hover:from-blue-700 hover:to-indigo-700 transform hover:scale-105 transition-all
-                       duration-200 shadow-md hover:shadow-lg disabled:opacity-50 text-sm flex items-center gap-2"
-                :disabled="isLoading"
-              >
-                <ClipboardDocumentListIcon class="h-4 w-4" />
-                Protokolle
-              </button>
-            </div>
-          </div>
+        <div class="flex justify-end">
+          <button
+            @click="emit('reset')"
+            class="px-3 py-1.5 text-xs text-gray-500 hover:text-gray-700"
+          >
+            Reset
+          </button>
         </div>
       </div>
     </div>

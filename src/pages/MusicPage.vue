@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PencilSquareIcon, PlusIcon, StarIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { PencilSquareIcon, PlusIcon, StarIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
 import { computed, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { usePlaylistShortcuts } from '../composables/usePlaylistShortcuts';
@@ -11,6 +11,7 @@ const { shortcuts, upsertShortcut, markShortcutOpened, removeShortcut } = usePla
 const { preferences, updatePreferences } = useAppPreferences();
 
 const editingId = ref<string | null>(null);
+const isFormOpen = ref(false);
 const form = reactive({
   title: '',
   provider: 'spotify' as MusicProvider,
@@ -61,6 +62,16 @@ const resetForm = () => {
   form.pinned = false;
 };
 
+const openCreateForm = () => {
+  resetForm();
+  isFormOpen.value = true;
+};
+
+const closeForm = () => {
+  isFormOpen.value = false;
+  resetForm();
+};
+
 const submit = () => {
   if (!form.title.trim() || !form.url.trim()) return;
 
@@ -74,7 +85,7 @@ const submit = () => {
     pinned: form.pinned
   });
 
-  resetForm();
+  closeForm();
 };
 
 const editShortcut = (item: PlaylistShortcut) => {
@@ -85,6 +96,7 @@ const editShortcut = (item: PlaylistShortcut) => {
   form.notes = item.notes ?? '';
   form.icon = item.icon ?? '🎶';
   form.pinned = item.pinned;
+  isFormOpen.value = true;
 };
 
 const openShortcut = (item: PlaylistShortcut) => {
@@ -102,6 +114,11 @@ const applyDeepLinkAction = () => {
   const action = typeof route.query.action === 'string' ? route.query.action : null;
   const shortcutId = typeof route.query.shortcut === 'string' ? route.query.shortcut : null;
 
+  if (action === 'create-task') {
+    openCreateForm();
+    return;
+  }
+
   if (action !== 'play' || !shortcutId) return;
 
   const shortcut = shortcuts.value.find((item) => item.id === shortcutId);
@@ -112,12 +129,6 @@ const applyDeepLinkAction = () => {
 
 watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
 
-const groupedCounts = computed(() => {
-  return providerOptions.map((provider) => ({
-    provider,
-    count: shortcuts.value.filter((item) => item.provider === provider).length
-  }));
-});
 </script>
 
 <template>
@@ -154,70 +165,16 @@ const groupedCounts = computed(() => {
       </section>
     </div>
 
-    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
-      <div class="flex items-center justify-between gap-3">
-        <h3 class="text-lg font-semibold text-gray-900">Shortcut speichern</h3>
-        <button @click="resetForm" class="inline-flex items-center gap-2 text-sm font-medium text-emerald-600 hover:text-emerald-700">
-          <PlusIcon class="h-4 w-4" />
-          Neu
-        </button>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Titel</label>
-          <input v-model="form.title" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="z. B. Morning Drive">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Anbieter</label>
-          <select v-model="form.provider" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
-            <option v-for="provider in providerOptions" :key="provider" :value="provider">{{ providerLabels[provider] }}</option>
-          </select>
-        </div>
-        <div class="md:col-span-2">
-          <label class="block text-sm font-medium text-gray-700 mb-1">URL</label>
-          <input v-model="form.url" type="url" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="https://open.spotify.com/...">
-          <p v-if="form.provider === 'youtube-music'" class="mt-1 text-xs text-gray-500">
-            YouTube Music Playlist-Links werden automatisch in das bessere <span class="font-mono">watch?list=...</span>-Format umgewandelt.
-          </p>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Icon / Emoji</label>
-          <input v-model="form.icon" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="🎶">
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Notizen</label>
-          <input v-model="form.notes" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="optional">
-        </div>
-      </div>
-
-      <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-        <input v-model="form.pinned" type="checkbox">
-        Oben anheften
-      </label>
-
-      <div class="flex justify-end gap-3">
-        <button @click="resetForm" class="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm">Zurücksetzen</button>
-        <button @click="submit" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg text-sm font-medium">
-          {{ editingId ? 'Shortcut speichern' : 'Shortcut hinzufügen' }}
-        </button>
-      </div>
-    </section>
-
-    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
-      <h3 class="text-lg font-semibold text-gray-900">Anbieter-Überblick</h3>
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <div v-for="item in groupedCounts" :key="item.provider" class="rounded-xl bg-gray-50 px-4 py-3">
-          <p class="text-sm text-gray-500">{{ providerLabels[item.provider] }}</p>
-          <p class="mt-2 text-xl font-semibold text-gray-900">{{ item.count }}</p>
-        </div>
-      </div>
-    </section>
-
     <section class="space-y-4">
       <div class="flex items-center justify-between gap-3">
-        <h3 class="text-lg font-semibold text-gray-900">Gespeicherte Shortcuts</h3>
-        <p class="text-sm text-gray-500">{{ shortcuts.length }} Einträge gespeichert</p>
+        <h3 class="text-lg font-semibold text-gray-900">Playlists</h3>
+        <div class="flex items-center gap-3">
+          <p class="text-sm text-gray-500">{{ shortcuts.length }} Einträge gespeichert</p>
+          <button @click="openCreateForm" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
+            <PlusIcon class="h-4 w-4" />
+            Neu
+          </button>
+        </div>
       </div>
 
       <div v-if="sortedShortcuts.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -258,9 +215,69 @@ const groupedCounts = computed(() => {
         </div>
       </div>
 
-      <section v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <p class="text-sm text-gray-500">Noch keine Musik-Shortcuts gespeichert. Lege oben deinen ersten Eintrag an.</p>
+      <section v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center space-y-4">
+        <p class="text-sm text-gray-500">Noch keine Musik-Shortcuts gespeichert.</p>
+        <button @click="openCreateForm" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
+          <PlusIcon class="h-4 w-4" />
+          Neu
+        </button>
       </section>
     </section>
+
+    <div v-if="isFormOpen" class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+      <div class="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 flex items-center justify-between gap-3 border-b border-gray-100 bg-white px-6 py-4 rounded-t-2xl">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900">{{ editingId ? 'Shortcut bearbeiten' : 'Shortcut hinzufügen' }}</h3>
+            <p class="text-sm text-gray-500">Playlists und Medien-Links für den Schnellstart</p>
+          </div>
+          <button @click="closeForm" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700">
+            <XMarkIcon class="h-5 w-5" />
+          </button>
+        </div>
+
+        <div class="p-6 space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Titel</label>
+              <input v-model="form.title" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="z. B. Morning Drive">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Anbieter</label>
+              <select v-model="form.provider" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+                <option v-for="provider in providerOptions" :key="provider" :value="provider">{{ providerLabels[provider] }}</option>
+              </select>
+            </div>
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">URL</label>
+              <input v-model="form.url" type="url" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="https://open.spotify.com/...">
+              <p v-if="form.provider === 'youtube-music'" class="mt-1 text-xs text-gray-500">
+                YouTube Music Playlist-Links werden automatisch in das bessere <span class="font-mono">watch?list=...</span>-Format umgewandelt.
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Icon / Emoji</label>
+              <input v-model="form.icon" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="🎶">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Notizen</label>
+              <input v-model="form.notes" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="optional">
+            </div>
+          </div>
+
+          <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input v-model="form.pinned" type="checkbox">
+            Oben anheften
+          </label>
+        </div>
+
+        <div class="sticky bottom-0 flex justify-end gap-3 border-t border-gray-100 bg-white px-6 py-4 rounded-b-2xl">
+          <button @click="closeForm" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Abbrechen</button>
+          <button @click="submit" class="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white">
+            {{ editingId ? 'Shortcut speichern' : 'Shortcut hinzufügen' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </section>
 </template>
