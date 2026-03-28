@@ -164,7 +164,7 @@ onMounted(() => {
             {{ activeVehicle.name }}<span v-if="activeVehicle.brand || activeVehicle.model"> · {{ [activeVehicle.brand, activeVehicle.model].filter(Boolean).join(' ') }}</span>
           </p>
         </div>
-        <div class="flex flex-col gap-2 sm:items-end">
+        <div v-if="!isSimplifiedCarMode" class="flex flex-col gap-2 sm:items-end">
           <select
             :value="activeVehicleId"
             @change="setActiveVehicle(($event.target as HTMLSelectElement).value)"
