@@ -16,7 +16,7 @@ const emit = defineEmits<{
 
 const startupOptions: { value: StartupModule; label: string }[] = [
   { value: 'home', label: 'Start' },
-  { value: 'map', label: 'Karte' },
+  { value: 'map', label: 'Ziele' },
   { value: 'maintenance', label: 'Wartung' },
   { value: 'music', label: 'Musik' },
   { value: 'settings', label: 'Einstellungen' }

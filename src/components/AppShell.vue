@@ -8,7 +8,7 @@ const route = useRoute();
 
 const navItems = [
   { name: 'Start', to: '/', icon: HomeIcon },
-  { name: 'Karte', to: '/map', icon: MapIcon },
+  { name: 'Ziele', to: '/map', icon: MapIcon },
   { name: 'Wartung', to: '/maintenance', icon: WrenchScrewdriverIcon },
   { name: 'Musik', to: '/music', icon: MusicalNoteIcon },
   { name: 'Einstellungen', to: '/settings', icon: Cog6ToothIcon }

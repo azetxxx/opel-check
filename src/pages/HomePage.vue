@@ -33,7 +33,7 @@ const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle } = useVehicl
 const { preferences } = useAppPreferences();
 
 const modules = [
-  { title: 'Karte', description: 'Gespeicherte Orte und Schnellnavigation.', to: '/map', icon: MapPinIcon, action: 'Zu Karte' },
+  { title: 'Ziele', description: 'Gespeicherte Orte und Schnellnavigation.', to: '/map', icon: MapPinIcon, action: 'Zu Zielen' },
   { title: 'Wartung', description: 'Aufgaben, Dashboard und Serviceprotokolle.', to: '/maintenance', icon: WrenchScrewdriverIcon, action: 'Zu Wartung' },
   { title: 'Musik', description: 'Playlists und Medien-Shortcuts fürs Auto.', to: '/music', icon: MusicalNoteIcon, action: 'Zu Musik' },
   { title: 'Einstellungen', description: 'Profile, Backup und Modul-Konfiguration.', to: '/settings', icon: Cog6ToothIcon, action: 'Zu Einstellungen' }
@@ -111,7 +111,7 @@ const providerLabel: Record<NavigationProvider, string> = {
 
 const startupModuleLabel: Record<string, string> = {
   home: 'Start',
-  map: 'Karte',
+  map: 'Ziele',
   maintenance: 'Wartung',
   music: 'Musik',
   settings: 'Einstellungen'
