@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   ArrowTopRightOnSquareIcon,
+  CheckCircleIcon,
   Cog6ToothIcon,
   MapPinIcon,
   MusicalNoteIcon,
@@ -15,6 +16,7 @@ import { usePlaylistShortcuts } from '../composables/usePlaylistShortcuts';
 import { useSavedPlaces } from '../composables/useSavedPlaces';
 import { useVehicleProfile } from '../composables/useVehicleProfile';
 import { useAppPreferences } from '../composables/useAppPreferences';
+import PwaInstallBanner from '../components/PwaInstallBanner.vue';
 import type { NavigationProvider, SavedPlace } from '../types/map';
 import { formatDisplayDate } from '../utils/maintenanceDates';
 import { enrichTasks } from '../utils/maintenanceTasks';
@@ -115,6 +117,42 @@ const startupModuleLabel: Record<string, string> = {
   settings: 'Einstellungen'
 };
 
+const onboardingSteps = computed(() => {
+  const vehicleConfigured = vehicles.value.length > 1 || Boolean(activeVehicle.value.model || activeVehicle.value.plate || activeVehicle.value.currentMileage);
+  const destinationConfigured = places.value.length > 0;
+  const playlistConfigured = shortcuts.value.length > 0;
+  const taskConfigured = filteredTasks.value.length > 0;
+
+  return [
+    {
+      key: 'vehicle',
+      label: 'Fahrzeug einrichten',
+      done: vehicleConfigured,
+      to: '/settings'
+    },
+    {
+      key: 'destination',
+      label: 'Erstes Ziel speichern',
+      done: destinationConfigured,
+      to: '/map?action=create-task'
+    },
+    {
+      key: 'playlist',
+      label: 'Erste Playlist speichern',
+      done: playlistConfigured,
+      to: '/music?action=create-task'
+    },
+    {
+      key: 'task',
+      label: 'Erste Aufgabe anlegen',
+      done: taskConfigured,
+      to: '/maintenance?action=create-task'
+    }
+  ];
+});
+
+const onboardingComplete = computed(() => onboardingSteps.value.every((step) => step.done));
+
 const showStats = computed(() => preferences.value.homeWidgets.stats && !isSimplifiedCarMode.value);
 const showRecentCompletions = computed(() => preferences.value.homeWidgets.recentCompletions && !isSimplifiedCarMode.value);
 const showQuickPlaces = computed(() => preferences.value.homeWidgets.quickPlaces && (!isSimplifiedCarMode.value || quickPlaces.value.length > 0));
@@ -153,6 +191,39 @@ onMounted(() => {
 
 <template>
   <section class="space-y-5 sm:space-y-6 pb-4">
+    <section v-if="!onboardingComplete" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 space-y-5">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Omiigo einrichten</h3>
+          <p class="text-sm text-gray-600 mt-1">Lege die wichtigsten Grundlagen an, damit Start, Karte, Musik und Wartung direkt nützlich werden.</p>
+        </div>
+        <span class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
+          {{ onboardingSteps.filter((step) => step.done).length }}/{{ onboardingSteps.length }} fertig
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <RouterLink
+          v-for="step in onboardingSteps"
+          :key="step.key"
+          :to="step.to"
+          class="flex items-center justify-between gap-3 rounded-xl border px-4 py-4 transition-colors"
+          :class="step.done ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white hover:bg-gray-50'"
+        >
+          <div class="flex items-center gap-3">
+            <CheckCircleIcon class="h-5 w-5" :class="step.done ? 'text-green-600' : 'text-gray-300'" />
+            <div>
+              <p class="font-medium text-gray-900">{{ step.label }}</p>
+              <p class="text-sm" :class="step.done ? 'text-green-700' : 'text-gray-500'">{{ step.done ? 'Erledigt' : 'Jetzt einrichten' }}</p>
+            </div>
+          </div>
+          <span class="text-sm font-medium" :class="step.done ? 'text-green-700' : 'text-blue-600'">{{ step.done ? 'Fertig' : 'Öffnen' }}</span>
+        </RouterLink>
+      </div>
+
+      <PwaInstallBanner />
+    </section>
+
     <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 space-y-4">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">
