@@ -265,9 +265,8 @@ onBeforeUnmount(() => {
               </button>
             </div>
 
-            <div class="rounded-xl bg-gray-50 px-4 py-3">
-              <p class="text-sm font-medium text-gray-900 truncate">{{ item.url }}</p>
-              <p v-if="item.lastOpenedAt" class="mt-1 text-xs text-gray-500">Zuletzt geöffnet: {{ new Date(item.lastOpenedAt).toLocaleString('de-DE') }}</p>
+            <div v-if="item.lastOpenedAt" class="rounded-xl bg-gray-50 px-4 py-3">
+              <p class="text-xs text-gray-500">Zuletzt geöffnet: {{ new Date(item.lastOpenedAt).toLocaleString('de-DE') }}</p>
             </div>
 
             <div v-if="activeActionMenuId === item.id" class="flex flex-col sm:flex-row gap-2">
