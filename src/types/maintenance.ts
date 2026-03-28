@@ -3,6 +3,8 @@ export type TaskGroupKey = Frequency | 'scheduled';
 export type TaskScheduleType = 'recurring' | 'scheduled';
 export type TaskStatus = 'pending' | 'planned' | 'done' | 'dueSoon' | 'dueNow' | 'overdue';
 
+export type VehicleSymbol = 'car' | 'car-side' | 'gauge-high' | 'oil-can' | 'gas-pump' | 'truck' | 'van-shuttle' | 'car-rear' | 'car-burst';
+
 export interface VehicleProfile {
   id: string;
   name: string;
@@ -13,6 +15,7 @@ export interface VehicleProfile {
   vin?: string;
   notes?: string;
   currentMileage?: number | null;
+  symbol?: VehicleSymbol;
   createdAt: string;
   updatedAt: string;
 }

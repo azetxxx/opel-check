@@ -14,7 +14,6 @@ const emit = defineEmits<{
 <template>
   <section class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm sm:p-6 space-y-4">
     <div>
-      <h3 class="text-lg font-semibold text-gray-900">Vordefinierte Aufgaben</h3>
       <p class="mt-1 text-sm text-gray-600">Hardcoded Aufgaben ein- oder ausblenden.</p>
     </div>
 

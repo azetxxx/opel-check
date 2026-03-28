@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { PlusIcon } from '@heroicons/vue/24/outline';
+import { ChevronDownIcon, EllipsisVerticalIcon, EyeIcon, PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { computed, ref } from 'vue';
 import type { VehicleProfile } from '../types/maintenance';
 
-defineProps<{
+const props = defineProps<{
   vehicles: VehicleProfile[];
   activeVehicleId: string;
 }>();
@@ -10,47 +11,82 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'change', vehicleId: string): void;
   (e: 'create'): void;
+  (e: 'view', vehicleId: string): void;
+  (e: 'edit', vehicleId: string): void;
+  (e: 'delete', vehicleId: string): void;
 }>();
+
+const activeMenuOpen = ref(false);
+
+const activeVehicle = computed(() => {
+  return props.vehicles.find((vehicle) => vehicle.id === props.activeVehicleId) ?? props.vehicles[0] ?? null;
+});
+
+const hasMultipleVehicles = computed(() => props.vehicles.length > 1);
 </script>
 
 <template>
-  <section class="overflow-hidden rounded-[28px] border border-blue-200 bg-white shadow-sm">
-    <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-4 text-white">
-      <div class="flex items-center gap-3">
-        <span class="text-lg">🚗</span>
+  <section v-if="activeVehicle" class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm">
+    <div class="flex items-start justify-between gap-3">
+      <div class="flex items-start gap-3">
+        <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-[20px] bg-blue-50 text-blue-600 shadow-sm">
+          <span class="text-lg">🚗</span>
+        </div>
         <div>
-          <h3 class="text-lg font-semibold">Aktives Fahrzeug</h3>
+          <h3 class="text-xl font-semibold text-gray-900">{{ [activeVehicle.brand, activeVehicle.model].filter(Boolean).join(' ') || activeVehicle.name }}</h3>
+          <p class="mt-1 text-sm text-gray-600">{{ activeVehicle.plate || 'Kein Kennzeichen gepflegt' }}</p>
         </div>
       </div>
+      <button
+        @click="activeMenuOpen = !activeMenuOpen"
+        class="flex h-10 w-10 items-center justify-center text-gray-400 hover:text-gray-600"
+      >
+        <EllipsisVerticalIcon class="h-5 w-5" />
+      </button>
     </div>
 
-    <div class="space-y-3 p-4">
+    <div v-if="activeMenuOpen" class="mt-4 flex flex-col gap-2">
       <button
-        v-for="vehicle in vehicles"
-        :key="vehicle.id"
-        @click="emit('change', vehicle.id)"
-        class="w-full rounded-[24px] border px-4 py-4 text-left transition-colors"
-        :class="vehicle.id === activeVehicleId ? 'border-blue-400 bg-blue-50 shadow-sm' : 'border-gray-200 bg-white hover:bg-gray-50'"
+        @click="emit('view', activeVehicle.id); activeMenuOpen = false"
+        class="min-h-11 rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 flex items-center justify-center gap-2"
       >
-        <div class="flex items-center justify-between gap-3">
-          <div class="flex items-center gap-3">
-            <span :class="['h-4 w-4 rounded-full border-2', vehicle.id === activeVehicleId ? 'border-blue-600' : 'border-gray-400']"></span>
-            <div>
-              <p class="font-medium text-gray-900">{{ vehicle.name }}</p>
-              <p class="mt-1 text-sm text-gray-600">{{ [vehicle.brand, vehicle.model].filter(Boolean).join(' ') || 'Kein Modell gepflegt' }}</p>
-            </div>
-          </div>
-          <span v-if="vehicle.id === activeVehicleId" class="h-2.5 w-2.5 rounded-full bg-blue-500"></span>
-        </div>
+        <EyeIcon class="h-4 w-4" />
+        Fahrzeug ansehen
       </button>
-
       <button
-        @click="emit('create')"
-        class="flex min-h-12 w-full items-center justify-center gap-2 rounded-[20px] bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700"
+        @click="emit('edit', activeVehicle.id); activeMenuOpen = false"
+        class="min-h-11 rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 flex items-center justify-center gap-2"
       >
-        <PlusIcon class="h-5 w-5" />
+        <PencilSquareIcon class="h-4 w-4" />
+        Fahrzeug bearbeiten
+      </button>
+      <button
+        @click="emit('create'); activeMenuOpen = false"
+        class="min-h-11 rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 flex items-center justify-center gap-2"
+      >
+        <PlusIcon class="h-4 w-4" />
         Neues Fahrzeug hinzufügen
       </button>
+      <button
+        v-if="hasMultipleVehicles"
+        @click="emit('delete', activeVehicle.id); activeMenuOpen = false"
+        class="min-h-11 rounded-2xl border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 flex items-center justify-center gap-2"
+      >
+        <TrashIcon class="h-4 w-4" />
+        Fahrzeug löschen
+      </button>
     </div>
+
+    <div class="mt-4 relative">
+      <select
+        :value="activeVehicle.id"
+        @change="emit('change', ($event.target as HTMLSelectElement).value)"
+        class="w-full appearance-none rounded-[20px] bg-blue-600 px-4 py-3 pr-11 text-sm font-medium text-white outline-none"
+      >
+        <option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">{{ vehicle.name }}</option>
+      </select>
+      <ChevronDownIcon class="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/85" />
+    </div>
+
   </section>
 </template>

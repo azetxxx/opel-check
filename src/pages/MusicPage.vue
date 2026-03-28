@@ -198,7 +198,7 @@ onBeforeUnmount(() => {
 <template>
   <section class="space-y-4 pb-6 sm:space-y-5">
     <section class="-mx-4 -mt-4 bg-gradient-to-r from-fuchsia-500 via-violet-500 to-purple-600 px-4 pb-6 pt-5 text-white shadow-lg sm:mx-0 sm:mt-0 sm:rounded-[28px] sm:px-5 sm:pt-5">
-      <div class="flex items-start justify-between gap-3">
+      <div class="flex items-center justify-between gap-3">
         <div>
           <h2 class="text-2xl font-semibold">Musik</h2>
           <p class="mt-2 text-sm text-white/85">Schnellzugriff auf deine Playlists</p>
@@ -232,7 +232,7 @@ onBeforeUnmount(() => {
                 <p v-if="pinnedStartPlaylistId === item.id" class="mt-2 text-xs font-medium text-yellow-50/95">Auf Startseite angeheftet</p>
               </div>
             </div>
-            <button @click="toggleActionMenu(item.id)" class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20 text-white hover:bg-white/25">
+            <button @click="toggleActionMenu(item.id)" class="flex h-10 w-10 items-center justify-center text-white/85 hover:text-white">
               <EllipsisVerticalIcon class="h-5 w-5" />
             </button>
           </div>
@@ -286,7 +286,7 @@ onBeforeUnmount(() => {
               </div>
             </div>
             <div class="flex items-center gap-2">
-              <button @click="toggleActionMenu(item.id)" class="flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50">
+              <button @click="toggleActionMenu(item.id)" class="flex h-10 w-10 items-center justify-center text-gray-400 hover:text-gray-600">
                 <EllipsisVerticalIcon class="h-5 w-5" />
               </button>
             </div>

@@ -24,6 +24,7 @@ export const isVehicleProfile = (value: unknown): value is VehicleProfile => {
     && isOptionalString(value.vin)
     && isOptionalString(value.notes)
     && isOptionalNumber(value.currentMileage)
+    && isOptionalString(value.symbol)
     && isString(value.createdAt)
     && isString(value.updatedAt);
 };

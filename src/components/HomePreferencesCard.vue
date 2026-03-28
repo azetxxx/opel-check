@@ -1,17 +1,11 @@
 <script setup lang="ts">
-import type { PlaylistShortcut } from '../types/music';
-import type { SavedPlace } from '../types/map';
 import type { AppPreferences, StartupModule } from '../types/preferences';
 
 defineProps<{
   preferences: AppPreferences;
-  places: SavedPlace[];
-  playlists: PlaylistShortcut[];
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:pinnedStartPlaceId', value: string | null): void;
-  (e: 'update:pinnedStartPlaylistId', value: string | null): void;
   (e: 'update:preferredStartupModule', value: StartupModule): void;
   (e: 'toggle-widget', key: keyof AppPreferences['homeWidgets'], value: boolean): void;
 }>();
@@ -36,42 +30,15 @@ const widgetLabels: Record<keyof AppPreferences['homeWidgets'], string> = {
 
 <template>
   <section class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm sm:p-6 space-y-5">
-    <div class="flex items-start gap-3">
+    <div class="flex items-center gap-3">
       <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400 text-slate-900 shadow-sm">
         <span class="text-lg">🏠</span>
       </div>
-      <div>
-        <h3 class="text-lg font-semibold text-gray-900">Startseite anpassen</h3>
-        <p class="mt-1 text-sm text-gray-600">Lege Favoriten und sichtbare Widgets für die Startseite fest.</p>
-      </div>
+      <p class="text-sm text-gray-600">Favoriten und sichtbare Widgets für die Startseite.</p>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="grid grid-cols-1 gap-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Ziel auf Startseite</label>
-        <select
-          :value="preferences.pinnedStartPlaceId ?? ''"
-          @change="emit('update:pinnedStartPlaceId', ($event.target as HTMLSelectElement).value || null)"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
-        >
-          <option value="">Kein Favorit</option>
-          <option v-for="place in places" :key="place.id" :value="place.id">{{ place.label }}</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Playlist auf Startseite</label>
-        <select
-          :value="preferences.pinnedStartPlaylistId ?? ''"
-          @change="emit('update:pinnedStartPlaylistId', ($event.target as HTMLSelectElement).value || null)"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
-        >
-          <option value="">Kein Favorit</option>
-          <option v-for="playlist in playlists" :key="playlist.id" :value="playlist.id">{{ playlist.title }}</option>
-        </select>
-      </div>
-
-      <div class="md:col-span-2">
         <label class="block text-sm font-medium text-gray-700 mb-1">Bevorzugtes Startmodul</label>
         <select
           :value="preferences.preferredStartupModule"

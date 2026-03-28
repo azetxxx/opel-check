@@ -1,12 +1,14 @@
 <script setup lang="ts">
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import { faCar, faCarBurst, faCarRear, faCarSide, faGasPump, faGaugeHigh, faOilCan, faTruck, faVanShuttle } from '@fortawesome/free-solid-svg-icons';
 import {
   ArrowRightIcon,
   CheckCircleIcon,
+  ChevronRightIcon,
   ExclamationTriangleIcon,
   MapPinIcon,
   MusicalNoteIcon,
   StarIcon,
-  TruckIcon,
   WrenchScrewdriverIcon
 } from '@heroicons/vue/24/outline';
 import { computed, onMounted } from 'vue';
@@ -19,6 +21,7 @@ import { useVehicleProfile } from '../composables/useVehicleProfile';
 import { useAppPreferences } from '../composables/useAppPreferences';
 import PwaInstallBanner from '../components/PwaInstallBanner.vue';
 import type { NavigationProvider, SavedPlace } from '../types/map';
+import type { VehicleSymbol } from '../types/maintenance';
 import { formatDisplayDate } from '../utils/maintenanceDates';
 import { enrichTasks } from '../utils/maintenanceTasks';
 import { applyRootDeepLinkRedirect } from '../utils/deepLinks';
@@ -42,27 +45,11 @@ const isCarMode = computed(() => preferences.value.carMode.enabled);
 const isSimplifiedCarMode = computed(() => isCarMode.value && preferences.value.carMode.simplifiedHome);
 
 const urgentTasks = computed(() => enrichedTasks.value.filter((task) => task.status === 'overdue' || task.status === 'dueNow'));
-const nextTask = computed(() => {
-  const candidate = enrichedTasks.value
-    .filter((task) => ['overdue', 'dueNow', 'dueSoon', 'pending'].includes(task.status))
-    .sort((a, b) => {
-      const aDate = a.scheduleType === 'scheduled' ? a.dueDate : a.nextCheck;
-      const bDate = b.scheduleType === 'scheduled' ? b.dueDate : b.nextCheck;
-      if (aDate && bDate) return new Date(aDate).getTime() - new Date(bDate).getTime();
-      if (aDate && !bDate) return -1;
-      if (!aDate && bDate) return 1;
-      return 0;
-    })[0];
-
-  if (!candidate) return null;
-
-  return {
-    title: candidate.description,
-    meta: `${candidate.category} · ${candidate.scheduleType === 'scheduled' ? 'Geplant' : 'Wiederholend'}`,
-    date: formatDisplayDate(candidate.scheduleType === 'scheduled' ? candidate.dueDate ?? null : candidate.nextCheck)
-  };
+const urgentTaskSummary = computed(() => {
+  if (urgentTasks.value.length === 0) return null;
+  if (urgentTasks.value.length === 1) return urgentTasks.value[0];
+  return null;
 });
-
 const recentCompletions = computed(() => filteredLogs.value.slice(0, 3));
 const favoritePlace = computed(() => places.value.find((place) => place.id === preferences.value.pinnedStartPlaceId) ?? null);
 const favoritePlaylist = computed(() => shortcuts.value.find((item) => item.id === preferences.value.pinnedStartPlaylistId) ?? null);
@@ -82,6 +69,18 @@ const onboardingSteps = computed(() => {
 });
 
 const onboardingComplete = computed(() => onboardingSteps.value.every((step) => step.done));
+
+const vehicleSymbolIcons: Record<VehicleSymbol, any> = {
+  car: faCar,
+  'car-side': faCarSide,
+  'gauge-high': faGaugeHigh,
+  'oil-can': faOilCan,
+  'gas-pump': faGasPump,
+  truck: faTruck,
+  'van-shuttle': faVanShuttle,
+  'car-rear': faCarRear,
+  'car-burst': faCarBurst
+};
 
 const getPreferredPlaceProvider = (place: SavedPlace) => {
   return place.providers.includes(preferences.value.preferredMapProvider)
@@ -114,14 +113,9 @@ onMounted(() => {
 <template>
   <section class="space-y-4 pb-6 sm:space-y-5">
     <section class="-mx-4 -mt-4 bg-gradient-to-r from-blue-600 via-violet-600 to-fuchsia-600 px-4 pb-6 pt-5 text-white shadow-lg sm:mx-0 sm:mt-0 sm:rounded-[28px] sm:px-5 sm:pt-5">
-      <div class="flex items-start justify-between gap-3">
-        <div>
-          <h2 class="text-2xl font-semibold">Start</h2>
-          <p class="mt-2 text-sm text-white/85">Dein persönlicher Begleiter</p>
-        </div>
-        <RouterLink to="/settings" class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-white hover:bg-white/20">
-          <ArrowRightIcon class="h-5 w-5 -rotate-45" />
-        </RouterLink>
+      <div>
+        <h2 class="text-2xl font-semibold">Start</h2>
+        <p class="mt-2 text-sm text-white/85">Dein persönlicher Begleiter</p>
       </div>
     </section>
 
@@ -165,8 +159,8 @@ onMounted(() => {
           <h3 class="mt-2 text-3xl font-semibold">{{ activeVehicle.name }}</h3>
           <p class="mt-1 text-lg text-blue-100/90">{{ [activeVehicle.brand, activeVehicle.model].filter(Boolean).join(' ') || 'Fahrzeugprofil ergänzen' }}</p>
         </div>
-        <div class="flex h-14 w-14 items-center justify-center rounded-[22px] bg-white/15 text-white">
-          <TruckIcon class="h-7 w-7" />
+        <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[22px] bg-white/15 text-white">
+          <FontAwesomeIcon :icon="vehicleSymbolIcons[activeVehicle.symbol ?? 'car']" class="h-7 w-7" />
         </div>
       </div>
 
@@ -183,11 +177,34 @@ onMounted(() => {
     </button>
 
     <button
+      v-if="urgentTasks.length > 0"
+      as="button"
+      class="w-full rounded-[28px] bg-gradient-to-r from-red-500 to-orange-500 p-5 text-left text-white shadow-lg"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-[20px] bg-white/20 text-white">
+            <ExclamationTriangleIcon class="h-5 w-5" />
+          </div>
+          <div>
+            <p class="text-sm font-medium text-white/85">Dringende Wartung</p>
+            <h3 class="mt-2 text-2xl font-semibold">
+              {{ urgentTasks.length > 1 ? `${urgentTasks.length} Aufgaben` : urgentTaskSummary?.description }}
+            </h3>
+            <p class="mt-1 text-sm text-white/90">
+              {{ urgentTasks.length > 1 ? 'Bitte in der Wartung prüfen' : (urgentTaskSummary ? formatDisplayDate(urgentTaskSummary.scheduleType === 'scheduled' ? urgentTaskSummary.dueDate ?? null : urgentTaskSummary.nextCheck) ?? urgentTaskSummary.category : '') }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </button>
+
+    <button
       v-if="favoritePlace"
       @click="openPlace(favoritePlace)"
       class="w-full rounded-[28px] bg-gradient-to-r from-amber-400 to-orange-500 p-5 text-left text-white shadow-lg"
     >
-      <div class="flex items-start justify-between gap-3">
+      <div class="flex items-center justify-between gap-3">
         <div class="flex items-start gap-3">
           <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-[20px] bg-white/20 text-white">
             <MapPinIcon class="h-5 w-5" />
@@ -201,7 +218,7 @@ onMounted(() => {
             <p class="mt-1 text-sm text-yellow-50/90">{{ favoritePlace.address }}</p>
           </div>
         </div>
-        <ArrowRightIcon class="mt-2 h-5 w-5 text-white/90" />
+        <ChevronRightIcon class="h-8 w-8 text-white/55 stroke-[2]" />
       </div>
     </button>
 
@@ -210,7 +227,7 @@ onMounted(() => {
       @click="openPlaylist(favoritePlaylist.id, favoritePlaylist.url)"
       class="w-full rounded-[28px] bg-gradient-to-r from-violet-500 to-fuchsia-500 p-5 text-left text-white shadow-lg"
     >
-      <div class="flex items-start justify-between gap-3">
+      <div class="flex items-center justify-between gap-3">
         <div class="flex items-start gap-3">
           <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-[20px] bg-white/20 text-white">
             <MusicalNoteIcon class="h-5 w-5" />
@@ -224,31 +241,11 @@ onMounted(() => {
             <p class="mt-1 text-sm text-fuchsia-100/90">{{ favoritePlaylist.provider }}</p>
           </div>
         </div>
-        <ArrowRightIcon class="mt-2 h-5 w-5 text-white/90" />
+        <ChevronRightIcon class="h-8 w-8 text-white/55 stroke-[2]" />
       </div>
     </button>
 
-    <button
-      v-if="nextTask"
-      as="button"
-      class="w-full rounded-[28px] bg-gradient-to-r p-5 text-left text-white shadow-lg"
-      :class="urgentTasks.length > 0 ? 'from-red-500 to-orange-500' : 'from-orange-500 to-amber-500'"
-    >
-      <div class="flex items-start justify-between gap-3">
-        <div class="flex items-start gap-3">
-          <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-[20px] bg-white/20 text-white">
-            <ExclamationTriangleIcon class="h-5 w-5" />
-          </div>
-          <div>
-            <p class="text-sm font-medium text-white/85">Dringende Wartung</p>
-            <h3 class="mt-2 text-2xl font-semibold">{{ nextTask.title }}</h3>
-            <p class="mt-1 text-sm text-white/90">{{ nextTask.date || nextTask.meta }}</p>
-          </div>
-        </div>
-      </div>
-    </button>
-
-    <section class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm space-y-4">
+    <RouterLink to="/maintenance" class="block rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm space-y-4 transition-colors hover:bg-gray-50">
       <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <div class="flex h-11 w-11 items-center justify-center rounded-[20px] bg-orange-500 text-white shadow-sm">
@@ -259,22 +256,19 @@ onMounted(() => {
             <p class="mt-1 text-sm text-gray-500">{{ filteredTasks.length }} Aufgaben insgesamt</p>
           </div>
         </div>
-        <RouterLink to="/maintenance" class="text-gray-400 hover:text-gray-500">
-          <ArrowRightIcon class="h-5 w-5" />
-        </RouterLink>
+        <ChevronRightIcon class="h-7 w-7 text-gray-300 stroke-[2]" />
       </div>
 
-      <RouterLink
+      <div
         v-if="urgentTasks.length > 0"
-        to="/maintenance"
         class="flex items-center justify-between gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-4 text-red-700"
       >
         <div class="flex items-center gap-2">
           <ExclamationTriangleIcon class="h-5 w-5" />
           <span class="font-medium">{{ urgentTasks.length }} dringende Aufgabe<span v-if="urgentTasks.length !== 1">n</span></span>
         </div>
-        <ArrowRightIcon class="h-4 w-4" />
-      </RouterLink>
+        <ChevronRightIcon class="h-5 w-5 text-red-300 stroke-[2]" />
+      </div>
 
       <div v-else class="flex items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-emerald-700">
         <div class="flex items-center gap-2">
@@ -282,7 +276,7 @@ onMounted(() => {
           <span class="font-medium">Keine dringenden Aufgaben</span>
         </div>
       </div>
-    </section>
+    </RouterLink>
 
     <div class="grid grid-cols-2 gap-4">
       <RouterLink to="/map" class="rounded-[28px] border border-gray-100 bg-white p-5 text-center shadow-sm">

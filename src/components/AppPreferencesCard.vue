@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import type { NavigationProvider } from '../types/map';
-import type { MusicProvider } from '../types/music';
 import type { AppPreferences, StartupModule } from '../types/preferences';
 
 defineProps<{
@@ -8,8 +6,6 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:preferredMapProvider', value: NavigationProvider): void;
-  (e: 'update:preferredMusicProvider', value: MusicProvider | 'none'): void;
   (e: 'update:preferredStartupModule', value: StartupModule): void;
   (e: 'toggle-car-mode', key: keyof AppPreferences['carMode'], value: boolean): void;
 }>();
@@ -22,21 +18,6 @@ const startupOptions: { value: StartupModule; label: string }[] = [
   { value: 'settings', label: 'Einstellungen' }
 ];
 
-const mapProviderOptions: { value: NavigationProvider; label: string }[] = [
-  { value: 'google', label: 'Google Maps' },
-  { value: 'apple', label: 'Apple Karten' },
-  { value: 'waze', label: 'Waze' }
-];
-
-const musicProviderOptions: { value: MusicProvider | 'none'; label: string }[] = [
-  { value: 'none', label: 'Kein Standard' },
-  { value: 'spotify', label: 'Spotify' },
-  { value: 'youtube-music', label: 'YouTube Music' },
-  { value: 'apple-music', label: 'Apple Music' },
-  { value: 'soundcloud', label: 'SoundCloud' },
-  { value: 'other', label: 'Andere' }
-];
-
 const carModeLabels: Record<keyof AppPreferences['carMode'], string> = {
   enabled: 'Car Mode aktivieren',
   autoOpenFavoritePlace: 'Favorit-Ziel bevorzugen',
@@ -47,14 +28,11 @@ const carModeLabels: Record<keyof AppPreferences['carMode'], string> = {
 
 <template>
   <section class="overflow-hidden rounded-[28px] border border-purple-200 bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 p-5 text-white shadow-lg sm:p-6 space-y-5">
-    <div class="flex items-start gap-3">
+    <div class="flex items-center gap-3">
       <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-white shadow-sm">
         <span class="text-lg">🌙</span>
       </div>
-      <div>
-        <h3 class="text-lg font-semibold text-white">Fahrmodus</h3>
-        <p class="mt-1 text-sm text-white/80">Auto-Start und reduzierte Ansicht für unterwegs.</p>
-      </div>
+      <p class="text-sm text-white/85">Auto-Start und reduzierte Ansicht für unterwegs.</p>
     </div>
 
     <div class="space-y-3">
@@ -75,30 +53,8 @@ const carModeLabels: Record<keyof AppPreferences['carMode'], string> = {
       </label>
     </div>
 
-    <div class="grid grid-cols-1 gap-4 border-t border-white/10 pt-4 text-slate-900 md:grid-cols-2">
+    <div class="grid grid-cols-1 gap-4 border-t border-white/10 pt-4 text-slate-900">
       <div>
-        <label class="mb-1 block text-sm font-medium text-white/85">Bevorzugter Kartenanbieter</label>
-        <select
-          :value="preferences.preferredMapProvider"
-          @change="emit('update:preferredMapProvider', ($event.target as HTMLSelectElement).value as NavigationProvider)"
-          class="w-full rounded-2xl border border-white/15 bg-white px-3 py-2 text-sm"
-        >
-          <option v-for="option in mapProviderOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-        </select>
-      </div>
-
-      <div>
-        <label class="mb-1 block text-sm font-medium text-white/85">Bevorzugter Musikanbieter</label>
-        <select
-          :value="preferences.preferredMusicProvider"
-          @change="emit('update:preferredMusicProvider', ($event.target as HTMLSelectElement).value as MusicProvider | 'none')"
-          class="w-full rounded-2xl border border-white/15 bg-white px-3 py-2 text-sm"
-        >
-          <option v-for="option in musicProviderOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-        </select>
-      </div>
-
-      <div class="md:col-span-2">
         <label class="mb-1 block text-sm font-medium text-white/85">Bevorzugtes Startmodul</label>
         <select
           :value="preferences.preferredStartupModule"

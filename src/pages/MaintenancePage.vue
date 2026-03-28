@@ -228,7 +228,7 @@ onErrorCaptured((err, instance, info) => {
 <template>
   <section class="space-y-4 pb-6 sm:space-y-5">
     <section class="-mx-4 -mt-4 bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 px-4 pb-6 pt-5 text-white shadow-lg sm:mx-0 sm:mt-0 sm:rounded-[28px] sm:px-5 sm:pt-5">
-      <div class="flex items-start justify-between gap-3">
+      <div class="flex items-center justify-between gap-3">
         <div>
           <h2 class="text-2xl font-semibold">Wartung</h2>
           <p class="mt-2 text-sm text-white/85">Service und Fälligkeiten</p>
@@ -236,7 +236,7 @@ onErrorCaptured((err, instance, info) => {
         <div class="flex items-center gap-2">
           <button
             @click="addDemoTasks"
-            class="rounded-2xl bg-white/20 px-3 py-2 text-sm font-medium text-white hover:bg-white/25"
+            class="flex min-h-11 items-center justify-center rounded-2xl bg-white/20 px-3 py-2 text-sm font-medium text-white hover:bg-white/25"
           >
             Demo
           </button>

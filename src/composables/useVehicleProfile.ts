@@ -41,6 +41,7 @@ const normalizeVehicle = (vehicle: Partial<VehicleProfile>): VehicleProfile => {
     vin: vehicle.vin,
     notes: vehicle.notes ?? fallback.notes,
     currentMileage: vehicle.currentMileage ?? null,
+    symbol: vehicle.symbol ?? 'car',
     createdAt,
     updatedAt: vehicle.updatedAt ?? createdAt
   };
@@ -122,6 +123,22 @@ export function useVehicleProfile() {
     return vehicle;
   };
 
+  const deleteVehicle = (vehicleId: string) => {
+    if (vehicles.value.length <= 1) return false;
+
+    const nextVehicles = vehicles.value.filter((vehicle) => vehicle.id !== vehicleId);
+    if (nextVehicles.length === vehicles.value.length) return false;
+
+    vehicles.value = nextVehicles;
+
+    if (activeVehicleId.value === vehicleId) {
+      activeVehicleId.value = nextVehicles[0]?.id ?? DEFAULT_VEHICLE_ID;
+    }
+
+    saveVehicles();
+    return true;
+  };
+
   const activeVehicle = computed(() => {
     return vehicles.value.find((vehicle) => vehicle.id === activeVehicleId.value)
       ?? vehicles.value[0]
@@ -140,6 +157,7 @@ export function useVehicleProfile() {
     setActiveVehicle,
     createVehicle,
     updateVehicle,
+    deleteVehicle,
     replaceVehicles
   };
 }

@@ -29,8 +29,8 @@ const handleFileChange = (event: Event) => {
 
 <template>
   <section class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm">
-    <div class="mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">Datenverwaltung</h2>
+    <div class="mb-2">
+      <p class="text-sm text-gray-500">Backup exportieren oder importieren.</p>
     </div>
 
     <div class="space-y-3">
