@@ -18,6 +18,7 @@ const isFormOpen = ref(false);
 const topCreateButton = ref<HTMLElement | null>(null);
 const showFloatingCreateButton = ref(false);
 const activeActionMenuId = ref<string | null>(null);
+const favoriteCardActionsOpen = ref(false);
 let createButtonObserver: IntersectionObserver | null = null;
 const preferredMusicProvider = computed(() => preferences.value.preferredMusicProvider);
 
@@ -185,15 +186,44 @@ onBeforeUnmount(() => {
           <h3 class="text-lg font-semibold text-gray-900">Lieblingsplaylist</h3>
           <span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Favorit</span>
         </div>
-        <div class="mt-4 rounded-xl bg-gray-50 px-4 py-4">
+        <div class="mt-4 rounded-xl bg-gray-50 px-4 py-4 space-y-3">
           <div class="flex items-center gap-2 text-2xl">
             <MusicProviderIcon :provider="favoriteShortcut.provider" class="h-6 w-6" />
           </div>
-          <p class="mt-2 font-semibold text-gray-900">{{ favoriteShortcut.title }}</p>
-          <p class="mt-1 text-sm text-gray-600">{{ providerLabels[favoriteShortcut.provider] }}</p>
-          <button @click="openShortcut(favoriteShortcut)" class="mt-4 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
-            Jetzt abspielen
-          </button>
+          <div>
+            <p class="mt-2 font-semibold text-gray-900">{{ favoriteShortcut.title }}</p>
+            <p class="mt-1 text-sm text-gray-600">{{ providerLabels[favoriteShortcut.provider] }}</p>
+          </div>
+
+          <div v-if="favoriteShortcut.lastOpenedAt" class="rounded-xl bg-white px-4 py-3">
+            <p class="text-xs text-gray-500">Zuletzt geöffnet: {{ new Date(favoriteShortcut.lastOpenedAt).toLocaleString('de-DE') }}</p>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex gap-2">
+              <button @click="openShortcut(favoriteShortcut)" class="flex-1 min-h-11 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-black">
+                In der Musik-App öffnen
+              </button>
+              <button
+                @click="favoriteCardActionsOpen = !favoriteCardActionsOpen"
+                class="min-h-11 min-w-11 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center bg-white"
+              >
+                <EllipsisHorizontalIcon class="h-5 w-5" />
+              </button>
+            </div>
+
+            <div v-if="favoriteCardActionsOpen" class="flex flex-col sm:flex-row gap-2">
+              <button @click="editShortcut(favoriteShortcut); favoriteCardActionsOpen = false" class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center gap-2 bg-white">
+                <PencilSquareIcon class="h-4 w-4" />
+                Bearbeiten
+              </button>
+
+              <button @click="removeShortcut(favoriteShortcut.id); favoriteCardActionsOpen = false" class="min-h-11 px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2 bg-white">
+                <TrashIcon class="h-4 w-4" />
+                Löschen
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
