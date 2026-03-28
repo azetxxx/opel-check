@@ -255,7 +255,7 @@ onBeforeUnmount(() => {
           <div class="space-y-2">
             <div class="flex gap-2">
               <button @click="openShortcut(item)" class="flex-1 min-h-11 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-black">
-                In der App öffnen
+                In der Musik-App öffnen
               </button>
               <button
                 @click="toggleActionMenu(item.id)"
