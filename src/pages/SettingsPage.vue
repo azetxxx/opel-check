@@ -16,7 +16,7 @@ import type { VehicleProfile } from '../types/maintenance';
 import type { AppPreferences } from '../types/preferences';
 import { createBackupPayload, downloadBackup, validateBackupPayload } from '../utils/backup';
 
-const { maintenanceTasks, replaceTasks, restoreTask } = useMaintenanceData();
+const { maintenanceTasks, replaceTasks, restoreTask, archiveTask } = useMaintenanceData();
 const { logs, replaceLogs } = useMaintenanceLogs();
 const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle, createVehicle, updateVehicle, replaceVehicles } = useVehicleProfile();
 const { places } = useSavedPlaces();
@@ -24,7 +24,7 @@ const { shortcuts } = usePlaylistShortcuts();
 const { preferences, updatePreferences } = useAppPreferences();
 
 const isImportingBackup = ref(false);
-const hiddenTasks = computed(() => maintenanceTasks.value.filter((task) => task.isArchived));
+const builtInTasks = computed(() => maintenanceTasks.value.filter((task) => !task.isCustom));
 
 const saveVehicleProfile = (vehicle: VehicleProfile) => {
   updateVehicle(vehicle);
@@ -81,10 +81,28 @@ const toggleCarMode = (key: keyof AppPreferences['carMode'], value: boolean) => 
     }
   });
 };
+
+const toggleBuiltInTask = (taskId: string, enabled: boolean) => {
+  if (enabled) {
+    restoreTask(taskId);
+    return;
+  }
+
+  archiveTask(taskId);
+};
 </script>
 
 <template>
-  <section class="space-y-5 sm:space-y-6 pb-4">
+  <section class="space-y-4 pb-6 sm:space-y-5">
+    <section class="-mx-4 -mt-4 bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 px-4 pb-6 pt-5 text-white shadow-lg sm:mx-0 sm:mt-0 sm:rounded-[28px] sm:px-5 sm:pt-5">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-semibold">Einstellungen</h2>
+          <p class="mt-2 text-sm text-white/85">App, Startseite und Fahrzeuge anpassen</p>
+        </div>
+      </div>
+    </section>
+
     <AppPreferencesCard
       :preferences="preferences"
       @update:preferred-map-provider="updatePreferences({ preferredMapProvider: $event })"
@@ -97,8 +115,8 @@ const toggleCarMode = (key: keyof AppPreferences['carMode'], value: boolean) => 
       :preferences="preferences"
       :places="places"
       :playlists="shortcuts"
-      @update:favorite-place-id="updatePreferences({ favoritePlaceId: $event })"
-      @update:favorite-playlist-id="updatePreferences({ favoritePlaylistId: $event })"
+      @update:pinned-start-place-id="updatePreferences({ pinnedStartPlaceId: $event })"
+      @update:pinned-start-playlist-id="updatePreferences({ pinnedStartPlaylistId: $event })"
       @update:preferred-startup-module="updatePreferences({ preferredStartupModule: $event })"
       @toggle-widget="toggleWidget"
     />
@@ -111,7 +129,7 @@ const toggleCarMode = (key: keyof AppPreferences['carMode'], value: boolean) => 
     />
 
     <VehicleProfileCard :vehicle="activeVehicle" @save="saveVehicleProfile" />
-    <HiddenTasksCard :tasks="hiddenTasks" @restore="restoreTask" />
+    <HiddenTasksCard :tasks="builtInTasks" @toggle="toggleBuiltInTask" />
     <BackupPanel :is-importing="isImportingBackup" @export="exportBackup" @import-file="importBackup" />
   </section>
 </template>

@@ -42,11 +42,11 @@ const icons = [ExclamationTriangleIcon, ClockIcon, ListBulletIcon, CheckCircleIc
       >
         <div class="flex items-start justify-between gap-3">
           <div>
-            <p class="text-sm text-gray-500">{{ item.title }}</p>
-            <p class="mt-2 text-2xl font-semibold text-gray-900">{{ item.value }}</p>
-            <p class="mt-1 text-sm text-gray-600">{{ item.hint }}</p>
+            <p class="text-sm opacity-85">{{ item.title }}</p>
+            <p class="mt-2 text-2xl font-semibold">{{ item.value }}</p>
+            <p class="mt-1 text-sm opacity-85">{{ item.hint }}</p>
           </div>
-          <component :is="icons[index]" class="h-6 w-6 text-gray-400" />
+          <component :is="icons[index]" class="h-6 w-6 opacity-80" />
         </div>
       </button>
     </div>
@@ -68,18 +68,5 @@ const icons = [ExclamationTriangleIcon, ClockIcon, ListBulletIcon, CheckCircleIc
       </div>
     </div>
 
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
-      <h2 class="text-lg font-semibold text-gray-900">Zuletzt erledigt</h2>
-      <div v-if="recentItems.length > 0" class="mt-4 space-y-3">
-        <div v-for="item in recentItems" :key="`${item.title}-${item.meta}`" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 rounded-lg bg-gray-50 px-4 py-3">
-          <div>
-            <p class="font-medium text-gray-900">{{ item.title }}</p>
-            <p class="text-sm text-gray-600">{{ item.subtitle }}</p>
-          </div>
-          <p class="text-sm text-gray-500">{{ item.meta }}</p>
-        </div>
-      </div>
-      <p v-else class="mt-4 text-sm text-gray-500">Noch keine erledigten Einträge vorhanden.</p>
-    </div>
   </section>
 </template>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { HomeIcon, MapIcon, WrenchScrewdriverIcon, MusicalNoteIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline';
-import { computed } from 'vue';
 import { RouterLink, RouterView, useRoute } from 'vue-router';
 import PwaInstallBanner from './PwaInstallBanner.vue';
 
@@ -13,22 +12,11 @@ const navItems = [
   { name: 'Musik', to: '/music', icon: MusicalNoteIcon },
   { name: 'Einstellungen', to: '/settings', icon: Cog6ToothIcon }
 ];
-
-const currentTitle = computed(() => navItems.find((item) => item.to === route.path)?.name ?? 'Omiigo Car');
 </script>
 
 <template>
   <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
-    <header class="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-wide text-blue-600">Omiigo Car</p>
-          <h1 class="text-xl font-bold text-gray-900">{{ currentTitle }}</h1>
-        </div>
-      </div>
-    </header>
-
-    <main class="max-w-7xl mx-auto px-4 py-4 pb-24 space-y-4">
+    <main class="max-w-7xl mx-auto px-4 py-4 pb-24 space-y-4 sm:py-6">
       <PwaInstallBanner />
       <RouterView />
     </main>

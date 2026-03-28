@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { CheckIcon, EllipsisHorizontalIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/20/solid';
-import { ref } from 'vue';
+import { CheckIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/20/solid';
+import { EllipsisVerticalIcon } from '@heroicons/vue/24/outline';
+import { computed, ref } from 'vue';
 import { CATEGORY_CLASSES, DEFAULT_CATEGORY_CLASS } from '../constants/maintenance';
 import { formatDisplayDate } from '../utils/maintenanceDates';
 import type { MaintenanceTask } from '../types/maintenance';
 import type { EnrichedMaintenanceTask } from '../utils/maintenanceTasks';
 
-defineProps<{
+const props = defineProps<{
   task: EnrichedMaintenanceTask;
   isLoading: boolean;
 }>();
@@ -18,43 +19,82 @@ const emit = defineEmits<{
 }>();
 
 const getCategoryClass = (category: string) => CATEGORY_CLASSES[category] || DEFAULT_CATEGORY_CLASS;
-const getStatusText = (task: EnrichedMaintenanceTask) => {
-  switch (task.status) {
-    case 'pending':
-      return 'Ausstehend';
-    case 'planned':
-      return 'Geplant';
-    case 'done':
-      return 'Erledigt';
-    case 'dueSoon':
-      return 'Bald fällig';
-    case 'dueNow':
-      return 'Jetzt / heute fällig';
-    case 'overdue':
-      return 'Überfällig';
+
+const getFrequencyLabel = (task: EnrichedMaintenanceTask) => {
+  if (task.scheduleType !== 'recurring' || !task.frequency) return null;
+
+  switch (task.frequency) {
+    case 'daily':
+      return 'Täglich';
+    case 'weekly':
+      return 'Wöchentlich';
+    case 'monthly':
+      return 'Monatlich';
+    case 'quarterly':
+      return 'Vierteljährlich';
+    case 'biannual':
+      return 'Halbjährlich';
+    case 'annual':
+      return 'Jährlich';
   }
 };
 
 const getButtonText = (task: EnrichedMaintenanceTask) => {
   switch (task.status) {
     case 'pending':
-      return 'Zum ersten Mal erledigen';
+      return task.scheduleType === 'scheduled' ? 'Jetzt erledigen' : 'Zum ersten Mal erledigen';
     case 'planned':
       return 'Jetzt erledigen';
     case 'done':
       return 'Erledigt';
     case 'dueSoon':
-      return 'Bald fällig';
+      return 'Jetzt erledigen';
     case 'dueNow':
       return 'Jetzt erledigen';
     case 'overdue':
-      return 'Überfällig';
+      return 'Jetzt erledigen';
   }
 };
 
 const getDeleteLabel = (task: EnrichedMaintenanceTask) => {
   return task.isCustom ? 'Löschen' : 'Archivieren';
 };
+
+const statusAccentClass = computed(() => {
+  switch (props.task.status) {
+    case 'overdue':
+      return 'bg-red-500';
+    case 'dueNow':
+    case 'dueSoon':
+      return 'bg-amber-400';
+    case 'planned':
+      return 'bg-blue-500';
+    case 'done':
+      return 'bg-emerald-500';
+    case 'pending':
+    default:
+      return props.task.scheduleType === 'scheduled' ? 'bg-blue-500' : 'bg-slate-400';
+  }
+});
+
+const isUrgentCard = computed(() => props.task.status === 'overdue');
+
+const actionButtonClass = computed(() => {
+  switch (props.task.status) {
+    case 'overdue':
+      return 'bg-white text-red-600 hover:bg-red-50';
+    case 'dueNow':
+    case 'dueSoon':
+      return 'bg-orange-500 text-white hover:bg-orange-600';
+    case 'planned':
+      return 'bg-blue-600 text-white hover:bg-blue-700';
+    case 'done':
+      return 'bg-emerald-500 text-white hover:bg-emerald-600';
+    case 'pending':
+    default:
+      return props.task.scheduleType === 'scheduled' ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-slate-900 text-white hover:bg-slate-800';
+  }
+});
 
 const showActions = ref(false);
 const toggleActions = () => {
@@ -63,109 +103,79 @@ const toggleActions = () => {
 </script>
 
 <template>
-  <div class="p-4 sm:p-5 hover:bg-gray-50 transition-colors duration-200">
-    <div class="flex flex-col gap-3">
-      <div class="flex justify-between items-start gap-4">
-        <div class="flex-1">
-          <div class="flex flex-wrap items-center gap-2">
-            <h3 class="font-medium text-gray-900">{{ task.description }}</h3>
-            <span v-if="task.isCustom" class="px-2 py-0.5 text-xs rounded-full bg-indigo-100 text-indigo-700">Benutzerdefiniert</span>
-            <span class="px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700">
-              {{ task.scheduleType === 'scheduled' ? 'Geplant' : 'Wiederholend' }}
+  <div
+    class="relative overflow-hidden rounded-[28px] p-5 shadow-sm"
+    :class="isUrgentCard ? 'border border-red-300 bg-gradient-to-r from-red-600 via-red-500 to-orange-500 text-white shadow-lg' : 'border border-gray-100 bg-white'"
+  >
+    <div
+      v-if="!isUrgentCard"
+      :class="['absolute inset-y-4 left-0 w-1.5 rounded-r-full', statusAccentClass]"
+    ></div>
+
+    <div :class="isUrgentCard ? '' : 'pl-4'">
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0 flex-1">
+          <h3 :class="['text-xl font-semibold', isUrgentCard ? 'text-white' : 'text-gray-900']">{{ task.description }}</h3>
+
+          <div class="mt-2 flex flex-wrap gap-2">
+            <span class="rounded-full px-2.5 py-1 text-xs font-medium" :class="isUrgentCard ? 'bg-white/15 text-white' : getCategoryClass(task.category)">{{ task.category }}</span>
+            <span v-if="task.scheduleType === 'scheduled'" :class="['rounded-full px-2.5 py-1 text-xs font-medium', isUrgentCard ? 'bg-white/15 text-white' : 'bg-blue-50 text-blue-700']">Terminiert</span>
+            <template v-else>
+              <span :class="['rounded-full px-2.5 py-1 text-xs font-medium', isUrgentCard ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-700']">Regelmäßig</span>
+              <span v-if="getFrequencyLabel(task)" :class="['rounded-full px-2.5 py-1 text-xs font-medium', isUrgentCard ? 'bg-white/15 text-white' : 'bg-slate-100 text-slate-700']">{{ getFrequencyLabel(task) }}</span>
+            </template>
+            <span v-if="task.isCustom" :class="['rounded-full px-2.5 py-1 text-xs font-medium', isUrgentCard ? 'bg-white/15 text-white' : 'bg-indigo-100 text-indigo-700']">Benutzerdefiniert</span>
+          </div>
+
+          <p v-if="task.notes" :class="['mt-3 text-sm', isUrgentCard ? 'text-white/90' : 'text-gray-600']">{{ task.notes }}</p>
+
+          <div :class="['mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm', isUrgentCard ? 'text-white/85' : 'text-gray-500']">
+            <span>
+              {{ task.scheduleType === 'scheduled' ? 'Termin' : 'Nächste Prüfung' }}:
+              {{ formatDisplayDate(task.scheduleType === 'scheduled' ? task.dueDate ?? null : task.nextCheck) ?? 'Nicht geplant' }}
             </span>
-          </div>
-          <div class="mt-1 flex flex-wrap gap-2">
-            <span class="px-2 py-1 text-xs rounded-full" :class="getCategoryClass(task.category)">{{ task.category }}</span>
-            <span v-if="task.notes" class="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">Notiz vorhanden</span>
-            <span v-if="task.dueDate" class="px-2 py-1 text-xs rounded-full bg-violet-100 text-violet-700">Termin: {{ formatDisplayDate(task.dueDate) }}</span>
-            <span v-if="task.dueMileage" class="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-700">{{ task.dueMileage.toLocaleString('de-DE') }} km</span>
+            <span v-if="task.lastCheck">• Letzte Prüfung: {{ formatDisplayDate(task.lastCheck) }}</span>
           </div>
         </div>
-        <div class="flex items-center">
-          <div :class="[
-            'h-3 w-3 rounded-full mr-2',
-            {
-              'bg-red-500': task.status === 'overdue',
-              'bg-amber-500': task.status === 'dueNow',
-              'bg-orange-500': task.status === 'dueSoon',
-              'bg-blue-500': task.status === 'planned',
-              'bg-green-500': task.status === 'done',
-              'bg-yellow-400': task.status === 'pending'
-            }
-          ]"></div>
-          <span :class="[
-            'text-sm font-medium',
-            {
-              'text-red-600': task.status === 'overdue',
-              'text-amber-600': task.status === 'dueNow',
-              'text-orange-600': task.status === 'dueSoon',
-              'text-blue-600': task.status === 'planned',
-              'text-green-600': task.status === 'done',
-              'text-yellow-600': task.status === 'pending'
-            }
-          ]">{{ getStatusText(task) }}</span>
-        </div>
+
+        <button
+          @click="toggleActions"
+          :class="['flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl', isUrgentCard ? 'text-white/80 hover:bg-white/10 hover:text-white' : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600']"
+          :disabled="isLoading"
+        >
+          <EllipsisVerticalIcon class="h-5 w-5" />
+        </button>
       </div>
 
-      <div class="grid grid-cols-2 gap-4 text-sm">
-        <div>
-          <div class="text-gray-500 mb-1">Letzte Prüfung</div>
-          <div :class="{ 'text-gray-400': !task.lastCheck, 'text-gray-900': task.lastCheck }">{{ formatDisplayDate(task.lastCheck) ?? 'Nie' }}</div>
-        </div>
-        <div>
-          <div class="text-gray-500 mb-1">{{ task.scheduleType === 'scheduled' ? 'Termin' : 'Nächste Prüfung' }}</div>
-          <div :class="{ 'text-gray-400': !(task.scheduleType === 'scheduled' ? task.dueDate : task.nextCheck), 'text-gray-900': task.scheduleType === 'scheduled' ? task.dueDate : task.nextCheck }">
-            {{ formatDisplayDate(task.scheduleType === 'scheduled' ? task.dueDate ?? null : task.nextCheck) ?? 'Nicht geplant' }}
-          </div>
-        </div>
+      <div v-if="showActions" class="mt-4 flex flex-col gap-2 sm:flex-row">
+        <button
+          @click="emit('edit', task); showActions = false"
+          :class="['inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium', isUrgentCard ? 'border border-white/20 text-white hover:bg-white/10' : 'border border-gray-200 text-gray-700 hover:bg-gray-50']"
+          :disabled="isLoading"
+        >
+          <PencilSquareIcon class="h-4 w-4" />
+          Bearbeiten
+        </button>
+
+        <button
+          @click="emit('delete', task.id); showActions = false"
+          :class="['inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium', isUrgentCard ? 'border border-white/20 text-white hover:bg-white/10' : 'border border-red-200 text-red-600 hover:bg-red-50']"
+          :disabled="isLoading"
+        >
+          <TrashIcon class="h-4 w-4" />
+          {{ getDeleteLabel(task) }}
+        </button>
       </div>
 
-      <div v-if="task.notes || task.lastMileage != null" class="text-sm text-gray-600 bg-gray-50 rounded-xl px-3 py-3">
-        <div v-if="task.notes">{{ task.notes }}</div>
-        <div v-if="task.lastMileage != null" class="mt-1">Letzter km-Stand: {{ task.lastMileage.toLocaleString('de-DE') }} km</div>
-      </div>
-
-      <div class="space-y-2">
-        <div class="flex gap-2">
-          <button
-            @click="emit('mark-checked', task)"
-            :class="[
-              'flex-1 min-h-11 px-4 py-2 text-white rounded-lg transform hover:scale-[1.01] transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2',
-              {
-                'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700': task.status === 'overdue',
-                'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600': task.status === 'dueNow',
-                'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600': task.status === 'dueSoon',
-                'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700': task.status === 'planned',
-                'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700': task.status === 'done',
-                'bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600': task.status === 'pending'
-              }
-            ]"
-            :disabled="isLoading"
-          >
-            <CheckIcon class="h-4 w-4" />
-            {{ getButtonText(task) }}
-          </button>
-
-          <button
-            @click="toggleActions"
-            class="min-h-11 min-w-11 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center"
-            :disabled="isLoading"
-          >
-            <EllipsisHorizontalIcon class="h-5 w-5" />
-          </button>
-        </div>
-
-        <div v-if="showActions" class="flex flex-col sm:flex-row gap-2">
-          <button @click="emit('edit', task); showActions = false" class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center gap-2" :disabled="isLoading">
-            <PencilSquareIcon class="h-4 w-4" />
-            Bearbeiten
-          </button>
-
-          <button @click="emit('delete', task.id); showActions = false" class="min-h-11 px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2" :disabled="isLoading">
-            <TrashIcon class="h-4 w-4" />
-            {{ getDeleteLabel(task) }}
-          </button>
-        </div>
+      <div class="mt-4 flex items-center gap-2">
+        <button
+          @click="emit('mark-checked', task)"
+          :class="['inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium shadow-sm transition-colors', actionButtonClass]"
+          :disabled="isLoading"
+        >
+          <CheckIcon class="h-4 w-4" />
+          {{ getButtonText(task) }}
+        </button>
       </div>
     </div>
   </div>

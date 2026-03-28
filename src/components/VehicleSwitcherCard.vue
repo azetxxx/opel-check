@@ -14,42 +14,42 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
-    <div class="flex items-center justify-between gap-3">
-      <div>
-        <h3 class="text-lg font-semibold text-gray-900">Fahrzeuge</h3>
-        <p class="text-sm text-gray-600 mt-1">Wähle das aktive Fahrzeug für Startseite und Wartung.</p>
+  <section class="overflow-hidden rounded-[28px] border border-blue-200 bg-white shadow-sm">
+    <div class="bg-gradient-to-r from-blue-500 to-blue-600 px-5 py-4 text-white">
+      <div class="flex items-center gap-3">
+        <span class="text-lg">🚗</span>
+        <div>
+          <h3 class="text-lg font-semibold">Aktives Fahrzeug</h3>
+        </div>
       </div>
-      <button
-        @click="emit('create')"
-        class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100"
-      >
-        <PlusIcon class="h-4 w-4" />
-        Neu
-      </button>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div class="space-y-3 p-4">
       <button
         v-for="vehicle in vehicles"
         :key="vehicle.id"
         @click="emit('change', vehicle.id)"
-        class="rounded-xl border px-4 py-4 text-left transition-colors"
-        :class="vehicle.id === activeVehicleId ? 'border-blue-300 bg-blue-50' : 'border-gray-200 bg-white hover:bg-gray-50'"
+        class="w-full rounded-[24px] border px-4 py-4 text-left transition-colors"
+        :class="vehicle.id === activeVehicleId ? 'border-blue-400 bg-blue-50 shadow-sm' : 'border-gray-200 bg-white hover:bg-gray-50'"
       >
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <p class="font-medium text-gray-900">{{ vehicle.name }}</p>
-            <p class="mt-1 text-sm text-gray-600">{{ [vehicle.brand, vehicle.model].filter(Boolean).join(' ') || 'Kein Modell gepflegt' }}</p>
-            <p v-if="vehicle.plate" class="mt-2 text-xs text-gray-500">{{ vehicle.plate }}</p>
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <span :class="['h-4 w-4 rounded-full border-2', vehicle.id === activeVehicleId ? 'border-blue-600' : 'border-gray-400']"></span>
+            <div>
+              <p class="font-medium text-gray-900">{{ vehicle.name }}</p>
+              <p class="mt-1 text-sm text-gray-600">{{ [vehicle.brand, vehicle.model].filter(Boolean).join(' ') || 'Kein Modell gepflegt' }}</p>
+            </div>
           </div>
-          <span
-            v-if="vehicle.id === activeVehicleId"
-            class="px-2 py-0.5 text-xs rounded-full bg-blue-600 text-white"
-          >
-            Aktiv
-          </span>
+          <span v-if="vehicle.id === activeVehicleId" class="h-2.5 w-2.5 rounded-full bg-blue-500"></span>
         </div>
+      </button>
+
+      <button
+        @click="emit('create')"
+        class="flex min-h-12 w-full items-center justify-center gap-2 rounded-[20px] bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700"
+      >
+        <PlusIcon class="h-5 w-5" />
+        Neues Fahrzeug hinzufügen
       </button>
     </div>
   </section>

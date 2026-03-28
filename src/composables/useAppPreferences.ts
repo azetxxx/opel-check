@@ -6,7 +6,10 @@ const STORAGE_KEY = 'app-preferences';
 const STORAGE_VERSION = 1;
 
 const defaultPreferences = (): AppPreferences => ({
-  favoritePlaceId: null,
+  favoritePlaceIds: [],
+  pinnedStartPlaceId: null,
+  favoritePlaylistIds: [],
+  pinnedStartPlaylistId: null,
   favoritePlaylistId: null,
   preferredMapProvider: 'google',
   preferredMusicProvider: 'none',
@@ -33,8 +36,18 @@ let initialized = false;
 const normalizePreferences = (value: Partial<AppPreferences> | null | undefined): AppPreferences => {
   const fallback = defaultPreferences();
 
+  const legacyFavoritePlaceId = (value as { favoritePlaceId?: string | null } | null)?.favoritePlaceId ?? null;
+  const legacyFavoritePlaylistId = (value as { favoritePlaylistId?: string | null } | null)?.favoritePlaylistId ?? null;
+  const favoritePlaceIds = value?.favoritePlaceIds ?? (legacyFavoritePlaceId ? [legacyFavoritePlaceId] : fallback.favoritePlaceIds);
+  const pinnedStartPlaceId = value?.pinnedStartPlaceId ?? legacyFavoritePlaceId ?? fallback.pinnedStartPlaceId;
+  const favoritePlaylistIds = value?.favoritePlaylistIds ?? (legacyFavoritePlaylistId ? [legacyFavoritePlaylistId] : fallback.favoritePlaylistIds);
+  const pinnedStartPlaylistId = value?.pinnedStartPlaylistId ?? legacyFavoritePlaylistId ?? fallback.pinnedStartPlaylistId;
+
   return {
-    favoritePlaceId: value?.favoritePlaceId ?? fallback.favoritePlaceId,
+    favoritePlaceIds,
+    pinnedStartPlaceId,
+    favoritePlaylistIds,
+    pinnedStartPlaylistId,
     favoritePlaylistId: value?.favoritePlaylistId ?? fallback.favoritePlaylistId,
     preferredMapProvider: value?.preferredMapProvider ?? fallback.preferredMapProvider,
     preferredMusicProvider: value?.preferredMusicProvider ?? fallback.preferredMusicProvider,

@@ -28,30 +28,43 @@ const handleFileChange = (event: Event) => {
 </script>
 
 <template>
-  <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+  <section class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm">
     <div class="mb-4">
-      <h2 class="text-lg font-semibold text-gray-900">Backup</h2>
-      <p class="text-sm text-gray-600 mt-1">
-        Exportiere oder importiere Fahrzeuge, Aufgaben und Protokolle als JSON-Datei.
-      </p>
+      <h2 class="text-lg font-semibold text-gray-900">Datenverwaltung</h2>
     </div>
 
-    <div class="flex flex-col sm:flex-row gap-3">
+    <div class="space-y-3">
       <button
         @click="emit('export')"
-        class="min-h-11 px-4 py-2 bg-gradient-to-r from-slate-700 to-slate-900 text-white rounded-lg hover:from-slate-800 hover:to-black transition-all duration-200 shadow-sm hover:shadow text-sm font-medium flex items-center justify-center gap-2"
+        class="flex w-full items-center justify-between rounded-[22px] px-4 py-4 text-left hover:bg-gray-50"
       >
-        <ArrowDownTrayIcon class="h-4 w-4" />
-        Backup exportieren
+        <div class="flex items-center gap-3">
+          <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-500 text-white">
+            <ArrowDownTrayIcon class="h-5 w-5" />
+          </div>
+          <div>
+            <p class="font-medium text-gray-900">Daten exportieren</p>
+            <p class="text-sm text-gray-500">Backup als JSON-Datei</p>
+          </div>
+        </div>
+        <span class="text-gray-400">›</span>
       </button>
 
       <button
         @click="openFilePicker"
         :disabled="isImporting"
-        class="min-h-11 px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+        class="flex w-full items-center justify-between rounded-[22px] px-4 py-4 text-left hover:bg-gray-50 disabled:opacity-50"
       >
-        <ArrowUpTrayIcon class="h-4 w-4" />
-        Backup importieren
+        <div class="flex items-center gap-3">
+          <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-500 text-white">
+            <ArrowUpTrayIcon class="h-5 w-5" />
+          </div>
+          <div>
+            <p class="font-medium text-gray-900">Daten importieren</p>
+            <p class="text-sm text-gray-500">Backup wiederherstellen</p>
+          </div>
+        </div>
+        <span class="text-gray-400">›</span>
       </button>
 
       <input

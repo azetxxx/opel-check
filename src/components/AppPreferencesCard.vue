@@ -46,58 +46,67 @@ const carModeLabels: Record<keyof AppPreferences['carMode'], string> = {
 </script>
 
 <template>
-  <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 space-y-5">
-    <div>
-      <h3 class="text-lg font-semibold text-gray-900">App-Einstellungen</h3>
-      <p class="text-sm text-gray-600 mt-1">Lege Standardverhalten für Navigation, Musik und Startfluss fest.</p>
+  <section class="overflow-hidden rounded-[28px] border border-purple-200 bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 p-5 text-white shadow-lg sm:p-6 space-y-5">
+    <div class="flex items-start gap-3">
+      <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15 text-white shadow-sm">
+        <span class="text-lg">🌙</span>
+      </div>
+      <div>
+        <h3 class="text-lg font-semibold text-white">Fahrmodus</h3>
+        <p class="mt-1 text-sm text-white/80">Auto-Start und reduzierte Ansicht für unterwegs.</p>
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div class="space-y-3">
+      <label v-for="(label, key) in carModeLabels" :key="key" class="flex items-center justify-between gap-3 rounded-[20px] bg-white/12 px-4 py-4 text-sm">
+        <div>
+          <p class="font-medium text-white">{{ label }}</p>
+        </div>
+        <span class="relative inline-flex items-center">
+          <input
+            type="checkbox"
+            :checked="preferences.carMode[key]"
+            @change="emit('toggle-car-mode', key, ($event.target as HTMLInputElement).checked)"
+            class="peer sr-only"
+          >
+          <span class="h-7 w-12 rounded-full bg-white/30 transition-colors peer-checked:bg-white/80"></span>
+          <span class="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white transition-transform peer-checked:translate-x-5"></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="grid grid-cols-1 gap-4 border-t border-white/10 pt-4 text-slate-900 md:grid-cols-2">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Bevorzugter Kartenanbieter</label>
+        <label class="mb-1 block text-sm font-medium text-white/85">Bevorzugter Kartenanbieter</label>
         <select
           :value="preferences.preferredMapProvider"
           @change="emit('update:preferredMapProvider', ($event.target as HTMLSelectElement).value as NavigationProvider)"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+          class="w-full rounded-2xl border border-white/15 bg-white px-3 py-2 text-sm"
         >
           <option v-for="option in mapProviderOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
         </select>
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">Bevorzugter Musikanbieter</label>
+        <label class="mb-1 block text-sm font-medium text-white/85">Bevorzugter Musikanbieter</label>
         <select
           :value="preferences.preferredMusicProvider"
           @change="emit('update:preferredMusicProvider', ($event.target as HTMLSelectElement).value as MusicProvider | 'none')"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+          class="w-full rounded-2xl border border-white/15 bg-white px-3 py-2 text-sm"
         >
           <option v-for="option in musicProviderOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
         </select>
       </div>
 
       <div class="md:col-span-2">
-        <label class="block text-sm font-medium text-gray-700 mb-1">Bevorzugtes Startmodul</label>
+        <label class="mb-1 block text-sm font-medium text-white/85">Bevorzugtes Startmodul</label>
         <select
           :value="preferences.preferredStartupModule"
           @change="emit('update:preferredStartupModule', ($event.target as HTMLSelectElement).value as StartupModule)"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white"
+          class="w-full rounded-2xl border border-white/15 bg-white px-3 py-2 text-sm"
         >
           <option v-for="option in startupOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
         </select>
-      </div>
-    </div>
-
-    <div>
-      <p class="text-sm font-medium text-gray-700 mb-2">Car Mode</p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
-        <label v-for="(label, key) in carModeLabels" :key="key" class="inline-flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2">
-          <input
-            type="checkbox"
-            :checked="preferences.carMode[key]"
-            @change="emit('toggle-car-mode', key, ($event.target as HTMLInputElement).checked)"
-          >
-          {{ label }}
-        </label>
       </div>
     </div>
   </section>

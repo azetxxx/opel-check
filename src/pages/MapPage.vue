@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { PencilSquareIcon, PlusIcon, StarIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
-import { EllipsisHorizontalIcon } from '@heroicons/vue/20/solid';
+import { EllipsisVerticalIcon } from '@heroicons/vue/24/outline';
+import { MapPinIcon } from '@heroicons/vue/24/outline';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSavedPlaces } from '../composables/useSavedPlaces';
@@ -70,14 +71,22 @@ const effectiveDefaultProvider = computed<NavigationProvider>(() => {
     : (selectedProviders.value[0] ?? 'google');
 });
 
-const favoritePlaceId = computed(() => preferences.value.favoritePlaceId);
+const favoritePlaceIds = computed(() => preferences.value.favoritePlaceIds);
+const pinnedStartPlaceId = computed(() => preferences.value.pinnedStartPlaceId);
 const sortedPlaces = computed(() => {
   return [...places.value].sort((a, b) => {
-    if (a.id === favoritePlaceId.value) return -1;
-    if (b.id === favoritePlaceId.value) return 1;
+    const aFavorite = favoritePlaceIds.value.includes(a.id);
+    const bFavorite = favoritePlaceIds.value.includes(b.id);
+    if (aFavorite && !bFavorite) return -1;
+    if (!aFavorite && bFavorite) return 1;
+    if (a.id === pinnedStartPlaceId.value) return -1;
+    if (b.id === pinnedStartPlaceId.value) return 1;
     return a.label.localeCompare(b.label, 'de');
   });
 });
+
+const favoritePlaces = computed(() => sortedPlaces.value.filter((place) => favoritePlaceIds.value.includes(place.id)));
+const otherPlaces = computed(() => sortedPlaces.value.filter((place) => !favoritePlaceIds.value.includes(place.id)));
 
 const submit = () => {
   if (!form.label.trim() || !form.address.trim()) return;
@@ -131,8 +140,26 @@ const openDefaultProvider = (place: SavedPlace) => {
 };
 
 const toggleFavorite = (place: SavedPlace) => {
+  const isFavorite = favoritePlaceIds.value.includes(place.id);
   updatePreferences({
-    favoritePlaceId: favoritePlaceId.value === place.id ? null : place.id
+    favoritePlaceIds: isFavorite
+      ? favoritePlaceIds.value.filter((id) => id !== place.id)
+      : [...favoritePlaceIds.value, place.id],
+    pinnedStartPlaceId: preferences.value.pinnedStartPlaceId === place.id && isFavorite
+      ? null
+      : preferences.value.pinnedStartPlaceId
+  });
+};
+
+const togglePinnedStartPlace = (place: SavedPlace) => {
+  const nextPinnedId = pinnedStartPlaceId.value === place.id ? null : place.id;
+  const nextFavoriteIds = favoritePlaceIds.value.includes(place.id)
+    ? favoritePlaceIds.value
+    : [...favoritePlaceIds.value, place.id];
+
+  updatePreferences({
+    favoritePlaceIds: nextFavoriteIds,
+    pinnedStartPlaceId: nextPinnedId
   });
 };
 
@@ -187,88 +214,154 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="space-y-5 sm:space-y-6 pb-4">
-    <section class="space-y-4">
-      <div class="flex items-center justify-between gap-3 flex-wrap">
-        <h3 class="text-lg font-semibold text-gray-900">Ziele</h3>
-        <div class="flex items-center gap-3 flex-wrap">
-          <p class="hidden text-sm text-gray-500 sm:block">{{ places.length }} Orte gespeichert</p>
-          <button ref="topCreateButton" @click="openCreateForm" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
-            <PlusIcon class="h-4 w-4" />
-            Neu
-          </button>
+  <section class="space-y-4 pb-6 sm:space-y-5">
+    <section class="-mx-4 -mt-4 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 px-4 pb-6 pt-5 text-white shadow-lg sm:mx-0 sm:mt-0 sm:rounded-[28px] sm:px-5 sm:pt-5">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h2 class="text-2xl font-semibold">Ziele</h2>
+          <p class="mt-2 text-sm text-white/85">Schnellzugriff auf deine Orte</p>
         </div>
+        <button
+          ref="topCreateButton"
+          @click="openCreateForm"
+          class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/20 text-white hover:bg-white/25"
+        >
+          <PlusIcon class="h-5 w-5" />
+        </button>
+      </div>
+    </section>
+
+    <section v-if="favoritePlaces.length > 0" class="space-y-3">
+      <div class="flex items-center gap-2 text-gray-900">
+        <StarIcon class="h-5 w-5 text-amber-500" />
+        <h3 class="text-lg font-semibold text-gray-900">Favoriten</h3>
       </div>
 
-      <div v-if="sortedPlaces.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div v-for="place in sortedPlaces" :key="place.id" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5 space-y-4">
+      <div class="space-y-3">
+        <div v-for="place in favoritePlaces" :key="place.id" class="rounded-[28px] bg-gradient-to-r from-yellow-400 to-orange-500 p-5 text-white shadow-lg">
           <div class="flex items-start justify-between gap-3">
-            <div>
-              <div class="flex items-center gap-2">
-                <p class="text-2xl">{{ place.icon || '📍' }}</p>
-                <span v-if="favoritePlaceId === place.id" class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Favorit</span>
+            <div class="flex items-start gap-3">
+              <div class="mt-1 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 text-white">
+                <MapPinIcon class="h-6 w-6" />
               </div>
-              <h4 class="mt-2 font-semibold text-gray-900">{{ place.label }}</h4>
-              <p class="text-sm text-gray-600 mt-1">{{ place.address }}</p>
-              <p v-if="place.notes" class="text-sm text-gray-500 mt-2">{{ place.notes }}</p>
-              <p class="text-xs text-gray-500 mt-2">Standard: {{ providerLabels[getPreferredPlaceProvider(place)] }}</p>
+              <div>
+                <h3 class="text-2xl font-semibold">{{ place.label }}</h3>
+                <p class="mt-1 text-sm text-yellow-50/90">{{ place.address }}</p>
+                <p v-if="pinnedStartPlaceId === place.id" class="mt-2 text-xs font-medium text-yellow-50/95">Auf Startseite angeheftet</p>
+              </div>
+            </div>
+            <button @click="toggleProviderMenu(place.id)" class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20 text-white hover:bg-white/25">
+              <EllipsisVerticalIcon class="h-5 w-5" />
+            </button>
+          </div>
+
+          <div class="mt-4 flex items-center gap-2">
+            <button @click="openDefaultProvider(place)" class="flex-1 min-h-11 rounded-2xl bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm hover:bg-slate-50">
+              In der Karten-App öffnen
+            </button>
+          </div>
+
+          <div v-if="activeProviderMenuId === place.id" class="mt-3 flex flex-col sm:flex-row gap-2">
+            <button @click="toggleFavorite(place); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-yellow-200 bg-white text-yellow-700 hover:bg-yellow-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+              <StarIcon class="h-4 w-4" />
+              Aus Favoriten entfernen
+            </button>
+            <button @click="togglePinnedStartPlace(place); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+              <MapPinIcon class="h-4 w-4" />
+              {{ pinnedStartPlaceId === place.id ? 'Von Startseite lösen' : 'Auf Startseite anheften' }}
+            </button>
+            <button @click="editPlace(place); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+              <PencilSquareIcon class="h-4 w-4" />
+              Bearbeiten
+            </button>
+            <button @click="removePlace(place.id); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+              <TrashIcon class="h-4 w-4" />
+              Löschen
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-lg font-semibold text-gray-900">Alle Ziele</h3>
+        <p class="text-sm text-gray-500">{{ otherPlaces.length }} Orte</p>
+      </div>
+
+      <div v-if="otherPlaces.length > 0" class="space-y-3">
+        <div v-for="place in otherPlaces" :key="place.id" class="rounded-2xl border-l-4 border-cyan-400 bg-gray-50 px-4 py-4">
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex items-start gap-3">
+              <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-[20px] bg-white text-cyan-600 text-xl shadow-sm">
+                <span>{{ place.icon || '📍' }}</span>
+              </div>
+              <div>
+                <p class="font-semibold text-gray-900">{{ place.label }}</p>
+                <p class="mt-1 text-sm text-gray-600">{{ place.address }}</p>
+              </div>
             </div>
             <div class="flex items-center gap-2">
-              <button @click="toggleFavorite(place)" class="p-2.5 rounded-lg border border-yellow-200 text-yellow-600 hover:bg-yellow-50">
-                <StarIcon class="h-4 w-4" />
-              </button>
-              <button @click="editPlace(place)" class="p-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
-                <PencilSquareIcon class="h-4 w-4" />
-              </button>
-              <button @click="removePlace(place.id)" class="p-2.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">
-                <TrashIcon class="h-4 w-4" />
+              <button @click="toggleProviderMenu(place.id)" class="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 bg-white">
+                <EllipsisVerticalIcon class="h-5 w-5" />
               </button>
             </div>
           </div>
 
-          <div class="space-y-2">
-            <div class="flex gap-2">
-              <button @click="openDefaultProvider(place)" class="flex-1 min-h-11 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
-                In der Karten-App öffnen
-              </button>
-              <button
-                @click="toggleProviderMenu(place.id)"
-                class="min-h-11 min-w-11 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center"
-              >
-                <EllipsisHorizontalIcon class="h-5 w-5" />
-              </button>
-            </div>
+          <div class="mt-4 flex items-center gap-2">
+            <button @click="openDefaultProvider(place)" class="flex-1 min-h-11 rounded-[20px] bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm hover:bg-slate-100">
+              In der Karten-App öffnen
+            </button>
+          </div>
 
-            <div v-if="activeProviderMenuId === place.id" class="flex flex-col sm:flex-row gap-2">
-              <button
-                v-for="provider in place.providers.filter((provider) => provider !== getPreferredPlaceProvider(place))"
-                :key="provider"
-                @click="openProvider(place, provider); activeProviderMenuId = null"
-                class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center"
-              >
-                {{ providerLabels[provider] }}
-              </button>
-            </div>
+          <div v-if="activeProviderMenuId === place.id" class="mt-3 flex flex-col sm:flex-row gap-2">
+            <button @click="toggleFavorite(place); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-yellow-200 bg-white text-yellow-700 hover:bg-yellow-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+              <StarIcon class="h-4 w-4" />
+              Zu Favoriten hinzufügen
+            </button>
+            <button @click="togglePinnedStartPlace(place); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+              <MapPinIcon class="h-4 w-4" />
+              Auf Startseite anheften
+            </button>
+            <button @click="editPlace(place); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+              <PencilSquareIcon class="h-4 w-4" />
+              Bearbeiten
+            </button>
+            <button
+              v-for="provider in place.providers.filter((provider) => provider !== getPreferredPlaceProvider(place))"
+              :key="provider"
+              @click="openProvider(place, provider); activeProviderMenuId = null"
+              class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center"
+            >
+              {{ providerLabels[provider] }}
+            </button>
+            <button @click="removePlace(place.id); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+              <TrashIcon class="h-4 w-4" />
+              Löschen
+            </button>
           </div>
         </div>
       </div>
 
-      <section v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 text-center space-y-4">
+      <section v-else-if="places.length === 0" class="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center space-y-4">
         <p class="text-sm text-gray-500">Noch keine Ziele gespeichert.</p>
-        <button @click="openCreateForm" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
+        <button @click="openCreateForm" class="inline-flex items-center gap-2 rounded-full bg-cyan-500 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-600">
           <PlusIcon class="h-4 w-4" />
           Neu
         </button>
+      </section>
+
+      <section v-else class="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center">
+        <p class="text-sm text-gray-500">Weitere Ziele erscheinen hier unterhalb des Favoriten.</p>
       </section>
     </section>
 
     <button
       v-if="showFloatingCreateButton && !isFormOpen"
       @click="openCreateForm"
-      class="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-sm font-medium text-white shadow-lg hover:bg-blue-700 sm:hidden"
+      class="fixed bottom-24 right-4 z-40 flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500 text-white shadow-lg hover:bg-cyan-600 sm:hidden"
     >
-      <PlusIcon class="h-4 w-4" />
-      Neu
+      <PlusIcon class="h-5 w-5" />
     </button>
 
     <div v-if="isFormOpen" class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
@@ -324,7 +417,7 @@ onBeforeUnmount(() => {
 
         <div class="sticky bottom-0 flex justify-end gap-3 border-t border-gray-100 bg-white px-6 py-4 rounded-b-2xl">
           <button @click="closeForm" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Abbrechen</button>
-          <button @click="submit" class="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2 text-sm font-medium text-white">
+          <button @click="submit" class="rounded-lg bg-gradient-to-r from-cyan-500 to-teal-500 px-4 py-2 text-sm font-medium text-white">
             {{ editingId ? 'Ort speichern' : 'Ort hinzufügen' }}
           </button>
         </div>

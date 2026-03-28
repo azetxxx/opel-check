@@ -20,7 +20,10 @@ export interface CarModePreferences {
 }
 
 export interface AppPreferences {
-  favoritePlaceId: string | null;
+  favoritePlaceIds: string[];
+  pinnedStartPlaceId: string | null;
+  favoritePlaylistIds: string[];
+  pinnedStartPlaylistId: string | null;
   favoritePlaylistId: string | null;
   preferredMapProvider: NavigationProvider;
   preferredMusicProvider: MusicProvider | 'none';

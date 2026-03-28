@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import {
-  ArrowTopRightOnSquareIcon,
+  ArrowRightIcon,
   CheckCircleIcon,
-  Cog6ToothIcon,
+  ExclamationTriangleIcon,
   MapPinIcon,
   MusicalNoteIcon,
-  PlusCircleIcon,
+  StarIcon,
+  TruckIcon,
   WrenchScrewdriverIcon
 } from '@heroicons/vue/24/outline';
 import { computed, onMounted } from 'vue';
@@ -29,15 +30,8 @@ const { maintenanceTasks } = useMaintenanceData();
 const { logs } = useMaintenanceLogs();
 const { shortcuts, markShortcutOpened } = usePlaylistShortcuts();
 const { places } = useSavedPlaces();
-const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle } = useVehicleProfile();
+const { vehicles, activeVehicle } = useVehicleProfile();
 const { preferences } = useAppPreferences();
-
-const modules = [
-  { title: 'Ziele', description: 'Gespeicherte Orte und Schnellnavigation.', to: '/map', icon: MapPinIcon, action: 'Zu Zielen' },
-  { title: 'Wartung', description: 'Aufgaben, Dashboard und Serviceprotokolle.', to: '/maintenance', icon: WrenchScrewdriverIcon, action: 'Zu Wartung' },
-  { title: 'Musik', description: 'Playlists und Medien-Shortcuts fürs Auto.', to: '/music', icon: MusicalNoteIcon, action: 'Zu Musik' },
-  { title: 'Einstellungen', description: 'Profile, Backup und Modul-Konfiguration.', to: '/settings', icon: Cog6ToothIcon, action: 'Zu Einstellungen' }
-];
 
 const currentDate = computed(() => new Date());
 const filteredTasks = computed(() => maintenanceTasks.value.filter((task) => task.vehicleId === activeVehicle.value.id && !task.isArchived));
@@ -47,20 +41,7 @@ const filteredLogs = computed(() => logs.value.filter((log) => log.vehicleId ===
 const isCarMode = computed(() => preferences.value.carMode.enabled);
 const isSimplifiedCarMode = computed(() => isCarMode.value && preferences.value.carMode.simplifiedHome);
 
-const quickStats = computed(() => {
-  const overdue = enrichedTasks.value.filter((task) => task.status === 'overdue').length;
-  const dueSoon = enrichedTasks.value.filter((task) => task.status === 'dueSoon' || task.status === 'dueNow').length;
-  const open = enrichedTasks.value.filter((task) => task.status === 'pending').length;
-  const completed = enrichedTasks.value.filter((task) => task.status === 'done').length;
-
-  return [
-    { label: 'Überfällig', value: overdue, tone: 'text-red-600 bg-red-50' },
-    { label: 'Bald fällig', value: dueSoon, tone: 'text-orange-600 bg-orange-50' },
-    { label: 'Offen', value: open, tone: 'text-yellow-700 bg-yellow-50' },
-    { label: 'Erledigt', value: completed, tone: 'text-green-600 bg-green-50' }
-  ];
-});
-
+const urgentTasks = computed(() => enrichedTasks.value.filter((task) => task.status === 'overdue' || task.status === 'dueNow'));
 const nextTask = computed(() => {
   const candidate = enrichedTasks.value
     .filter((task) => ['overdue', 'dueNow', 'dueSoon', 'pending'].includes(task.status))
@@ -83,39 +64,8 @@ const nextTask = computed(() => {
 });
 
 const recentCompletions = computed(() => filteredLogs.value.slice(0, 3));
-const favoritePlace = computed(() => places.value.find((place) => place.id === preferences.value.favoritePlaceId) ?? null);
-const favoritePlaylist = computed(() => shortcuts.value.find((item) => item.id === preferences.value.favoritePlaylistId) ?? null);
-const quickPlaces = computed(() => {
-  const remaining = places.value.filter((place) => place.id !== favoritePlace.value?.id);
-  return favoritePlace.value ? [favoritePlace.value, ...remaining].slice(0, 4) : remaining.slice(0, 4);
-});
-const quickPlaylists = computed(() => {
-  const sorted = [...shortcuts.value].sort((a, b) => {
-    if (a.id === favoritePlaylist.value?.id) return -1;
-    if (b.id === favoritePlaylist.value?.id) return 1;
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    if (a.lastOpenedAt && b.lastOpenedAt) return new Date(b.lastOpenedAt).getTime() - new Date(a.lastOpenedAt).getTime();
-    if (a.lastOpenedAt && !b.lastOpenedAt) return -1;
-    if (!a.lastOpenedAt && b.lastOpenedAt) return 1;
-    return a.title.localeCompare(b.title, 'de');
-  });
-  return sorted.slice(0, 4);
-});
-
-const providerLabel: Record<NavigationProvider, string> = {
-  google: 'Google Maps',
-  apple: 'Apple Karten',
-  waze: 'Waze'
-};
-
-const startupModuleLabel: Record<string, string> = {
-  home: 'Start',
-  map: 'Ziele',
-  maintenance: 'Wartung',
-  music: 'Musik',
-  settings: 'Einstellungen'
-};
+const favoritePlace = computed(() => places.value.find((place) => place.id === preferences.value.pinnedStartPlaceId) ?? null);
+const favoritePlaylist = computed(() => shortcuts.value.find((item) => item.id === preferences.value.pinnedStartPlaylistId) ?? null);
 
 const onboardingSteps = computed(() => {
   const vehicleConfigured = vehicles.value.length > 1 || Boolean(activeVehicle.value.model || activeVehicle.value.plate || activeVehicle.value.currentMileage);
@@ -124,42 +74,14 @@ const onboardingSteps = computed(() => {
   const taskConfigured = filteredTasks.value.length > 0;
 
   return [
-    {
-      key: 'vehicle',
-      label: 'Fahrzeug einrichten',
-      done: vehicleConfigured,
-      to: '/settings'
-    },
-    {
-      key: 'destination',
-      label: 'Erstes Ziel speichern',
-      done: destinationConfigured,
-      to: '/map?action=create-task'
-    },
-    {
-      key: 'playlist',
-      label: 'Erste Playlist speichern',
-      done: playlistConfigured,
-      to: '/music?action=create-task'
-    },
-    {
-      key: 'task',
-      label: 'Erste Aufgabe anlegen',
-      done: taskConfigured,
-      to: '/maintenance?action=create-task'
-    }
+    { key: 'vehicle', label: 'Fahrzeug einrichten', done: vehicleConfigured, to: '/settings' },
+    { key: 'destination', label: 'Erstes Ziel speichern', done: destinationConfigured, to: '/map?action=create-task' },
+    { key: 'playlist', label: 'Erste Playlist speichern', done: playlistConfigured, to: '/music?action=create-task' },
+    { key: 'task', label: 'Erste Aufgabe anlegen', done: taskConfigured, to: '/maintenance?action=create-task' }
   ];
 });
 
 const onboardingComplete = computed(() => onboardingSteps.value.every((step) => step.done));
-
-const showStats = computed(() => preferences.value.homeWidgets.stats && !isSimplifiedCarMode.value);
-const showRecentCompletions = computed(() => preferences.value.homeWidgets.recentCompletions && !isSimplifiedCarMode.value);
-const showQuickPlaces = computed(() => preferences.value.homeWidgets.quickPlaces && (!isSimplifiedCarMode.value || quickPlaces.value.length > 0));
-const showQuickPlaylists = computed(() => preferences.value.homeWidgets.quickPlaylists && (!isSimplifiedCarMode.value || quickPlaylists.value.length > 0));
-const showModules = computed(() => preferences.value.homeWidgets.modules && !isSimplifiedCarMode.value);
-const shouldAutoFocusFavoritePlace = computed(() => isCarMode.value && preferences.value.carMode.autoOpenFavoritePlace && favoritePlace.value);
-const shouldAutoFocusFavoritePlaylist = computed(() => isCarMode.value && preferences.value.carMode.autoPlayFavoritePlaylist && favoritePlaylist.value);
 
 const getPreferredPlaceProvider = (place: SavedPlace) => {
   return place.providers.includes(preferences.value.preferredMapProvider)
@@ -190,244 +112,207 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="space-y-5 sm:space-y-6 pb-4">
-    <section v-if="!onboardingComplete" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 space-y-5">
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+  <section class="space-y-4 pb-6 sm:space-y-5">
+    <section class="-mx-4 -mt-4 bg-gradient-to-r from-blue-600 via-violet-600 to-fuchsia-600 px-4 pb-6 pt-5 text-white shadow-lg sm:mx-0 sm:mt-0 sm:rounded-[28px] sm:px-5 sm:pt-5">
+      <div class="flex items-start justify-between gap-3">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">Omiigo einrichten</h3>
-          <p class="text-sm text-gray-600 mt-1">Lege die wichtigsten Grundlagen an, damit Start, Karte, Musik und Wartung direkt nützlich werden.</p>
+          <h2 class="text-2xl font-semibold">Start</h2>
+          <p class="mt-2 text-sm text-white/85">Dein persönlicher Begleiter</p>
         </div>
-        <span class="inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
-          {{ onboardingSteps.filter((step) => step.done).length }}/{{ onboardingSteps.length }} fertig
+        <RouterLink to="/settings" class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/15 text-white hover:bg-white/20">
+          <ArrowRightIcon class="h-5 w-5 -rotate-45" />
+        </RouterLink>
+      </div>
+    </section>
+
+    <section v-if="!onboardingComplete" class="rounded-[28px] bg-white p-5 shadow-sm border border-gray-100 space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Loslegen</h3>
+          <p class="mt-1 text-sm text-gray-600">Richte Omiigo Car in wenigen Schritten ein.</p>
+        </div>
+        <span class="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
+          {{ onboardingSteps.filter((step) => step.done).length }}/{{ onboardingSteps.length }}
         </span>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div class="space-y-3">
         <RouterLink
           v-for="step in onboardingSteps"
           :key="step.key"
           :to="step.to"
-          class="flex items-center justify-between gap-3 rounded-xl border px-4 py-4 transition-colors"
-          :class="step.done ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white hover:bg-gray-50'"
+          class="flex items-center justify-between gap-3 rounded-2xl px-4 py-4 transition-colors"
+          :class="step.done ? 'bg-emerald-50 border border-emerald-200' : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'"
         >
           <div class="flex items-center gap-3">
-            <CheckCircleIcon class="h-5 w-5" :class="step.done ? 'text-green-600' : 'text-gray-300'" />
+            <CheckCircleIcon class="h-5 w-5" :class="step.done ? 'text-emerald-600' : 'text-gray-300'" />
             <div>
               <p class="font-medium text-gray-900">{{ step.label }}</p>
-              <p class="text-sm" :class="step.done ? 'text-green-700' : 'text-gray-500'">{{ step.done ? 'Erledigt' : 'Jetzt einrichten' }}</p>
+              <p class="text-sm" :class="step.done ? 'text-emerald-700' : 'text-gray-500'">{{ step.done ? 'Erledigt' : 'Jetzt starten' }}</p>
             </div>
           </div>
-          <span class="text-sm font-medium" :class="step.done ? 'text-green-700' : 'text-blue-600'">{{ step.done ? 'Fertig' : 'Öffnen' }}</span>
+          <ArrowRightIcon class="h-4 w-4 text-gray-400" />
         </RouterLink>
       </div>
 
       <PwaInstallBanner />
     </section>
 
-    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 space-y-4">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <h3 class="text-lg font-semibold text-gray-900">Aktives Fahrzeug</h3>
-            <span v-if="isCarMode" class="px-2 py-0.5 text-xs rounded-full bg-slate-900 text-white">Car Mode</span>
-          </div>
-          <p class="text-sm text-gray-600">
-            {{ activeVehicle.name }}<span v-if="activeVehicle.brand || activeVehicle.model"> · {{ [activeVehicle.brand, activeVehicle.model].filter(Boolean).join(' ') }}</span>
-          </p>
+    <button class="w-full rounded-[28px] bg-gradient-to-br from-blue-500 to-indigo-600 p-5 text-left text-white shadow-lg">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <p class="text-sm font-medium text-blue-100">Aktives Fahrzeug</p>
+          <h3 class="mt-2 text-3xl font-semibold">{{ activeVehicle.name }}</h3>
+          <p class="mt-1 text-lg text-blue-100/90">{{ [activeVehicle.brand, activeVehicle.model].filter(Boolean).join(' ') || 'Fahrzeugprofil ergänzen' }}</p>
         </div>
-        <div v-if="!isSimplifiedCarMode" class="flex flex-col gap-2 sm:items-end">
-          <select
-            :value="activeVehicleId"
-            @change="setActiveVehicle(($event.target as HTMLSelectElement).value)"
-            class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700"
-          >
-            <option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">{{ vehicle.name }}</option>
-          </select>
-          <RouterLink to="/settings" class="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700">
-            <Cog6ToothIcon class="h-4 w-4" />
-            Einstellungen
-          </RouterLink>
+        <div class="flex h-14 w-14 items-center justify-center rounded-[22px] bg-white/15 text-white">
+          <TruckIcon class="h-7 w-7" />
         </div>
       </div>
 
-      <div v-if="isCarMode && (favoritePlace || favoritePlaylist)" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <button
-          v-if="favoritePlace"
-          @click="openPlace(favoritePlace)"
-          class="rounded-2xl bg-blue-600 px-5 py-5 text-left text-white shadow-sm hover:bg-blue-700 transition-colors"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-sm font-medium text-blue-100">Schnellstart Ziel</p>
-              <p class="mt-2 text-xl font-semibold">{{ favoritePlace.label }}</p>
-              <p class="mt-1 text-sm text-blue-100">{{ favoritePlace.address }}</p>
-              <p v-if="shouldAutoFocusFavoritePlace" class="mt-3 text-xs font-medium text-blue-100">Favorit-Ziel priorisiert</p>
-            </div>
-            <span class="text-xs font-medium text-blue-100">{{ providerLabel[getPreferredPlaceProvider(favoritePlace)] }}</span>
-          </div>
-        </button>
-
-        <button
-          v-if="favoritePlaylist"
-          @click="openPlaylist(favoritePlaylist.id, favoritePlaylist.url)"
-          class="rounded-2xl bg-purple-600 px-5 py-5 text-left text-white shadow-sm hover:bg-purple-700 transition-colors"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-sm font-medium text-purple-100">Schnellstart Musik</p>
-              <p class="mt-2 text-xl font-semibold">{{ favoritePlaylist.title }}</p>
-              <p class="mt-1 text-sm text-purple-100">{{ favoritePlaylist.provider }}</p>
-              <p v-if="shouldAutoFocusFavoritePlaylist" class="mt-3 text-xs font-medium text-purple-100">Favorit-Playlist priorisiert</p>
-            </div>
-            <span class="text-xs font-medium text-purple-100">Abspielen</span>
-          </div>
-        </button>
-      </div>
-
-      <div v-else-if="favoritePlace || favoritePlaylist || preferences.preferredStartupModule !== 'home'" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <button v-if="favoritePlace" @click="openPlace(favoritePlace)" class="min-h-24 rounded-xl bg-blue-50 px-4 py-4 text-left hover:bg-blue-100 transition-colors">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-sm font-medium text-blue-700">Favorit: Ziel</p>
-              <p class="mt-2 font-semibold text-gray-900">{{ favoritePlace.label }}</p>
-              <p class="mt-1 text-sm text-gray-600">{{ favoritePlace.address }}</p>
-            </div>
-            <span class="text-xs font-medium text-blue-600">{{ providerLabel[getPreferredPlaceProvider(favoritePlace)] }}</span>
-          </div>
-        </button>
-        <button v-if="favoritePlaylist" @click="openPlaylist(favoritePlaylist.id, favoritePlaylist.url)" class="min-h-24 rounded-xl bg-purple-50 px-4 py-4 text-left hover:bg-purple-100 transition-colors">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-sm font-medium text-purple-700">Favorit: Playlist</p>
-              <p class="mt-2 font-semibold text-gray-900">{{ favoritePlaylist.title }}</p>
-              <p class="mt-1 text-sm text-gray-600">{{ favoritePlaylist.provider }}</p>
-            </div>
-            <span class="text-xs font-medium text-purple-600">Abspielen</span>
-          </div>
-        </button>
-        <div v-if="preferences.preferredStartupModule !== 'home'" class="rounded-xl bg-emerald-50 px-4 py-4">
-          <p class="text-sm font-medium text-emerald-700">Bevorzugter Start</p>
-          <p class="mt-2 font-semibold text-gray-900">{{ startupModuleLabel[preferences.preferredStartupModule] }}</p>
-          <p class="mt-1 text-sm text-gray-600">Wird für spätere Schnellstarts verwendet.</p>
+      <div class="mt-4 grid grid-cols-2 gap-3">
+        <div class="rounded-[22px] bg-white/10 px-4 py-4 text-center">
+          <p class="text-3xl font-semibold">{{ places.length }}</p>
+          <p class="mt-1 text-sm text-blue-100/85">Ziele</p>
+        </div>
+        <div class="rounded-[22px] bg-white/10 px-4 py-4 text-center">
+          <p class="text-3xl font-semibold">{{ shortcuts.length }}</p>
+          <p class="mt-1 text-sm text-blue-100/85">Playlists</p>
         </div>
       </div>
+    </button>
 
-      <div v-if="showStats" class="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        <div v-for="item in quickStats" :key="item.label" class="rounded-xl px-4 py-4" :class="item.tone">
-          <p class="text-sm font-medium">{{ item.label }}</p>
-          <p class="mt-2 text-2xl font-semibold">{{ item.value }}</p>
+    <button
+      v-if="favoritePlace"
+      @click="openPlace(favoritePlace)"
+      class="w-full rounded-[28px] bg-gradient-to-r from-amber-400 to-orange-500 p-5 text-left text-white shadow-lg"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-[20px] bg-white/20 text-white">
+            <MapPinIcon class="h-5 w-5" />
+          </div>
+          <div>
+            <div class="flex items-center gap-2 text-sm text-yellow-50/90">
+              <StarIcon class="h-4 w-4" />
+              Lieblingsziel
+            </div>
+            <h3 class="mt-2 text-2xl font-semibold">{{ favoritePlace.label }}</h3>
+            <p class="mt-1 text-sm text-yellow-50/90">{{ favoritePlace.address }}</p>
+          </div>
+        </div>
+        <ArrowRightIcon class="mt-2 h-5 w-5 text-white/90" />
+      </div>
+    </button>
+
+    <button
+      v-if="favoritePlaylist"
+      @click="openPlaylist(favoritePlaylist.id, favoritePlaylist.url)"
+      class="w-full rounded-[28px] bg-gradient-to-r from-violet-500 to-fuchsia-500 p-5 text-left text-white shadow-lg"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-[20px] bg-white/20 text-white">
+            <MusicalNoteIcon class="h-5 w-5" />
+          </div>
+          <div>
+            <div class="flex items-center gap-2 text-sm text-fuchsia-100/90">
+              <StarIcon class="h-4 w-4" />
+              Lieblingsplaylist
+            </div>
+            <h3 class="mt-2 text-2xl font-semibold">{{ favoritePlaylist.title }}</h3>
+            <p class="mt-1 text-sm text-fuchsia-100/90">{{ favoritePlaylist.provider }}</p>
+          </div>
+        </div>
+        <ArrowRightIcon class="mt-2 h-5 w-5 text-white/90" />
+      </div>
+    </button>
+
+    <button
+      v-if="nextTask"
+      as="button"
+      class="w-full rounded-[28px] bg-gradient-to-r p-5 text-left text-white shadow-lg"
+      :class="urgentTasks.length > 0 ? 'from-red-500 to-orange-500' : 'from-orange-500 to-amber-500'"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex items-start gap-3">
+          <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-[20px] bg-white/20 text-white">
+            <ExclamationTriangleIcon class="h-5 w-5" />
+          </div>
+          <div>
+            <p class="text-sm font-medium text-white/85">Dringende Wartung</p>
+            <h3 class="mt-2 text-2xl font-semibold">{{ nextTask.title }}</h3>
+            <p class="mt-1 text-sm text-white/90">{{ nextTask.date || nextTask.meta }}</p>
+          </div>
+        </div>
+      </div>
+    </button>
+
+    <section class="rounded-[28px] bg-white p-5 shadow-sm border border-gray-100 space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="flex h-11 w-11 items-center justify-center rounded-[20px] bg-orange-500 text-white shadow-sm">
+            <WrenchScrewdriverIcon class="h-5 w-5" />
+          </div>
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900">Wartungsaufgaben</h3>
+            <p class="mt-1 text-sm text-gray-500">{{ filteredTasks.length }} Aufgaben insgesamt</p>
+          </div>
+        </div>
+        <RouterLink to="/maintenance" class="text-gray-400 hover:text-gray-500">
+          <ArrowRightIcon class="h-5 w-5" />
+        </RouterLink>
+      </div>
+
+      <RouterLink
+        v-if="urgentTasks.length > 0"
+        to="/maintenance"
+        class="flex items-center justify-between gap-3 rounded-2xl border border-red-100 bg-red-50 px-4 py-4 text-red-700"
+      >
+        <div class="flex items-center gap-2">
+          <ExclamationTriangleIcon class="h-5 w-5" />
+          <span class="font-medium">{{ urgentTasks.length }} dringende Aufgabe<span v-if="urgentTasks.length !== 1">n</span></span>
+        </div>
+        <ArrowRightIcon class="h-4 w-4" />
+      </RouterLink>
+
+      <div v-else class="flex items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-emerald-700">
+        <div class="flex items-center gap-2">
+          <CheckCircleIcon class="h-5 w-5" />
+          <span class="font-medium">Keine dringenden Aufgaben</span>
         </div>
       </div>
     </section>
 
-    <div v-if="preferences.homeWidgets.nextTask || showRecentCompletions" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <section v-if="preferences.homeWidgets.nextTask" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
-        <div class="flex items-center justify-between gap-3">
-          <h3 class="text-lg font-semibold text-gray-900">Nächste Aufgabe</h3>
-          <RouterLink to="/maintenance" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
-            Zur Wartung
-            <ArrowTopRightOnSquareIcon class="h-4 w-4" />
-          </RouterLink>
+    <div class="grid grid-cols-2 gap-4">
+      <RouterLink to="/map" class="rounded-[28px] bg-white p-5 shadow-sm border border-gray-100 text-center">
+        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-[22px] bg-gradient-to-br from-cyan-400 to-teal-500 text-white shadow-sm">
+          <MapPinIcon class="h-7 w-7" />
         </div>
-        <div v-if="nextTask" class="mt-4 rounded-xl bg-gray-50 px-4 py-4">
-          <p class="font-medium text-gray-900">{{ nextTask.title }}</p>
-          <p class="mt-1 text-sm text-gray-600">{{ nextTask.meta }}</p>
-          <p class="mt-2 text-sm text-gray-500">{{ nextTask.date ? `Termin: ${nextTask.date}` : 'Noch kein Termin hinterlegt' }}</p>
-        </div>
-        <p v-else class="mt-4 text-sm text-gray-500">Aktuell gibt es keine offenen oder bald fälligen Aufgaben.</p>
-      </section>
+        <h3 class="mt-4 text-xl font-semibold text-gray-900">Alle Ziele</h3>
+        <p class="mt-1 text-sm text-gray-500">Navigation</p>
+      </RouterLink>
 
-      <section v-if="showRecentCompletions" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
-        <div class="flex items-center justify-between gap-3">
-          <h3 class="text-lg font-semibold text-gray-900">Zuletzt erledigt</h3>
-          <RouterLink to="/maintenance" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
-            Protokolle ansehen
-            <ArrowTopRightOnSquareIcon class="h-4 w-4" />
-          </RouterLink>
+      <RouterLink to="/music" class="rounded-[28px] bg-white p-5 shadow-sm border border-gray-100 text-center">
+        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-[22px] bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-sm">
+          <MusicalNoteIcon class="h-7 w-7" />
         </div>
-        <div v-if="recentCompletions.length > 0" class="mt-4 space-y-3">
-          <div v-for="entry in recentCompletions" :key="entry.id" class="rounded-xl bg-gray-50 px-4 py-3">
-            <p class="font-medium text-gray-900">{{ entry.taskDescription }}</p>
-            <p class="mt-1 text-sm text-gray-600">{{ entry.category }}{{ entry.frequency ? ` · ${entry.frequency}` : ' · Geplant' }}</p>
-            <p class="mt-1 text-sm text-gray-500">Erledigt am {{ formatDisplayDate(entry.checkedAt) }}</p>
-          </div>
-        </div>
-        <p v-else class="mt-4 text-sm text-gray-500">Noch keine erledigten Einträge vorhanden.</p>
-      </section>
+        <h3 class="mt-4 text-xl font-semibold text-gray-900">Alle Playlists</h3>
+        <p class="mt-1 text-sm text-gray-500">Unterhaltung</p>
+      </RouterLink>
     </div>
 
-    <div v-if="showQuickPlaces || showQuickPlaylists" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <section v-if="showQuickPlaces" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 space-y-4">
-        <div class="flex items-center justify-between gap-3">
-          <h3 class="text-lg font-semibold text-gray-900">Schnellziele</h3>
-          <RouterLink to="/map" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
-            Zur Karte
-            <ArrowTopRightOnSquareIcon class="h-4 w-4" />
-          </RouterLink>
-        </div>
-        <div v-if="quickPlaces.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button v-for="place in quickPlaces" :key="place.id" @click="openPlace(place)" class="min-h-24 text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="text-2xl">{{ place.icon || '📍' }}</p>
-                <p class="mt-2 font-medium text-gray-900">{{ place.label }}</p>
-                <p class="mt-1 text-sm text-gray-600 line-clamp-2">{{ place.address }}</p>
-              </div>
-              <span class="text-xs font-medium text-blue-600">{{ providerLabel[getPreferredPlaceProvider(place)] }}</span>
-            </div>
-          </button>
-        </div>
-        <p v-else class="text-sm text-gray-500">Noch keine Schnellziele gespeichert.</p>
-      </section>
-
-      <section v-if="showQuickPlaylists" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 space-y-4">
-        <div class="flex items-center justify-between gap-3">
-          <h3 class="text-lg font-semibold text-gray-900">Musik-Shortcuts</h3>
-          <RouterLink to="/music" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
-            Zu Musik
-            <ArrowTopRightOnSquareIcon class="h-4 w-4" />
-          </RouterLink>
-        </div>
-        <div v-if="quickPlaylists.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button v-for="item in quickPlaylists" :key="item.id" @click="openPlaylist(item.id, item.url)" class="min-h-24 text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="text-2xl">{{ item.icon || '🎶' }}</p>
-                <p class="mt-2 font-medium text-gray-900">{{ item.title }}</p>
-                <p class="mt-1 text-sm text-gray-600">{{ item.provider }}</p>
-              </div>
-              <span class="text-xs font-medium text-blue-600">Öffnen</span>
-            </div>
-          </button>
-        </div>
-        <p v-else class="text-sm text-gray-500">Noch keine Musik-Shortcuts gespeichert.</p>
-      </section>
-    </div>
-
-    <section v-if="showModules" class="space-y-4">
+    <section v-if="recentCompletions.length > 0 && !isSimplifiedCarMode" class="rounded-[28px] bg-white p-5 shadow-sm border border-gray-100 space-y-3">
       <div class="flex items-center justify-between gap-3">
-        <h3 class="text-lg font-semibold text-gray-900">Module</h3>
-        <RouterLink to="/maintenance" class="inline-flex items-center gap-2 text-sm font-medium text-emerald-600 hover:text-emerald-700">
-          <PlusCircleIcon class="h-4 w-4" />
-          Neue Wartungsaufgabe
+        <h3 class="text-lg font-semibold text-gray-900">Zuletzt erledigt</h3>
+        <RouterLink to="/maintenance" class="text-gray-400 hover:text-gray-500">
+          <ArrowRightIcon class="h-5 w-5" />
         </RouterLink>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <RouterLink v-for="module in modules" :key="module.to" :to="module.to" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 hover:shadow-md transition-shadow">
-          <div class="flex items-start gap-4">
-            <component :is="module.icon" class="h-6 w-6 text-blue-600 mt-0.5" />
-            <div class="flex-1">
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <h4 class="font-semibold text-gray-900">{{ module.title }}</h4>
-                  <p class="mt-1 text-sm text-gray-600">{{ module.description }}</p>
-                </div>
-                <span class="text-xs font-medium text-blue-600">{{ module.action }}</span>
-              </div>
-            </div>
-          </div>
-        </RouterLink>
+      <div v-for="entry in recentCompletions" :key="entry.id" class="rounded-2xl bg-gray-50 px-4 py-3">
+        <p class="font-medium text-gray-900">{{ entry.taskDescription }}</p>
+        <p class="mt-1 text-sm text-gray-600">Erledigt am {{ formatDisplayDate(entry.checkedAt) }}</p>
       </div>
     </section>
   </section>
