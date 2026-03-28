@@ -123,8 +123,14 @@ const showModules = computed(() => preferences.value.homeWidgets.modules && !isS
 const shouldAutoFocusFavoritePlace = computed(() => isCarMode.value && preferences.value.carMode.autoOpenFavoritePlace && favoritePlace.value);
 const shouldAutoFocusFavoritePlaylist = computed(() => isCarMode.value && preferences.value.carMode.autoPlayFavoritePlaylist && favoritePlaylist.value);
 
+const getPreferredPlaceProvider = (place: SavedPlace) => {
+  return place.providers.includes(preferences.value.preferredMapProvider)
+    ? preferences.value.preferredMapProvider
+    : (place.defaultProvider ?? place.providers[0] ?? 'google');
+};
+
 const openPlace = (place: SavedPlace) => {
-  const provider = place.defaultProvider ?? place.providers[0] ?? 'google';
+  const provider = getPreferredPlaceProvider(place);
   const encoded = encodeURIComponent(place.address);
   const urls: Record<NavigationProvider, string> = {
     google: `https://www.google.com/maps/search/?api=1&query=${encoded}`,
@@ -177,7 +183,7 @@ onMounted(() => {
               <p class="mt-1 text-sm text-blue-100">{{ favoritePlace.address }}</p>
               <p v-if="shouldAutoFocusFavoritePlace" class="mt-3 text-xs font-medium text-blue-100">Favorit-Ziel priorisiert</p>
             </div>
-            <span class="text-xs font-medium text-blue-100">{{ providerLabel[favoritePlace.defaultProvider ?? favoritePlace.providers[0] ?? 'google'] }}</span>
+            <span class="text-xs font-medium text-blue-100">{{ providerLabel[getPreferredPlaceProvider(favoritePlace)] }}</span>
           </div>
         </button>
 
@@ -206,7 +212,7 @@ onMounted(() => {
               <p class="mt-2 font-semibold text-gray-900">{{ favoritePlace.label }}</p>
               <p class="mt-1 text-sm text-gray-600">{{ favoritePlace.address }}</p>
             </div>
-            <span class="text-xs font-medium text-blue-600">{{ providerLabel[favoritePlace.defaultProvider ?? favoritePlace.providers[0] ?? 'google'] }}</span>
+            <span class="text-xs font-medium text-blue-600">{{ providerLabel[getPreferredPlaceProvider(favoritePlace)] }}</span>
           </div>
         </button>
         <button v-if="favoritePlaylist" @click="openPlaylist(favoritePlaylist.id, favoritePlaylist.url)" class="rounded-xl bg-purple-50 px-4 py-4 text-left hover:bg-purple-100 transition-colors">
@@ -287,7 +293,7 @@ onMounted(() => {
                 <p class="mt-2 font-medium text-gray-900">{{ place.label }}</p>
                 <p class="mt-1 text-sm text-gray-600 line-clamp-2">{{ place.address }}</p>
               </div>
-              <span class="text-xs font-medium text-blue-600">{{ providerLabel[place.defaultProvider ?? place.providers[0] ?? 'google'] }}</span>
+              <span class="text-xs font-medium text-blue-600">{{ providerLabel[getPreferredPlaceProvider(place)] }}</span>
             </div>
           </button>
         </div>

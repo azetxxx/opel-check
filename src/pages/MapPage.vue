@@ -35,10 +35,10 @@ const resetForm = () => {
   form.address = '';
   form.notes = '';
   form.icon = '📍';
-  form.defaultProvider = 'google';
+  form.defaultProvider = preferences.value.preferredMapProvider;
   form.google = true;
   form.apple = true;
-  form.waze = false;
+  form.waze = preferences.value.preferredMapProvider === 'waze';
 };
 
 const openCreateForm = () => {
@@ -115,8 +115,14 @@ const openProvider = (place: SavedPlace, provider: NavigationProvider) => {
   window.open(urls[provider], '_blank', 'noopener,noreferrer');
 };
 
+const getPreferredPlaceProvider = (place: SavedPlace) => {
+  return place.providers.includes(preferences.value.preferredMapProvider)
+    ? preferences.value.preferredMapProvider
+    : (place.defaultProvider ?? place.providers[0] ?? 'google');
+};
+
 const openDefaultProvider = (place: SavedPlace) => {
-  openProvider(place, place.defaultProvider ?? place.providers[0] ?? 'google');
+  openProvider(place, getPreferredPlaceProvider(place));
 };
 
 const toggleFavorite = (place: SavedPlace) => {
@@ -176,7 +182,7 @@ watch(selectedProviders, (providers) => {
               <h4 class="mt-2 font-semibold text-gray-900">{{ place.label }}</h4>
               <p class="text-sm text-gray-600 mt-1">{{ place.address }}</p>
               <p v-if="place.notes" class="text-sm text-gray-500 mt-2">{{ place.notes }}</p>
-              <p class="text-xs text-gray-500 mt-2">Standard: {{ providerLabels[place.defaultProvider] }}</p>
+              <p class="text-xs text-gray-500 mt-2">Standard: {{ providerLabels[getPreferredPlaceProvider(place)] }}</p>
             </div>
             <div class="flex items-center gap-2">
               <button @click="toggleFavorite(place)" class="p-2 rounded-lg border border-yellow-200 text-yellow-600 hover:bg-yellow-50">

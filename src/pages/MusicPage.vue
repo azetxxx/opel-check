@@ -12,9 +12,15 @@ const { preferences, updatePreferences } = useAppPreferences();
 
 const editingId = ref<string | null>(null);
 const isFormOpen = ref(false);
+const preferredMusicProvider = computed(() => preferences.value.preferredMusicProvider);
+
+const getDefaultMusicProvider = () => {
+  return preferredMusicProvider.value !== 'none' ? preferredMusicProvider.value : 'spotify';
+};
+
 const form = reactive({
   title: '',
-  provider: 'spotify' as MusicProvider,
+  provider: getDefaultMusicProvider() as MusicProvider,
   url: '',
   notes: '',
   icon: '🎶',
@@ -36,6 +42,8 @@ const sortedShortcuts = computed(() => {
   return [...shortcuts.value].sort((a, b) => {
     if (a.id === favoritePlaylistId.value) return -1;
     if (b.id === favoritePlaylistId.value) return 1;
+    if (preferredMusicProvider.value !== 'none' && a.provider === preferredMusicProvider.value && b.provider !== preferredMusicProvider.value) return -1;
+    if (preferredMusicProvider.value !== 'none' && a.provider !== preferredMusicProvider.value && b.provider === preferredMusicProvider.value) return 1;
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
     if (a.lastOpenedAt && b.lastOpenedAt) return new Date(b.lastOpenedAt).getTime() - new Date(a.lastOpenedAt).getTime();
@@ -55,7 +63,7 @@ const lastOpenedShortcut = computed(() => {
 const resetForm = () => {
   editingId.value = null;
   form.title = '';
-  form.provider = 'spotify';
+  form.provider = getDefaultMusicProvider();
   form.url = '';
   form.notes = '';
   form.icon = '🎶';
@@ -187,7 +195,10 @@ watch(() => route.fullPath, applyDeepLinkAction, { immediate: true });
                 <span v-else-if="item.pinned" class="px-2 py-0.5 text-xs rounded-full bg-slate-100 text-slate-700">Angeheftet</span>
               </div>
               <h4 class="mt-2 font-semibold text-gray-900">{{ item.title }}</h4>
-              <p class="text-sm text-gray-600 mt-1">{{ providerLabels[item.provider] }}</p>
+              <div class="mt-1 flex items-center gap-2 text-sm text-gray-600">
+                <p>{{ providerLabels[item.provider] }}</p>
+                <span v-if="preferredMusicProvider !== 'none' && item.provider === preferredMusicProvider" class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700">Bevorzugt</span>
+              </div>
               <p v-if="item.notes" class="text-sm text-gray-500 mt-2">{{ item.notes }}</p>
             </div>
             <div class="flex items-center gap-2">
