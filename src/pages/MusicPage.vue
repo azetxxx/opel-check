@@ -18,7 +18,6 @@ const isFormOpen = ref(false);
 const topCreateButton = ref<HTMLElement | null>(null);
 const showFloatingCreateButton = ref(false);
 const activeActionMenuId = ref<string | null>(null);
-const favoriteCardActionsOpen = ref(false);
 let createButtonObserver: IntersectionObserver | null = null;
 const preferredMusicProvider = computed(() => preferences.value.preferredMusicProvider);
 
@@ -61,7 +60,6 @@ const sortedShortcuts = computed(() => {
   });
 });
 
-const favoriteShortcut = computed(() => sortedShortcuts.value.find((item) => item.id === favoritePlaylistId.value) ?? null);
 const lastOpenedShortcut = computed(() => {
   return [...shortcuts.value]
     .filter((item) => item.lastOpenedAt)
@@ -180,49 +178,8 @@ onBeforeUnmount(() => {
 
 <template>
   <section class="space-y-5 sm:space-y-6 pb-4">
-    <div v-if="favoriteShortcut || lastOpenedShortcut" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <section v-if="favoriteShortcut" class="space-y-4">
-        <div class="flex items-center justify-between gap-3">
-          <h3 class="text-lg font-semibold text-gray-900">Lieblingsplaylist</h3>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5 space-y-4">
-          <div>
-            <div class="flex items-center gap-2">
-              <MusicProviderIcon :provider="favoriteShortcut.provider" class="h-6 w-6" />
-              <span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Favorit</span>
-            </div>
-            <p class="mt-2 font-semibold text-gray-900">{{ favoriteShortcut.title }}</p>
-            <p class="mt-1 text-sm text-gray-600">{{ providerLabels[favoriteShortcut.provider] }}</p>
-          </div>
-
-          <div v-if="favoriteShortcut.lastOpenedAt" class="rounded-xl bg-white px-4 py-3">
-            <p class="text-xs text-gray-500">Zuletzt geöffnet: {{ new Date(favoriteShortcut.lastOpenedAt).toLocaleString('de-DE') }}</p>
-          </div>
-
-          <div class="space-y-2">
-            <div class="flex gap-2">
-              <button @click="openShortcut(favoriteShortcut)" class="flex-1 min-h-11 px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-black">
-                In der Musik-App öffnen
-              </button>
-              <button
-                @click="favoriteCardActionsOpen = !favoriteCardActionsOpen"
-                class="min-h-11 min-w-11 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center bg-white"
-              >
-                <EllipsisHorizontalIcon class="h-5 w-5" />
-              </button>
-            </div>
-
-            <div v-if="favoriteCardActionsOpen" class="flex flex-col sm:flex-row gap-2">
-              <button @click="toggleFavorite(favoriteShortcut); favoriteCardActionsOpen = false" class="min-h-11 px-4 py-2 rounded-lg border border-yellow-200 text-yellow-700 hover:bg-yellow-50 transition-colors text-sm font-medium flex items-center justify-center gap-2 bg-white">
-                <StarIcon class="h-4 w-4" />
-                Aus Favoriten entfernen
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section v-if="lastOpenedShortcut" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
+    <div v-if="lastOpenedShortcut" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-lg font-semibold text-gray-900">Zuletzt geöffnet</h3>
           <span class="text-xs text-gray-500">{{ lastOpenedShortcut.lastOpenedAt ? new Date(lastOpenedShortcut.lastOpenedAt).toLocaleString('de-DE') : '' }}</span>
