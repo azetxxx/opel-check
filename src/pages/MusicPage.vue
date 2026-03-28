@@ -174,7 +174,7 @@ onBeforeUnmount(() => {
 <template>
   <section class="space-y-5 sm:space-y-6 pb-4">
     <div v-if="favoriteShortcut || lastOpenedShortcut" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <section v-if="favoriteShortcut" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <section v-if="favoriteShortcut" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-lg font-semibold text-gray-900">Lieblingsplaylist</h3>
           <span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Favorit</span>
@@ -191,7 +191,7 @@ onBeforeUnmount(() => {
         </div>
       </section>
 
-      <section v-if="lastOpenedShortcut" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <section v-if="lastOpenedShortcut" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-lg font-semibold text-gray-900">Zuletzt geöffnet</h3>
           <span class="text-xs text-gray-500">{{ lastOpenedShortcut.lastOpenedAt ? new Date(lastOpenedShortcut.lastOpenedAt).toLocaleString('de-DE') : '' }}</span>
@@ -210,9 +210,9 @@ onBeforeUnmount(() => {
     </div>
 
     <section class="space-y-4">
-      <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
         <h3 class="text-lg font-semibold text-gray-900">Playlists</h3>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
           <p class="hidden text-sm text-gray-500 sm:block">{{ shortcuts.length }} Einträge gespeichert</p>
           <button ref="topCreateButton" @click="openCreateForm" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
             <PlusIcon class="h-4 w-4" />
@@ -264,7 +264,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <section v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center space-y-4">
+      <section v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 text-center space-y-4">
         <p class="text-sm text-gray-500">Noch keine Musik-Shortcuts gespeichert.</p>
         <button @click="openCreateForm" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
           <PlusIcon class="h-4 w-4" />

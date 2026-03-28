@@ -183,9 +183,9 @@ onBeforeUnmount(() => {
 <template>
   <section class="space-y-5 sm:space-y-6 pb-4">
     <section class="space-y-4">
-      <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
         <h3 class="text-lg font-semibold text-gray-900">Ziele</h3>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 flex-wrap">
           <p class="hidden text-sm text-gray-500 sm:block">{{ places.length }} Orte gespeichert</p>
           <button ref="topCreateButton" @click="openCreateForm" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
             <PlusIcon class="h-4 w-4" />
@@ -236,7 +236,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <section v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center space-y-4">
+      <section v-else class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 text-center space-y-4">
         <p class="text-sm text-gray-500">Noch keine Ziele gespeichert.</p>
         <button @click="openCreateForm" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
           <PlusIcon class="h-4 w-4" />

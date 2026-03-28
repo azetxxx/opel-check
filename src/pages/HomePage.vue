@@ -250,7 +250,7 @@ onMounted(() => {
     </section>
 
     <div v-if="preferences.homeWidgets.nextTask || showRecentCompletions" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <section v-if="preferences.homeWidgets.nextTask" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <section v-if="preferences.homeWidgets.nextTask" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-lg font-semibold text-gray-900">Nächste Aufgabe</h3>
           <RouterLink to="/maintenance" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
@@ -266,7 +266,7 @@ onMounted(() => {
         <p v-else class="mt-4 text-sm text-gray-500">Aktuell gibt es keine offenen oder bald fälligen Aufgaben.</p>
       </section>
 
-      <section v-if="showRecentCompletions" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <section v-if="showRecentCompletions" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-lg font-semibold text-gray-900">Zuletzt erledigt</h3>
           <RouterLink to="/maintenance" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
@@ -286,7 +286,7 @@ onMounted(() => {
     </div>
 
     <div v-if="showQuickPlaces || showQuickPlaylists" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <section v-if="showQuickPlaces" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+      <section v-if="showQuickPlaces" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 space-y-4">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-lg font-semibold text-gray-900">Schnellziele</h3>
           <RouterLink to="/map" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
@@ -309,7 +309,7 @@ onMounted(() => {
         <p v-else class="text-sm text-gray-500">Noch keine Schnellziele gespeichert.</p>
       </section>
 
-      <section v-if="showQuickPlaylists" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+      <section v-if="showQuickPlaylists" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 space-y-4">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-lg font-semibold text-gray-900">Musik-Shortcuts</h3>
           <RouterLink to="/music" class="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700">
@@ -343,7 +343,7 @@ onMounted(() => {
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <RouterLink v-for="module in modules" :key="module.to" :to="module.to" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 hover:shadow-md transition-shadow">
+        <RouterLink v-for="module in modules" :key="module.to" :to="module.to" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 hover:shadow-md transition-shadow">
           <div class="flex items-start gap-4">
             <component :is="module.icon" class="h-6 w-6 text-blue-600 mt-0.5" />
             <div class="flex-1">

@@ -82,7 +82,7 @@ const toggleCarMode = (key: keyof AppPreferences['carMode'], value: boolean) => 
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section class="space-y-5 sm:space-y-6 pb-4">
     <AppPreferencesCard
       :preferences="preferences"
       @update:preferred-map-provider="updatePreferences({ preferredMapProvider: $event })"

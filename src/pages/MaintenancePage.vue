@@ -189,9 +189,9 @@ onErrorCaptured((err, instance, info) => {
 <template>
   <section class="space-y-5 sm:space-y-6 pb-4">
     <section class="space-y-4">
-      <div class="flex items-center justify-between gap-3">
+      <div class="flex items-center justify-between gap-3 flex-wrap">
         <h3 class="text-lg font-semibold text-gray-900">Aufgaben</h3>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <button
             @click="openLogModal"
             class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100"
