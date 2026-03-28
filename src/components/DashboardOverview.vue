@@ -5,6 +5,8 @@ interface SummaryItem {
   title: string;
   value: string | number;
   hint: string;
+  targetGroup?: string | null;
+  disabled?: boolean;
 }
 
 interface RecentItem {
@@ -20,16 +22,23 @@ defineProps<{
   monthSummary: string;
 }>();
 
+const emit = defineEmits<{
+  (e: 'select-summary', targetGroup: string): void;
+}>();
+
 const icons = [ExclamationTriangleIcon, ClockIcon, ListBulletIcon, CheckCircleIcon];
 </script>
 
 <template>
   <section class="space-y-4">
     <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-      <div
+      <button
         v-for="(item, index) in summary"
         :key="item.title"
-        class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5"
+        type="button"
+        @click="item.targetGroup && !item.disabled ? emit('select-summary', item.targetGroup) : undefined"
+        class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5 text-left transition-colors"
+        :class="item.targetGroup && !item.disabled ? 'hover:bg-gray-50 cursor-pointer' : 'cursor-default'"
       >
         <div class="flex items-start justify-between gap-3">
           <div>
@@ -39,7 +48,7 @@ const icons = [ExclamationTriangleIcon, ClockIcon, ListBulletIcon, CheckCircleIc
           </div>
           <component :is="icons[index]" class="h-6 w-6 text-gray-400" />
         </div>
-      </div>
+      </button>
     </div>
 
     <div class="grid grid-cols-1 xl:grid-cols-2 gap-4">

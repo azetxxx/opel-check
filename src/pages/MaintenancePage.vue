@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ClipboardDocumentListIcon, PlusIcon } from '@heroicons/vue/24/outline';
-import { computed, onBeforeUnmount, onErrorCaptured, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onErrorCaptured, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import DashboardOverview from '../components/DashboardOverview.vue';
 import LogModal from '../components/LogModal.vue';
@@ -36,17 +36,31 @@ const filteredLogs = computed(() => logs.value.filter((log) => log.vehicleId ===
 const enrichedTasks = computed(() => enrichTasks(filteredTasks.value, currentDate.value));
 const groupedTasks = computed(() => groupTasksByFrequency(enrichedTasks.value));
 
+const getFirstMatchingGroup = (matcher: (task: typeof enrichedTasks.value[number]) => boolean) => {
+  for (const frequency of FREQUENCY_ORDER) {
+    if (groupedTasks.value[frequency].some(matcher)) {
+      return frequency;
+    }
+  }
+  return null;
+};
+
 const summaryCards = computed(() => {
   const overdueCount = enrichedTasks.value.filter((task) => task.status === 'overdue').length;
   const pendingCount = enrichedTasks.value.filter((task) => task.status === 'pending').length;
   const dueSoonCount = enrichedTasks.value.filter((task) => task.status === 'dueSoon' || task.status === 'dueNow').length;
   const completedCount = enrichedTasks.value.filter((task) => task.status === 'done').length;
 
+  const overdueGroup = getFirstMatchingGroup((task) => task.status === 'overdue');
+  const dueSoonGroup = getFirstMatchingGroup((task) => task.status === 'dueSoon' || task.status === 'dueNow');
+  const pendingGroup = getFirstMatchingGroup((task) => task.status === 'pending');
+  const completedGroup = getFirstMatchingGroup((task) => task.status === 'done');
+
   return [
-    { title: 'Überfällig', value: overdueCount, hint: overdueCount > 0 ? 'Benötigt Aufmerksamkeit' : 'Alles gut' },
-    { title: 'Demnächst fällig', value: dueSoonCount, hint: 'Heute + nächste 7 Tage' },
-    { title: 'Offen', value: pendingCount, hint: 'Noch nie erledigt' },
-    { title: 'Erledigt', value: completedCount, hint: 'Aktuell ohne Handlungsbedarf' }
+    { title: 'Überfällig', value: overdueCount, hint: overdueCount > 0 ? 'Benötigt Aufmerksamkeit' : 'Alles gut', targetGroup: overdueGroup, disabled: overdueCount === 0 },
+    { title: 'Demnächst fällig', value: dueSoonCount, hint: 'Heute + nächste 7 Tage', targetGroup: dueSoonGroup, disabled: dueSoonCount === 0 },
+    { title: 'Offen', value: pendingCount, hint: 'Noch nie erledigt', targetGroup: pendingGroup, disabled: pendingCount === 0 },
+    { title: 'Erledigt', value: completedCount, hint: 'Aktuell ohne Handlungsbedarf', targetGroup: completedGroup, disabled: completedCount === 0 }
   ];
 });
 
@@ -132,6 +146,14 @@ const toggleGroup = (frequency: TaskGroupKey) => {
   collapsedGroups.value[frequency] = !collapsedGroups.value[frequency];
 };
 
+const scrollToGroup = async (frequency: TaskGroupKey) => {
+  collapsedGroups.value[frequency] = false;
+  await nextTick();
+
+  const element = document.getElementById(`task-group-${frequency}`);
+  element?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
 const openEditTaskModal = (task: MaintenanceTask) => {
   editingTask.value = task;
   isTaskModalOpen.value = true;
@@ -211,7 +233,13 @@ onErrorCaptured((err, instance, info) => {
       </div>
     </section>
 
-    <DashboardOverview :summary="summaryCards" :next-due-item="nextDueItem" :recent-items="recentItems" :month-summary="monthSummary" />
+    <DashboardOverview
+      :summary="summaryCards"
+      :next-due-item="nextDueItem"
+      :recent-items="recentItems"
+      :month-summary="monthSummary"
+      @select-summary="scrollToGroup($event as TaskGroupKey)"
+    />
 
     <button
       v-if="showFloatingCreateButton && !isTaskModalOpen"

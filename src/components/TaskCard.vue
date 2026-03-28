@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { CheckIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/20/solid';
+import { CheckIcon, EllipsisHorizontalIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/20/solid';
+import { ref } from 'vue';
 import { CATEGORY_CLASSES, DEFAULT_CATEGORY_CLASS } from '../constants/maintenance';
 import { formatDisplayDate } from '../utils/maintenanceDates';
 import type { MaintenanceTask } from '../types/maintenance';
@@ -49,6 +50,15 @@ const getButtonText = (task: EnrichedMaintenanceTask) => {
     case 'overdue':
       return 'Überfällig';
   }
+};
+
+const getDeleteLabel = (task: EnrichedMaintenanceTask) => {
+  return task.isCustom ? 'Löschen' : 'Archivieren';
+};
+
+const showActions = ref(false);
+const toggleActions = () => {
+  showActions.value = !showActions.value;
 };
 </script>
 
@@ -115,35 +125,47 @@ const getButtonText = (task: EnrichedMaintenanceTask) => {
         <div v-if="task.lastMileage != null" class="mt-1">Letzter km-Stand: {{ task.lastMileage.toLocaleString('de-DE') }} km</div>
       </div>
 
-      <div class="flex flex-col sm:flex-row gap-2">
-        <button
-          @click="emit('mark-checked', task)"
-          :class="[
-            'flex-1 min-h-11 px-4 py-2 text-white rounded-lg transform hover:scale-[1.01] transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2',
-            {
-              'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700': task.status === 'overdue',
-              'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600': task.status === 'dueNow',
-              'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600': task.status === 'dueSoon',
-              'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700': task.status === 'planned',
-              'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700': task.status === 'done',
-              'bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600': task.status === 'pending'
-            }
-          ]"
-          :disabled="isLoading"
-        >
-          <CheckIcon class="h-4 w-4" />
-          {{ getButtonText(task) }}
-        </button>
+      <div class="space-y-2">
+        <div class="flex gap-2">
+          <button
+            @click="emit('mark-checked', task)"
+            :class="[
+              'flex-1 min-h-11 px-4 py-2 text-white rounded-lg transform hover:scale-[1.01] transition-all duration-200 shadow-sm hover:shadow-md disabled:opacity-50 text-sm font-medium flex items-center justify-center gap-2',
+              {
+                'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700': task.status === 'overdue',
+                'bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600': task.status === 'dueNow',
+                'bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600': task.status === 'dueSoon',
+                'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700': task.status === 'planned',
+                'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700': task.status === 'done',
+                'bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-500 hover:to-yellow-600': task.status === 'pending'
+              }
+            ]"
+            :disabled="isLoading"
+          >
+            <CheckIcon class="h-4 w-4" />
+            {{ getButtonText(task) }}
+          </button>
 
-        <button @click="emit('edit', task)" class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center gap-2" :disabled="isLoading">
-          <PencilSquareIcon class="h-4 w-4" />
-          Bearbeiten
-        </button>
+          <button
+            @click="toggleActions"
+            class="min-h-11 min-w-11 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center"
+            :disabled="isLoading"
+          >
+            <EllipsisHorizontalIcon class="h-5 w-5" />
+          </button>
+        </div>
 
-        <button v-if="task.isCustom" @click="emit('delete', task.id)" class="min-h-11 px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2" :disabled="isLoading">
-          <TrashIcon class="h-4 w-4" />
-          Löschen
-        </button>
+        <div v-if="showActions" class="flex flex-col sm:flex-row gap-2">
+          <button @click="emit('edit', task); showActions = false" class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center gap-2" :disabled="isLoading">
+            <PencilSquareIcon class="h-4 w-4" />
+            Bearbeiten
+          </button>
+
+          <button @click="emit('delete', task.id); showActions = false" class="min-h-11 px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2" :disabled="isLoading">
+            <TrashIcon class="h-4 w-4" />
+            {{ getDeleteLabel(task) }}
+          </button>
+        </div>
       </div>
     </div>
   </div>

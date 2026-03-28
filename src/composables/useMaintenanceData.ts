@@ -137,8 +137,14 @@ export function useMaintenanceData() {
 
   const archiveTask = (taskId: string) => {
     const task = maintenanceTasks.value.find((item) => item.id === taskId);
-    if (!task || !task.isCustom) return;
+    if (!task) return;
     updateTask({ ...task, isArchived: true });
+  };
+
+  const restoreTask = (taskId: string) => {
+    const task = maintenanceTasks.value.find((item) => item.id === taskId);
+    if (!task) return;
+    updateTask({ ...task, isArchived: false });
   };
 
   const resetTasks = () => {
@@ -160,6 +166,7 @@ export function useMaintenanceData() {
     updateTask,
     saveTask,
     archiveTask,
+    restoreTask,
     replaceTasks,
     resetTasks
   };

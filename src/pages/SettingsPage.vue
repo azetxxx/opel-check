@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import AppPreferencesCard from '../components/AppPreferencesCard.vue';
 import BackupPanel from '../components/BackupPanel.vue';
+import HiddenTasksCard from '../components/HiddenTasksCard.vue';
 import HomePreferencesCard from '../components/HomePreferencesCard.vue';
 import VehicleProfileCard from '../components/VehicleProfileCard.vue';
 import VehicleSwitcherCard from '../components/VehicleSwitcherCard.vue';
@@ -15,7 +16,7 @@ import type { VehicleProfile } from '../types/maintenance';
 import type { AppPreferences } from '../types/preferences';
 import { createBackupPayload, downloadBackup, validateBackupPayload } from '../utils/backup';
 
-const { maintenanceTasks, replaceTasks } = useMaintenanceData();
+const { maintenanceTasks, replaceTasks, restoreTask } = useMaintenanceData();
 const { logs, replaceLogs } = useMaintenanceLogs();
 const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle, createVehicle, updateVehicle, replaceVehicles } = useVehicleProfile();
 const { places } = useSavedPlaces();
@@ -23,6 +24,7 @@ const { shortcuts } = usePlaylistShortcuts();
 const { preferences, updatePreferences } = useAppPreferences();
 
 const isImportingBackup = ref(false);
+const hiddenTasks = computed(() => maintenanceTasks.value.filter((task) => task.isArchived));
 
 const saveVehicleProfile = (vehicle: VehicleProfile) => {
   updateVehicle(vehicle);
@@ -109,6 +111,7 @@ const toggleCarMode = (key: keyof AppPreferences['carMode'], value: boolean) => 
     />
 
     <VehicleProfileCard :vehicle="activeVehicle" @save="saveVehicleProfile" />
+    <HiddenTasksCard :tasks="hiddenTasks" @restore="restoreTask" />
     <BackupPanel :is-importing="isImportingBackup" @export="exportBackup" @import-file="importBackup" />
   </section>
 </template>
