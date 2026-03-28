@@ -87,9 +87,9 @@ const submit = () => {
 
 <template>
   <Teleport to="body">
-    <div v-if="open" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div class="bg-white rounded-2xl p-6 max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl border border-gray-100">
-        <div class="flex justify-between items-center mb-6">
+    <div v-if="open" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-end justify-center p-4 z-50 sm:items-center">
+      <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-auto shadow-2xl border border-gray-100">
+        <div class="sticky top-0 flex justify-between items-center gap-3 border-b border-gray-100 bg-white px-5 py-4 rounded-t-2xl sm:px-6">
           <div>
             <h2 class="text-2xl font-bold text-gray-900">{{ isEditing ? 'Aufgabe bearbeiten' : 'Neue Aufgabe' }}</h2>
             <p class="text-gray-600 text-sm mt-1">Wartungsaufgabe für das aktuelle Fahrzeug konfigurieren</p>
@@ -99,7 +99,7 @@ const submit = () => {
           </button>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 px-5 py-5 sm:px-6">
           <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-1">Beschreibung</label>
             <input v-model="form.description" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="z. B. Ölwechsel durchführen">
@@ -148,9 +148,9 @@ const submit = () => {
           </div>
         </div>
 
-        <div class="mt-6 flex justify-end gap-3">
+        <div class="sticky bottom-0 flex justify-end gap-3 border-t border-gray-100 bg-white px-5 py-4 rounded-b-2xl sm:px-6">
           <button @click="emit('close')" class="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors duration-200">Abbrechen</button>
-          <button @click="submit" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow text-sm font-medium">
+          <button @click="submit" class="min-h-11 px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-sm hover:shadow text-sm font-medium">
             {{ isEditing ? 'Änderungen speichern' : 'Aufgabe erstellen' }}
           </button>
         </div>

@@ -23,8 +23,8 @@ const groupStatus = () => getGroupStatus(props.tasks);
 </script>
 
 <template>
-  <div v-if="tasks.length > 0" class="bg-white rounded-xl shadow-sm overflow-hidden">
-    <div @click="emit('toggle', frequency)" class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-200">
+  <div v-if="tasks.length > 0" class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+    <div @click="emit('toggle', frequency)" class="flex items-center justify-between p-4 sm:p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-200 min-h-14">
       <div class="flex items-center gap-3">
         <div :class="[
           'h-3 w-3 rounded-full',

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ClipboardDocumentListIcon, PlusIcon } from '@heroicons/vue/24/outline';
-import { computed, onErrorCaptured, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onErrorCaptured, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import DashboardOverview from '../components/DashboardOverview.vue';
 import LogModal from '../components/LogModal.vue';
@@ -23,6 +23,9 @@ const { activeVehicle } = useVehicleProfile();
 const showDebug = ref(false);
 const isTaskModalOpen = ref(false);
 const editingTask = ref<MaintenanceTask | null>(null);
+const topCreateButton = ref<HTMLElement | null>(null);
+const showFloatingCreateButton = ref(false);
+let createButtonObserver: IntersectionObserver | null = null;
 const simulatedDate = ref<string>(toDateInputValue(new Date()));
 const useSimulatedDate = ref(false);
 const collapsedGroups = ref<Record<TaskGroupKey, boolean>>(buildDefaultCollapsedGroups());
@@ -101,7 +104,28 @@ watch(() => route.query.action, (action) => {
   }
 }, { immediate: true });
 
-onMounted(() => window.addEventListener('keydown', handleKeydown));
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+
+  if (!topCreateButton.value) return;
+
+  createButtonObserver = new IntersectionObserver(
+    ([entry]) => {
+      showFloatingCreateButton.value = entry.intersectionRatio < 0.4;
+    },
+    {
+      threshold: [0, 0.25, 0.4, 0.6, 1],
+      rootMargin: '0px 0px -32px 0px'
+    }
+  );
+
+  createButtonObserver.observe(topCreateButton.value);
+});
+
+onBeforeUnmount(() => {
+  createButtonObserver?.disconnect();
+});
+
 onUnmounted(() => window.removeEventListener('keydown', handleKeydown));
 
 const toggleGroup = (frequency: TaskGroupKey) => {
@@ -163,7 +187,7 @@ onErrorCaptured((err, instance, info) => {
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section class="space-y-5 sm:space-y-6 pb-4">
     <section class="space-y-4">
       <div class="flex items-center justify-between gap-3">
         <h3 class="text-lg font-semibold text-gray-900">Aufgaben</h3>
@@ -176,6 +200,7 @@ onErrorCaptured((err, instance, info) => {
             Protokolle
           </button>
           <button
+            ref="topCreateButton"
             @click="openCreateTaskModal"
             class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100"
           >
@@ -187,6 +212,15 @@ onErrorCaptured((err, instance, info) => {
     </section>
 
     <DashboardOverview :summary="summaryCards" :next-due-item="nextDueItem" :recent-items="recentItems" :month-summary="monthSummary" />
+
+    <button
+      v-if="showFloatingCreateButton && !isTaskModalOpen"
+      @click="openCreateTaskModal"
+      class="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-sm font-medium text-white shadow-lg hover:bg-blue-700 sm:hidden"
+    >
+      <PlusIcon class="h-4 w-4" />
+      Neu
+    </button>
 
     <TaskGroup
       v-for="frequency in FREQUENCY_ORDER"
