@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PencilSquareIcon, PlusIcon, StarIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
+import { EllipsisHorizontalIcon } from '@heroicons/vue/20/solid';
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useSavedPlaces } from '../composables/useSavedPlaces';
@@ -14,6 +15,7 @@ const editingId = ref<string | null>(null);
 const isFormOpen = ref(false);
 const topCreateButton = ref<HTMLElement | null>(null);
 const showFloatingCreateButton = ref(false);
+const activeProviderMenuId = ref<string | null>(null);
 let createButtonObserver: IntersectionObserver | null = null;
 const form = reactive({
   label: '',
@@ -134,6 +136,10 @@ const toggleFavorite = (place: SavedPlace) => {
   });
 };
 
+const toggleProviderMenu = (placeId: string) => {
+  activeProviderMenuId.value = activeProviderMenuId.value === placeId ? null : placeId;
+};
+
 const applyDeepLinkAction = () => {
   const action = typeof route.query.action === 'string' ? route.query.action : null;
   const placeId = typeof route.query.place === 'string' ? route.query.place : null;
@@ -220,18 +226,29 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
-          <div class="flex flex-wrap gap-2">
-            <button @click="openDefaultProvider(place)" class="px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
-              Standard öffnen
-            </button>
-            <button
-              v-for="provider in place.providers"
-              :key="provider"
-              @click="openProvider(place, provider)"
-              class="min-h-11 px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-black"
-            >
-              {{ providerLabels[provider] }}
-            </button>
+          <div class="space-y-2">
+            <div class="flex gap-2">
+              <button @click="openDefaultProvider(place)" class="flex-1 min-h-11 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700">
+                Standard öffnen
+              </button>
+              <button
+                @click="toggleProviderMenu(place.id)"
+                class="min-h-11 min-w-11 px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center"
+              >
+                <EllipsisHorizontalIcon class="h-5 w-5" />
+              </button>
+            </div>
+
+            <div v-if="activeProviderMenuId === place.id" class="flex flex-col sm:flex-row gap-2">
+              <button
+                v-for="provider in place.providers.filter((provider) => provider !== getPreferredPlaceProvider(place))"
+                :key="provider"
+                @click="openProvider(place, provider); activeProviderMenuId = null"
+                class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center"
+              >
+                {{ providerLabels[provider] }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
