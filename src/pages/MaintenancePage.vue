@@ -289,7 +289,7 @@ onErrorCaptured((err, instance, info) => {
           @delete="handleArchiveTask"
         />
 
-        <div v-if="section.tasks.length === 0" class="rounded-[24px] border border-dashed border-gray-200 bg-white px-5 py-4 text-sm text-gray-500">
+        <div v-if="section.tasks.length === 0" class="rounded-[28px] border border-dashed border-gray-200 bg-gray-50 px-5 py-5 text-center text-sm text-gray-500">
           Keine Aufgaben in diesem Bereich.
         </div>
       </div>

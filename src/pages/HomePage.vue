@@ -125,7 +125,7 @@ onMounted(() => {
       </div>
     </section>
 
-    <section v-if="!onboardingComplete" class="rounded-[28px] bg-white p-5 shadow-sm border border-gray-100 space-y-4">
+    <section v-if="!onboardingComplete" class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm space-y-4">
       <div class="flex items-center justify-between gap-3">
         <div>
           <h3 class="text-lg font-semibold text-gray-900">Loslegen</h3>
@@ -248,7 +248,7 @@ onMounted(() => {
       </div>
     </button>
 
-    <section class="rounded-[28px] bg-white p-5 shadow-sm border border-gray-100 space-y-4">
+    <section class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm space-y-4">
       <div class="flex items-center justify-between gap-3">
         <div class="flex items-center gap-3">
           <div class="flex h-11 w-11 items-center justify-center rounded-[20px] bg-orange-500 text-white shadow-sm">
@@ -285,7 +285,7 @@ onMounted(() => {
     </section>
 
     <div class="grid grid-cols-2 gap-4">
-      <RouterLink to="/map" class="rounded-[28px] bg-white p-5 shadow-sm border border-gray-100 text-center">
+      <RouterLink to="/map" class="rounded-[28px] border border-gray-100 bg-white p-5 text-center shadow-sm">
         <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-[22px] bg-gradient-to-br from-cyan-400 to-teal-500 text-white shadow-sm">
           <MapPinIcon class="h-7 w-7" />
         </div>
@@ -293,7 +293,7 @@ onMounted(() => {
         <p class="mt-1 text-sm text-gray-500">Navigation</p>
       </RouterLink>
 
-      <RouterLink to="/music" class="rounded-[28px] bg-white p-5 shadow-sm border border-gray-100 text-center">
+      <RouterLink to="/music" class="rounded-[28px] border border-gray-100 bg-white p-5 text-center shadow-sm">
         <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-[22px] bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-sm">
           <MusicalNoteIcon class="h-7 w-7" />
         </div>
@@ -302,7 +302,7 @@ onMounted(() => {
       </RouterLink>
     </div>
 
-    <section v-if="recentCompletions.length > 0 && !isSimplifiedCarMode" class="rounded-[28px] bg-white p-5 shadow-sm border border-gray-100 space-y-3">
+    <section v-if="recentCompletions.length > 0 && !isSimplifiedCarMode" class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm space-y-3">
       <div class="flex items-center justify-between gap-3">
         <h3 class="text-lg font-semibold text-gray-900">Zuletzt erledigt</h3>
         <RouterLink to="/maintenance" class="text-gray-400 hover:text-gray-500">

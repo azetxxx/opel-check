@@ -261,20 +261,20 @@ onBeforeUnmount(() => {
             </button>
           </div>
 
-          <div v-if="activeProviderMenuId === place.id" class="mt-3 flex flex-col sm:flex-row gap-2">
-            <button @click="toggleFavorite(place); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-yellow-200 bg-white text-yellow-700 hover:bg-yellow-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+          <div v-if="activeProviderMenuId === place.id" class="mt-3 flex flex-col gap-2">
+            <button @click="toggleFavorite(place); activeProviderMenuId = null" class="min-h-11 rounded-2xl border border-yellow-200 bg-white px-4 py-2 text-sm font-medium text-yellow-700 transition-colors hover:bg-yellow-50 flex items-center justify-center gap-2">
               <StarIcon class="h-4 w-4" />
               Aus Favoriten entfernen
             </button>
-            <button @click="togglePinnedStartPlace(place); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+            <button @click="togglePinnedStartPlace(place); activeProviderMenuId = null" class="min-h-11 rounded-2xl border border-cyan-200 bg-white px-4 py-2 text-sm font-medium text-cyan-700 transition-colors hover:bg-cyan-50 flex items-center justify-center gap-2">
               <MapPinIcon class="h-4 w-4" />
               {{ pinnedStartPlaceId === place.id ? 'Von Startseite lösen' : 'Auf Startseite anheften' }}
             </button>
-            <button @click="editPlace(place); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+            <button @click="editPlace(place); activeProviderMenuId = null" class="min-h-11 rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 flex items-center justify-center gap-2">
               <PencilSquareIcon class="h-4 w-4" />
               Bearbeiten
             </button>
-            <button @click="removePlace(place.id); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+            <button @click="removePlace(place.id); activeProviderMenuId = null" class="min-h-11 rounded-2xl border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 flex items-center justify-center gap-2">
               <TrashIcon class="h-4 w-4" />
               Löschen
             </button>
@@ -285,12 +285,13 @@ onBeforeUnmount(() => {
 
     <section class="space-y-4">
       <div class="flex items-center justify-between gap-3">
-        <h3 class="text-lg font-semibold text-gray-900">Alle Ziele</h3>
+        <h3 class="text-xl font-semibold text-gray-900">Alle Ziele</h3>
         <p class="text-sm text-gray-500">{{ otherPlaces.length }} Orte</p>
       </div>
 
       <div v-if="otherPlaces.length > 0" class="space-y-3">
-        <div v-for="place in otherPlaces" :key="place.id" class="rounded-2xl border-l-4 border-cyan-400 bg-gray-50 px-4 py-4">
+        <div v-for="place in otherPlaces" :key="place.id" class="relative rounded-[28px] border border-gray-100 bg-white px-5 py-5 shadow-sm">
+          <div class="absolute inset-y-4 left-0 w-1.5 rounded-r-full bg-cyan-400"></div>
           <div class="flex items-start justify-between gap-3">
             <div class="flex items-start gap-3">
               <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-[20px] bg-white text-cyan-600 text-xl shadow-sm">
@@ -302,28 +303,28 @@ onBeforeUnmount(() => {
               </div>
             </div>
             <div class="flex items-center gap-2">
-              <button @click="toggleProviderMenu(place.id)" class="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 bg-white">
+              <button @click="toggleProviderMenu(place.id)" class="flex h-10 w-10 items-center justify-center rounded-2xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50">
                 <EllipsisVerticalIcon class="h-5 w-5" />
               </button>
             </div>
           </div>
 
           <div class="mt-4 flex items-center gap-2">
-            <button @click="openDefaultProvider(place)" class="flex-1 min-h-11 rounded-[20px] bg-white px-4 py-2 text-sm font-medium text-slate-900 shadow-sm hover:bg-slate-100">
+            <button @click="openDefaultProvider(place)" class="flex-1 min-h-11 rounded-2xl bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-slate-800">
               In der Karten-App öffnen
             </button>
           </div>
 
-          <div v-if="activeProviderMenuId === place.id" class="mt-3 flex flex-col sm:flex-row gap-2">
-            <button @click="toggleFavorite(place); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-yellow-200 bg-white text-yellow-700 hover:bg-yellow-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+          <div v-if="activeProviderMenuId === place.id" class="mt-3 flex flex-col gap-2">
+            <button @click="toggleFavorite(place); activeProviderMenuId = null" class="min-h-11 rounded-2xl border border-yellow-200 bg-white px-4 py-2 text-sm font-medium text-yellow-700 transition-colors hover:bg-yellow-50 flex items-center justify-center gap-2">
               <StarIcon class="h-4 w-4" />
               Zu Favoriten hinzufügen
             </button>
-            <button @click="togglePinnedStartPlace(place); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-cyan-200 bg-white text-cyan-700 hover:bg-cyan-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+            <button @click="togglePinnedStartPlace(place); activeProviderMenuId = null" class="min-h-11 rounded-2xl border border-cyan-200 bg-white px-4 py-2 text-sm font-medium text-cyan-700 transition-colors hover:bg-cyan-50 flex items-center justify-center gap-2">
               <MapPinIcon class="h-4 w-4" />
               Auf Startseite anheften
             </button>
-            <button @click="editPlace(place); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+            <button @click="editPlace(place); activeProviderMenuId = null" class="min-h-11 rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 flex items-center justify-center gap-2">
               <PencilSquareIcon class="h-4 w-4" />
               Bearbeiten
             </button>
@@ -331,11 +332,11 @@ onBeforeUnmount(() => {
               v-for="provider in place.providers.filter((provider) => provider !== getPreferredPlaceProvider(place))"
               :key="provider"
               @click="openProvider(place, provider); activeProviderMenuId = null"
-              class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center"
+              class="min-h-11 rounded-2xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 flex items-center justify-center"
             >
               {{ providerLabels[provider] }}
             </button>
-            <button @click="removePlace(place.id); activeProviderMenuId = null" class="min-h-11 px-4 py-2 rounded-lg border border-red-200 bg-white text-red-600 hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2">
+            <button @click="removePlace(place.id); activeProviderMenuId = null" class="min-h-11 rounded-2xl border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 flex items-center justify-center gap-2">
               <TrashIcon class="h-4 w-4" />
               Löschen
             </button>
@@ -343,16 +344,22 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <section v-else-if="places.length === 0" class="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center space-y-4">
-        <p class="text-sm text-gray-500">Noch keine Ziele gespeichert.</p>
-        <button @click="openCreateForm" class="inline-flex items-center gap-2 rounded-full bg-cyan-500 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-600">
+      <section v-else-if="places.length === 0" class="rounded-[28px] border border-dashed border-gray-200 bg-gray-50 p-6 text-center space-y-4">
+        <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-[22px] bg-cyan-100 text-cyan-600">
+          <MapPinIcon class="h-7 w-7" />
+        </div>
+        <div>
+          <p class="text-base font-medium text-gray-900">Noch keine Ziele gespeichert</p>
+          <p class="mt-1 text-sm text-gray-500">Lege dein erstes Ziel für schnellen Zugriff an.</p>
+        </div>
+        <button @click="openCreateForm" class="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-cyan-500 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-600">
           <PlusIcon class="h-4 w-4" />
-          Neu
+          Ziel hinzufügen
         </button>
       </section>
 
-      <section v-else class="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center">
-        <p class="text-sm text-gray-500">Weitere Ziele erscheinen hier unterhalb des Favoriten.</p>
+      <section v-else class="rounded-[28px] border border-dashed border-gray-200 bg-gray-50 p-6 text-center">
+        <p class="text-sm text-gray-500">Weitere Ziele erscheinen hier unterhalb des Favoritenbereichs.</p>
       </section>
     </section>
 
@@ -380,19 +387,19 @@ onBeforeUnmount(() => {
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-              <input v-model="form.label" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="z. B. Zuhause">
+              <input v-model="form.label" type="text" class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm" placeholder="z. B. Zuhause">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-              <input v-model="form.address" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="z. B. Musterstraße 1, München">
+              <input v-model="form.address" type="text" class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm" placeholder="z. B. Musterstraße 1, München">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Icon / Emoji</label>
-              <input v-model="form.icon" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="📍">
+              <input v-model="form.icon" type="text" class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm" placeholder="📍">
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Notizen</label>
-              <input v-model="form.notes" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" placeholder="optional">
+              <input v-model="form.notes" type="text" class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm" placeholder="optional">
             </div>
           </div>
 
@@ -408,7 +415,7 @@ onBeforeUnmount(() => {
 
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Standardanbieter</label>
-              <select v-model="form.defaultProvider" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm bg-white">
+              <select v-model="form.defaultProvider" class="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm">
                 <option v-for="provider in selectedProviders" :key="provider" :value="provider">{{ providerLabels[provider] }}</option>
               </select>
             </div>
@@ -417,7 +424,7 @@ onBeforeUnmount(() => {
 
         <div class="sticky bottom-0 flex justify-end gap-3 border-t border-gray-100 bg-white px-6 py-4 rounded-b-2xl">
           <button @click="closeForm" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">Abbrechen</button>
-          <button @click="submit" class="rounded-lg bg-gradient-to-r from-cyan-500 to-teal-500 px-4 py-2 text-sm font-medium text-white">
+          <button @click="submit" class="min-h-11 rounded-2xl bg-gradient-to-r from-cyan-500 to-teal-500 px-4 py-2 text-sm font-medium text-white">
             {{ editingId ? 'Ort speichern' : 'Ort hinzufügen' }}
           </button>
         </div>

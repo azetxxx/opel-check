@@ -42,7 +42,7 @@ const emit = defineEmits<{
       </div>
     </div>
 
-    <div v-else class="rounded-[22px] border border-dashed border-gray-200 bg-gray-50 px-4 py-5 text-sm text-gray-500">
+    <div v-else class="rounded-[28px] border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
       Keine vordefinierten Aufgaben vorhanden.
     </div>
   </section>

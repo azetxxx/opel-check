@@ -131,7 +131,7 @@ const toggleActions = () => {
 
           <div :class="['mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm', isUrgentCard ? 'text-white/85' : 'text-gray-500']">
             <span>
-              {{ task.scheduleType === 'scheduled' ? 'Termin' : 'Nächste Prüfung' }}:
+              {{ task.scheduleType === 'scheduled' ? 'Termin' : 'Nächste Fälligkeit' }}:
               {{ formatDisplayDate(task.scheduleType === 'scheduled' ? task.dueDate ?? null : task.nextCheck) ?? 'Nicht geplant' }}
             </span>
             <span v-if="task.lastCheck">• Letzte Prüfung: {{ formatDisplayDate(task.lastCheck) }}</span>

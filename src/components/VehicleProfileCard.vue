@@ -55,7 +55,7 @@ const submit = () => {
 </script>
 
 <template>
-  <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+  <section class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm sm:p-6">
     <div class="mb-4">
       <h2 class="text-lg font-semibold text-gray-900">Fahrzeugprofil</h2>
       <p class="text-sm text-gray-600 mt-1">
@@ -66,31 +66,31 @@ const submit = () => {
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Name</label>
-        <input v-model="form.name" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Mein Fahrzeug">
+        <input v-model="form.name" type="text" class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Mein Fahrzeug">
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Kennzeichen</label>
-        <input v-model="form.plate" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="M-AB 1234">
+        <input v-model="form.plate" type="text" class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="M-AB 1234">
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Marke</label>
-        <input v-model="form.brand" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Opel">
+        <input v-model="form.brand" type="text" class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Opel">
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Modell</label>
-        <input v-model="form.model" type="text" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Corsa">
+        <input v-model="form.model" type="text" class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Corsa">
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Baujahr</label>
-        <input v-model="form.year" type="number" min="1900" max="2100" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="2018">
+        <input v-model="form.year" type="number" min="1900" max="2100" class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="2018">
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Kilometerstand</label>
-        <input v-model="form.currentMileage" type="number" min="0" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="125000">
+        <input v-model="form.currentMileage" type="number" min="0" class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="125000">
       </div>
       <div class="md:col-span-2">
         <label class="block text-sm font-medium text-gray-700 mb-1">Notizen</label>
-        <textarea v-model="form.notes" rows="3" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="z. B. letzter Service, Besonderheiten, Reifenhinweise"></textarea>
+        <textarea v-model="form.notes" rows="3" class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="z. B. letzter Service, Besonderheiten, Reifenhinweise"></textarea>
       </div>
     </div>
 
