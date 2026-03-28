@@ -152,8 +152,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="space-y-6">
-    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
+  <section class="space-y-5 sm:space-y-6 pb-4">
+    <section class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6 space-y-4">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div class="flex items-center gap-2">
@@ -205,7 +205,7 @@ onMounted(() => {
       </div>
 
       <div v-else-if="favoritePlace || favoritePlaylist || preferences.preferredStartupModule !== 'home'" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <button v-if="favoritePlace" @click="openPlace(favoritePlace)" class="rounded-xl bg-blue-50 px-4 py-4 text-left hover:bg-blue-100 transition-colors">
+        <button v-if="favoritePlace" @click="openPlace(favoritePlace)" class="min-h-24 rounded-xl bg-blue-50 px-4 py-4 text-left hover:bg-blue-100 transition-colors">
           <div class="flex items-start justify-between gap-3">
             <div>
               <p class="text-sm font-medium text-blue-700">Favorit: Ziel</p>
@@ -215,7 +215,7 @@ onMounted(() => {
             <span class="text-xs font-medium text-blue-600">{{ providerLabel[getPreferredPlaceProvider(favoritePlace)] }}</span>
           </div>
         </button>
-        <button v-if="favoritePlaylist" @click="openPlaylist(favoritePlaylist.id, favoritePlaylist.url)" class="rounded-xl bg-purple-50 px-4 py-4 text-left hover:bg-purple-100 transition-colors">
+        <button v-if="favoritePlaylist" @click="openPlaylist(favoritePlaylist.id, favoritePlaylist.url)" class="min-h-24 rounded-xl bg-purple-50 px-4 py-4 text-left hover:bg-purple-100 transition-colors">
           <div class="flex items-start justify-between gap-3">
             <div>
               <p class="text-sm font-medium text-purple-700">Favorit: Playlist</p>
@@ -286,7 +286,7 @@ onMounted(() => {
           </RouterLink>
         </div>
         <div v-if="quickPlaces.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button v-for="place in quickPlaces" :key="place.id" @click="openPlace(place)" class="text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors">
+          <button v-for="place in quickPlaces" :key="place.id" @click="openPlace(place)" class="min-h-24 text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors">
             <div class="flex items-start justify-between gap-3">
               <div>
                 <p class="text-2xl">{{ place.icon || '📍' }}</p>
@@ -309,7 +309,7 @@ onMounted(() => {
           </RouterLink>
         </div>
         <div v-if="quickPlaylists.length > 0" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button v-for="item in quickPlaylists" :key="item.id" @click="openPlaylist(item.id, item.url)" class="text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors">
+          <button v-for="item in quickPlaylists" :key="item.id" @click="openPlaylist(item.id, item.url)" class="min-h-24 text-left rounded-xl bg-gray-50 px-4 py-4 hover:bg-gray-100 transition-colors">
             <div class="flex items-start justify-between gap-3">
               <div>
                 <p class="text-2xl">{{ item.icon || '🎶' }}</p>

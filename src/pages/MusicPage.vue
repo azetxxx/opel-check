@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { PencilSquareIcon, PlusIcon, StarIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import MusicProviderIcon from '../components/MusicProviderIcon.vue';
 import { usePlaylistShortcuts } from '../composables/usePlaylistShortcuts';
@@ -14,6 +14,9 @@ const { preferences, updatePreferences } = useAppPreferences();
 
 const editingId = ref<string | null>(null);
 const isFormOpen = ref(false);
+const topCreateButton = ref<HTMLElement | null>(null);
+const showFloatingCreateButton = ref(false);
+let createButtonObserver: IntersectionObserver | null = null;
 const preferredMusicProvider = computed(() => preferences.value.preferredMusicProvider);
 
 const getDefaultMusicProvider = () => {
@@ -146,10 +149,30 @@ watch(() => form.provider, (provider) => {
   syncProviderIcon(provider);
 });
 
+onMounted(() => {
+  if (!topCreateButton.value) return;
+
+  createButtonObserver = new IntersectionObserver(
+    ([entry]) => {
+      showFloatingCreateButton.value = entry.intersectionRatio < 0.4;
+    },
+    {
+      threshold: [0, 0.25, 0.4, 0.6, 1],
+      rootMargin: '0px 0px -32px 0px'
+    }
+  );
+
+  createButtonObserver.observe(topCreateButton.value);
+});
+
+onBeforeUnmount(() => {
+  createButtonObserver?.disconnect();
+});
+
 </script>
 
 <template>
-  <section class="space-y-6">
+  <section class="space-y-5 sm:space-y-6 pb-4">
     <div v-if="favoriteShortcut || lastOpenedShortcut" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
       <section v-if="favoriteShortcut" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div class="flex items-center justify-between gap-3">
@@ -190,8 +213,8 @@ watch(() => form.provider, (provider) => {
       <div class="flex items-center justify-between gap-3">
         <h3 class="text-lg font-semibold text-gray-900">Playlists</h3>
         <div class="flex items-center gap-3">
-          <p class="text-sm text-gray-500">{{ shortcuts.length }} Einträge gespeichert</p>
-          <button @click="openCreateForm" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
+          <p class="hidden text-sm text-gray-500 sm:block">{{ shortcuts.length }} Einträge gespeichert</p>
+          <button ref="topCreateButton" @click="openCreateForm" class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 hover:bg-blue-100">
             <PlusIcon class="h-4 w-4" />
             Neu
           </button>
@@ -199,7 +222,7 @@ watch(() => form.provider, (provider) => {
       </div>
 
       <div v-if="sortedShortcuts.length > 0" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div v-for="item in sortedShortcuts" :key="item.id" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 space-y-4">
+        <div v-for="item in sortedShortcuts" :key="item.id" class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5 space-y-4">
           <div class="flex items-start justify-between gap-3">
             <div>
               <div class="flex items-center gap-2">
@@ -217,13 +240,13 @@ watch(() => form.provider, (provider) => {
               <p v-if="item.notes" class="text-sm text-gray-500 mt-2">{{ item.notes }}</p>
             </div>
             <div class="flex items-center gap-2">
-              <button @click="toggleFavorite(item)" class="p-2 rounded-lg border border-yellow-200 text-yellow-600 hover:bg-yellow-50">
+              <button @click="toggleFavorite(item)" class="p-2.5 rounded-lg border border-yellow-200 text-yellow-600 hover:bg-yellow-50">
                 <StarIcon class="h-4 w-4" />
               </button>
-              <button @click="editShortcut(item)" class="p-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
+              <button @click="editShortcut(item)" class="p-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">
                 <PencilSquareIcon class="h-4 w-4" />
               </button>
-              <button @click="removeShortcut(item.id)" class="p-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">
+              <button @click="removeShortcut(item.id)" class="p-2.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50">
                 <TrashIcon class="h-4 w-4" />
               </button>
             </div>
@@ -234,7 +257,7 @@ watch(() => form.provider, (provider) => {
               <p class="text-sm font-medium text-gray-900 truncate">{{ item.url }}</p>
               <p v-if="item.lastOpenedAt" class="mt-1 text-xs text-gray-500">Zuletzt geöffnet: {{ new Date(item.lastOpenedAt).toLocaleString('de-DE') }}</p>
             </div>
-            <button @click="openShortcut(item)" class="px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-black whitespace-nowrap">
+            <button @click="openShortcut(item)" class="min-h-11 px-3 py-2 rounded-lg bg-gray-900 text-white text-sm font-medium hover:bg-black whitespace-nowrap">
               Öffnen
             </button>
           </div>
@@ -249,6 +272,15 @@ watch(() => form.provider, (provider) => {
         </button>
       </section>
     </section>
+
+    <button
+      v-if="showFloatingCreateButton && !isFormOpen"
+      @click="openCreateForm"
+      class="fixed bottom-24 right-4 z-40 inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-3 text-sm font-medium text-white shadow-lg hover:bg-blue-700 sm:hidden"
+    >
+      <PlusIcon class="h-4 w-4" />
+      Neu
+    </button>
 
     <div v-if="isFormOpen" class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
       <div class="w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-gray-100 max-h-[90vh] overflow-y-auto">
