@@ -181,16 +181,16 @@ onBeforeUnmount(() => {
 <template>
   <section class="space-y-5 sm:space-y-6 pb-4">
     <div v-if="favoriteShortcut || lastOpenedShortcut" class="grid grid-cols-1 xl:grid-cols-2 gap-4">
-      <section v-if="favoriteShortcut" class="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
+      <section v-if="favoriteShortcut" class="space-y-4">
         <div class="flex items-center justify-between gap-3">
           <h3 class="text-lg font-semibold text-gray-900">Lieblingsplaylist</h3>
-          <span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Favorit</span>
         </div>
-        <div class="mt-4 rounded-xl bg-gray-50 px-4 py-4 space-y-3">
-          <div class="flex items-center gap-2 text-2xl">
-            <MusicProviderIcon :provider="favoriteShortcut.provider" class="h-6 w-6" />
-          </div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 sm:p-5 space-y-4">
           <div>
+            <div class="flex items-center gap-2">
+              <MusicProviderIcon :provider="favoriteShortcut.provider" class="h-6 w-6" />
+              <span class="px-2 py-0.5 text-xs rounded-full bg-yellow-100 text-yellow-700">Favorit</span>
+            </div>
             <p class="mt-2 font-semibold text-gray-900">{{ favoriteShortcut.title }}</p>
             <p class="mt-1 text-sm text-gray-600">{{ providerLabels[favoriteShortcut.provider] }}</p>
           </div>
