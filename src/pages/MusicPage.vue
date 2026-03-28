@@ -213,14 +213,9 @@ onBeforeUnmount(() => {
             </div>
 
             <div v-if="favoriteCardActionsOpen" class="flex flex-col sm:flex-row gap-2">
-              <button @click="editShortcut(favoriteShortcut); favoriteCardActionsOpen = false" class="min-h-11 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors text-sm font-medium flex items-center justify-center gap-2 bg-white">
-                <PencilSquareIcon class="h-4 w-4" />
-                Bearbeiten
-              </button>
-
-              <button @click="removeShortcut(favoriteShortcut.id); favoriteCardActionsOpen = false" class="min-h-11 px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors text-sm font-medium flex items-center justify-center gap-2 bg-white">
-                <TrashIcon class="h-4 w-4" />
-                Löschen
+              <button @click="toggleFavorite(favoriteShortcut); favoriteCardActionsOpen = false" class="min-h-11 px-4 py-2 rounded-lg border border-yellow-200 text-yellow-700 hover:bg-yellow-50 transition-colors text-sm font-medium flex items-center justify-center gap-2 bg-white">
+                <StarIcon class="h-4 w-4" />
+                Aus Favoriten entfernen
               </button>
             </div>
           </div>
