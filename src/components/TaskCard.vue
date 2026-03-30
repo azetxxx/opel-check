@@ -173,8 +173,9 @@ const toggleActions = () => {
           :class="['inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium shadow-sm transition-colors', actionButtonClass]"
           :disabled="isLoading"
         >
-          <CheckIcon class="h-4 w-4" />
-          {{ getButtonText(task) }}
+          <CheckIcon v-if="!isLoading" class="h-4 w-4" />
+          <span v-if="isLoading" class="h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin"></span>
+          {{ isLoading ? 'Speichert…' : getButtonText(task) }}
         </button>
       </div>
     </div>

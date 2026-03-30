@@ -2,6 +2,7 @@
 import { ChevronDownIcon } from '@heroicons/vue/20/solid';
 import { ClipboardDocumentListIcon, PlusIcon } from '@heroicons/vue/24/outline';
 import { computed, onBeforeUnmount, onErrorCaptured, onMounted, onUnmounted, ref } from 'vue';
+import StatusToast from '../components/StatusToast.vue';
 import LogModal from '../components/LogModal.vue';
 import TaskCard from '../components/TaskCard.vue';
 import TaskFormModal from '../components/TaskFormModal.vue';
@@ -18,6 +19,7 @@ const { activeVehicle } = useVehicleProfile();
 
 const isTaskModalOpen = ref(false);
 const editingTask = ref<MaintenanceTask | null>(null);
+const feedback = ref<{ type: 'success' | 'error'; message: string } | null>(null);
 const topCreateButton = ref<HTMLElement | null>(null);
 const showFloatingCreateButton = ref(false);
 let createButtonObserver: IntersectionObserver | null = null;
@@ -76,6 +78,28 @@ const statusSections = computed(() => [
   }
 ]);
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'object' && error !== null) {
+    const maybeMessage = 'message' in error ? error.message : null;
+    if (typeof maybeMessage === 'string' && maybeMessage) return maybeMessage;
+
+    const maybeDetails = 'details' in error ? error.details : null;
+    if (typeof maybeDetails === 'string' && maybeDetails) return maybeDetails;
+  }
+
+  return 'Unbekannter Fehler';
+};
+
+const setFeedback = (type: 'success' | 'error', message: string, timeoutMs = 3000) => {
+  feedback.value = { type, message };
+  window.setTimeout(() => {
+    if (feedback.value?.message === message) {
+      feedback.value = null;
+    }
+  }, timeoutMs);
+};
+
 const addDemoTasks = async () => {
   const now = currentDate.value;
   const existingDescriptions = new Set(maintenanceTasks.value.map((task) => task.description));
@@ -125,11 +149,18 @@ const addDemoTasks = async () => {
     }
   ];
 
-  demoTasks.forEach((task) => {
-    if (!existingDescriptions.has(task.description)) {
-      saveTask(task);
+  try {
+    for (const task of demoTasks) {
+      if (!existingDescriptions.has(task.description)) {
+        await saveTask(task);
+      }
     }
-  });
+
+    setFeedback('success', 'Demo-Aufgaben wurden angelegt.');
+  } catch (error) {
+    console.error('Error adding demo tasks:', error);
+    setFeedback('error', `Demo-Aufgaben konnten nicht angelegt werden: ${getErrorMessage(error)}`);
+  }
 
   collapsedSections.value = {
     urgent: false,
@@ -155,12 +186,26 @@ const closeTaskModal = () => {
   editingTask.value = null;
 };
 
-const handleSaveTask = (task: Partial<MaintenanceTask> & Pick<MaintenanceTask, 'vehicleId' | 'description' | 'category' | 'scheduleType'>) => {
-  saveTask(task);
-  closeTaskModal();
+const handleSaveTask = async (task: Partial<MaintenanceTask> & Pick<MaintenanceTask, 'vehicleId' | 'description' | 'category' | 'scheduleType'>) => {
+  try {
+    await saveTask(task);
+    setFeedback('success', task.id ? 'Aufgabe gespeichert.' : 'Aufgabe erstellt.');
+    closeTaskModal();
+  } catch (error) {
+    console.error('Error saving task:', error);
+    setFeedback('error', `Aufgabe konnte nicht gespeichert werden: ${getErrorMessage(error)}`);
+  }
 };
 
-const handleArchiveTask = (taskId: string) => archiveTask(taskId);
+const handleArchiveTask = async (taskId: string) => {
+  try {
+    await archiveTask(taskId);
+    setFeedback('success', 'Aufgabe archiviert.');
+  } catch (error) {
+    console.error('Error archiving task:', error);
+    setFeedback('error', `Aufgabe konnte nicht archiviert werden: ${getErrorMessage(error)}`);
+  }
+};
 
 const markChecked = async (task: MaintenanceTask) => {
   const now = currentDate.value;
@@ -174,21 +219,27 @@ const markChecked = async (task: MaintenanceTask) => {
     lastMileage: activeVehicle.value.currentMileage ?? task.lastMileage ?? null
   };
 
-  await addLog({
-    id: crypto.randomUUID(),
-    vehicleId: task.vehicleId,
-    taskId: task.id,
-    taskDescription: task.description,
-    category: task.category,
-    frequency: task.frequency,
-    checkedAt: now.toISOString(),
-    nextDueDate: task.scheduleType === 'scheduled' ? task.dueDate ?? null : nextCheck,
-    notes: task.notes ?? '',
-    mileage: activeVehicle.value.currentMileage ?? task.lastMileage ?? null,
-    createdAt: now.toISOString()
-  });
+  try {
+    await addLog({
+      id: crypto.randomUUID(),
+      vehicleId: task.vehicleId,
+      taskId: task.id,
+      taskDescription: task.description,
+      category: task.category,
+      frequency: task.frequency,
+      checkedAt: now.toISOString(),
+      nextDueDate: task.scheduleType === 'scheduled' ? task.dueDate ?? null : nextCheck,
+      notes: task.notes ?? '',
+      mileage: activeVehicle.value.currentMileage ?? task.lastMileage ?? null,
+      createdAt: now.toISOString()
+    });
 
-  updateTask(updatedTask);
+    await updateTask(updatedTask);
+    setFeedback('success', 'Aufgabe als erledigt markiert.');
+  } catch (error) {
+    console.error('Error marking task as checked:', error);
+    setFeedback('error', `Aufgabe konnte nicht aktualisiert werden: ${getErrorMessage(error)}`);
+  }
 };
 
 const toggleSection = (key: 'urgent' | 'dueSoon' | 'planned' | 'open' | 'done') => {
@@ -227,6 +278,7 @@ onErrorCaptured((err, instance, info) => {
 
 <template>
   <section class="space-y-4 pb-6 sm:space-y-5">
+    <StatusToast v-if="feedback" :message="feedback.message" :tone="feedback.type" />
     <section class="-mx-4 -mt-4 bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500 px-4 pb-6 pt-5 text-white shadow-lg sm:mx-0 sm:mt-0 sm:rounded-[28px] sm:px-5 sm:pt-5">
       <div class="flex items-center justify-between gap-3">
         <div>

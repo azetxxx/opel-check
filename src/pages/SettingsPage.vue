@@ -4,6 +4,7 @@ import AppBehaviorCard from '../components/AppBehaviorCard.vue';
 import AppPreferencesCard from '../components/AppPreferencesCard.vue';
 import AuthCard from '../components/AuthCard.vue';
 import BackupPanel from '../components/BackupPanel.vue';
+import StatusToast from '../components/StatusToast.vue';
 import HiddenTasksCard from '../components/HiddenTasksCard.vue';
 import HomePreferencesCard from '../components/HomePreferencesCard.vue';
 import VehicleProfileCard from '../components/VehicleProfileCard.vue';
@@ -30,6 +31,9 @@ const viewingVehicleId = ref<string | null>(null);
 const { preferences, updatePreferences } = useAppPreferences();
 const vehicleInvites = ref<VehicleInviteRow[]>([]);
 const isInviteLoading = ref(false);
+const authFeedback = ref<{ type: 'success' | 'error'; message: string } | null>(null);
+const sharingFeedback = ref<{ type: 'success' | 'error'; message: string } | null>(null);
+const vehicleFeedback = ref<{ type: 'success' | 'error'; message: string } | null>(null);
 const isCloudEnabled = computed(() => storageProvider === 'supabase' && isConfigured.value && isAuthenticated.value);
 
 const selectedVehicleForModal = computed(() => {
@@ -55,13 +59,28 @@ const getErrorMessage = (error: unknown) => {
   return 'Unbekannter Fehler';
 };
 
+const setTimedFeedback = (
+  target: typeof authFeedback,
+  type: 'success' | 'error',
+  message: string,
+  timeoutMs = 3500
+) => {
+  target.value = { type, message };
+  window.setTimeout(() => {
+    if (target.value?.message === message) {
+      target.value = null;
+    }
+  }, timeoutMs);
+};
+
 const saveVehicleProfile = async (vehicle: VehicleProfile) => {
   try {
     await updateVehicle(vehicle);
+    setTimedFeedback(vehicleFeedback, 'success', 'Fahrzeug gespeichert.');
     closeVehicleModal();
   } catch (error) {
     console.error('Error saving vehicle profile:', error);
-    alert(`Fahrzeug konnte nicht gespeichert werden: ${getErrorMessage(error)}`);
+    setTimedFeedback(vehicleFeedback, 'error', `Fahrzeug konnte nicht gespeichert werden: ${getErrorMessage(error)}`);
   }
 };
 
@@ -86,10 +105,10 @@ const handleSignIn = async (email: string) => {
   try {
     const { error } = await signInWithMagicLink(email);
     if (error) throw error;
-    alert('Magic Link gesendet. Bitte prüfe dein E-Mail-Postfach.');
+    setTimedFeedback(authFeedback, 'success', 'Magic Link gesendet. Bitte prüfe dein E-Mail-Postfach.');
   } catch (error) {
     console.error('Error signing in:', error);
-    alert('Anmeldung fehlgeschlagen. Bitte prüfe E-Mail und Supabase-Konfiguration.');
+    setTimedFeedback(authFeedback, 'error', `Anmeldung fehlgeschlagen: ${getErrorMessage(error)}`);
   }
 };
 
@@ -98,9 +117,10 @@ const handleSignOut = async () => {
     const { error } = await signOut();
     if (error) throw error;
     vehicleInvites.value = [];
+    setTimedFeedback(authFeedback, 'success', 'Erfolgreich abgemeldet.');
   } catch (error) {
     console.error('Error signing out:', error);
-    alert('Abmeldung fehlgeschlagen.');
+    setTimedFeedback(authFeedback, 'error', `Abmeldung fehlgeschlagen: ${getErrorMessage(error)}`);
   }
 };
 
@@ -109,9 +129,10 @@ const handleCreateInvite = async (payload: { vehicleId: string; role: Exclude<Ve
     isInviteLoading.value = true;
     const invite = await createVehicleInvite(payload.vehicleId, payload.role);
     vehicleInvites.value = [invite, ...vehicleInvites.value.filter((item) => item.id !== invite.id)];
+    setTimedFeedback(sharingFeedback, 'success', `Einladungs-Code erstellt: ${invite.code}`);
   } catch (error) {
     console.error('Error creating invite:', error);
-    alert('Einladungs-Code konnte nicht erstellt werden.');
+    setTimedFeedback(sharingFeedback, 'error', `Einladungs-Code konnte nicht erstellt werden: ${getErrorMessage(error)}`);
   } finally {
     isInviteLoading.value = false;
   }
@@ -123,10 +144,10 @@ const handleAcceptInvite = async (code: string) => {
     await acceptVehicleInvite(code);
     await reloadVehicles();
     await loadVehicleInvites();
-    alert('Fahrzeug erfolgreich hinzugefügt.');
+    setTimedFeedback(sharingFeedback, 'success', 'Fahrzeug erfolgreich hinzugefügt.');
   } catch (error) {
     console.error('Error accepting invite:', error);
-    alert('Invite-Code konnte nicht eingelöst werden.');
+    setTimedFeedback(sharingFeedback, 'error', `Invite-Code konnte nicht eingelöst werden: ${getErrorMessage(error)}`);
   } finally {
     isInviteLoading.value = false;
   }
@@ -164,9 +185,10 @@ const addVehicle = async () => {
       brand: 'Opel',
       notes: 'Neues Fahrzeug'
     });
+    setTimedFeedback(vehicleFeedback, 'success', 'Neues Fahrzeug erstellt.');
   } catch (error) {
     console.error('Error creating vehicle:', error);
-    alert('Fahrzeug konnte nicht erstellt werden. Prüfe ggf. Supabase-Anmeldung und Konfiguration.');
+    setTimedFeedback(vehicleFeedback, 'error', `Fahrzeug konnte nicht erstellt werden: ${getErrorMessage(error)}`);
   }
 };
 
@@ -184,8 +206,11 @@ const removeVehicle = async (vehicleId: string) => {
 
   const deleted = await deleteVehicle(vehicleId);
   if (!deleted) {
-    alert('Fahrzeug konnte nicht gelöscht werden.');
+    setTimedFeedback(vehicleFeedback, 'error', 'Fahrzeug konnte nicht gelöscht werden.');
+    return;
   }
+
+  setTimedFeedback(vehicleFeedback, 'success', 'Fahrzeug gelöscht.');
 };
 
 const exportBackup = () => {
@@ -244,6 +269,7 @@ const toggleBuiltInTask = (taskId: string, enabled: boolean) => {
 
 <template>
   <section class="space-y-4 pb-6 sm:space-y-5">
+    <StatusToast v-if="vehicleFeedback" :message="vehicleFeedback.message" :tone="vehicleFeedback.type" />
     <section class="-mx-4 -mt-4 bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 px-4 pb-6 pt-5 text-white shadow-lg sm:mx-0 sm:mt-0 sm:rounded-[28px] sm:px-5 sm:pt-5">
       <div class="flex items-start justify-between gap-3">
         <div>
@@ -262,6 +288,8 @@ const toggleBuiltInTask = (taskId: string, enabled: boolean) => {
         :configured="isConfigured"
         :authenticated="isAuthenticated"
         :loading="isAuthLoading"
+        :success-message="authFeedback?.type === 'success' ? authFeedback.message : null"
+        :error-message="authFeedback?.type === 'error' ? authFeedback.message : null"
         @sign-in="handleSignIn"
         @sign-out="handleSignOut"
       />
@@ -291,6 +319,8 @@ const toggleBuiltInTask = (taskId: string, enabled: boolean) => {
         :enabled="isCloudEnabled"
         :invites="vehicleInvites"
         :loading="isInviteLoading"
+        :success-message="sharingFeedback?.type === 'success' ? sharingFeedback.message : null"
+        :error-message="sharingFeedback?.type === 'error' ? sharingFeedback.message : null"
         @refresh="loadVehicleInvites"
         @create-invite="handleCreateInvite"
         @accept-invite="handleAcceptInvite"

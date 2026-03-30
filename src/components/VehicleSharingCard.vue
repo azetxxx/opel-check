@@ -8,6 +8,8 @@ const props = defineProps<{
   enabled: boolean;
   invites: VehicleInviteRow[];
   loading?: boolean;
+  successMessage?: string | null;
+  errorMessage?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -53,6 +55,14 @@ const acceptInvite = () => {
     </div>
 
     <template v-else>
+      <div v-if="errorMessage" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {{ errorMessage }}
+      </div>
+
+      <div v-if="successMessage" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        {{ successMessage }}
+      </div>
+
       <div class="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-end">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Rolle für Einladung</label>

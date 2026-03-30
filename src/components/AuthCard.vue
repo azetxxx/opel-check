@@ -6,6 +6,8 @@ const props = defineProps<{
   configured: boolean;
   authenticated: boolean;
   loading?: boolean;
+  successMessage?: string | null;
+  errorMessage?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -31,6 +33,14 @@ const submit = () => {
     <div>
       <h3 class="text-xl font-semibold text-gray-900">Cloud & Konto</h3>
       <p class="mt-1 text-sm text-gray-600">{{ statusText }}</p>
+    </div>
+
+    <div v-if="errorMessage" class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+      {{ errorMessage }}
+    </div>
+
+    <div v-if="successMessage" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+      {{ successMessage }}
     </div>
 
     <div v-if="configured && authenticated" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">
