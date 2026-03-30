@@ -37,12 +37,14 @@ export function useVehicleProfile() {
 
       if (index !== -1) {
         vehicles.value[index] = nextVehicle;
-        return;
+        return nextVehicle;
       }
 
       vehicles.value.push(nextVehicle);
+      return nextVehicle;
     } catch (error) {
       console.error('Error updating vehicle:', error);
+      throw error;
     }
   };
 

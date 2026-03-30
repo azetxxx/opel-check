@@ -39,9 +39,30 @@ const selectedVehicleForModal = computed(() => {
 const isImportingBackup = ref(false);
 const builtInTasks = computed(() => maintenanceTasks.value.filter((task) => !task.isCustom));
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === 'object' && error !== null) {
+    const maybeMessage = 'message' in error ? error.message : null;
+    if (typeof maybeMessage === 'string' && maybeMessage) return maybeMessage;
+
+    const maybeDetails = 'details' in error ? error.details : null;
+    if (typeof maybeDetails === 'string' && maybeDetails) return maybeDetails;
+
+    const maybeHint = 'hint' in error ? error.hint : null;
+    if (typeof maybeHint === 'string' && maybeHint) return maybeHint;
+  }
+
+  return 'Unbekannter Fehler';
+};
+
 const saveVehicleProfile = async (vehicle: VehicleProfile) => {
-  await updateVehicle(vehicle);
-  closeVehicleModal();
+  try {
+    await updateVehicle(vehicle);
+    closeVehicleModal();
+  } catch (error) {
+    console.error('Error saving vehicle profile:', error);
+    alert(`Fahrzeug konnte nicht gespeichert werden: ${getErrorMessage(error)}`);
+  }
 };
 
 const loadVehicleInvites = async () => {

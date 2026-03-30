@@ -173,70 +173,30 @@ using (
   )
 );
 
-create policy "vehicle_members_select_visible"
+create policy "vehicle_members_select_own"
 on public.vehicle_members
 for select
 to authenticated
-using (
-  user_id = auth.uid()
-  or exists (
-    select 1
-    from public.vehicle_members vm
-    where vm.vehicle_id = vehicle_members.vehicle_id
-      and vm.user_id = auth.uid()
-  )
-);
+using (user_id = auth.uid());
 
-create policy "vehicle_members_insert_owner"
+create policy "vehicle_members_insert_self"
 on public.vehicle_members
 for insert
 to authenticated
-with check (
-  exists (
-    select 1
-    from public.vehicle_members vm
-    where vm.vehicle_id = vehicle_members.vehicle_id
-      and vm.user_id = auth.uid()
-      and vm.role = 'owner'
-  )
-);
+with check (user_id = auth.uid());
 
-create policy "vehicle_members_update_owner"
+create policy "vehicle_members_update_own"
 on public.vehicle_members
 for update
 to authenticated
-using (
-  exists (
-    select 1
-    from public.vehicle_members vm
-    where vm.vehicle_id = vehicle_members.vehicle_id
-      and vm.user_id = auth.uid()
-      and vm.role = 'owner'
-  )
-)
-with check (
-  exists (
-    select 1
-    from public.vehicle_members vm
-    where vm.vehicle_id = vehicle_members.vehicle_id
-      and vm.user_id = auth.uid()
-      and vm.role = 'owner'
-  )
-);
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
 
-create policy "vehicle_members_delete_owner"
+create policy "vehicle_members_delete_own"
 on public.vehicle_members
 for delete
 to authenticated
-using (
-  exists (
-    select 1
-    from public.vehicle_members vm
-    where vm.vehicle_id = vehicle_members.vehicle_id
-      and vm.user_id = auth.uid()
-      and vm.role = 'owner'
-  )
-);
+using (user_id = auth.uid());
 
 create policy "vehicle_invites_select_owner"
 on public.vehicle_invites
