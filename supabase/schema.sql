@@ -49,11 +49,49 @@ create table if not exists public.vehicle_invites (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.maintenance_tasks (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references public.vehicles(id) on delete cascade,
+  description text not null,
+  category text not null,
+  schedule_type text not null check (schedule_type in ('recurring', 'scheduled')),
+  frequency text check (frequency in ('daily', 'weekly', 'monthly', 'quarterly', 'biannual', 'annual')),
+  last_check timestamptz,
+  next_check timestamptz,
+  due_date timestamptz,
+  notes text,
+  due_mileage int,
+  last_mileage int,
+  is_custom boolean not null default true,
+  is_archived boolean not null default false,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.maintenance_logs (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references public.vehicles(id) on delete cascade,
+  task_id uuid references public.maintenance_tasks(id) on delete set null,
+  task_description text not null,
+  category text not null,
+  frequency text check (frequency in ('daily', 'weekly', 'monthly', 'quarterly', 'biannual', 'annual')),
+  checked_at timestamptz not null,
+  next_due_date timestamptz,
+  notes text,
+  mileage int,
+  created_by uuid references public.profiles(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
 create index if not exists idx_vehicles_created_by on public.vehicles(created_by);
 create index if not exists idx_vehicle_members_user_id on public.vehicle_members(user_id);
 create index if not exists idx_vehicle_members_vehicle_id on public.vehicle_members(vehicle_id);
 create index if not exists idx_vehicle_invites_vehicle_id on public.vehicle_invites(vehicle_id);
 create index if not exists idx_vehicle_invites_code on public.vehicle_invites(code);
+create index if not exists idx_maintenance_tasks_vehicle_id on public.maintenance_tasks(vehicle_id);
+create index if not exists idx_maintenance_logs_vehicle_id on public.maintenance_logs(vehicle_id);
+create index if not exists idx_maintenance_logs_task_id on public.maintenance_logs(task_id);
 
 create or replace function public.set_updated_at()
 returns trigger
@@ -103,6 +141,8 @@ alter table public.profiles enable row level security;
 alter table public.vehicles enable row level security;
 alter table public.vehicle_members enable row level security;
 alter table public.vehicle_invites enable row level security;
+alter table public.maintenance_tasks enable row level security;
+alter table public.maintenance_logs enable row level security;
 
 create policy "profiles_select_own"
 on public.profiles
@@ -261,6 +301,126 @@ using (
     where vm.vehicle_id = vehicle_invites.vehicle_id
       and vm.user_id = auth.uid()
       and vm.role = 'owner'
+  )
+);
+
+create policy "maintenance_tasks_select_member"
+on public.maintenance_tasks
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.vehicle_members vm
+    where vm.vehicle_id = maintenance_tasks.vehicle_id
+      and vm.user_id = auth.uid()
+  )
+);
+
+create policy "maintenance_tasks_insert_member"
+on public.maintenance_tasks
+for insert
+to authenticated
+with check (
+  exists (
+    select 1
+    from public.vehicle_members vm
+    where vm.vehicle_id = maintenance_tasks.vehicle_id
+      and vm.user_id = auth.uid()
+  )
+);
+
+create policy "maintenance_tasks_update_member"
+on public.maintenance_tasks
+for update
+to authenticated
+using (
+  exists (
+    select 1
+    from public.vehicle_members vm
+    where vm.vehicle_id = maintenance_tasks.vehicle_id
+      and vm.user_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.vehicle_members vm
+    where vm.vehicle_id = maintenance_tasks.vehicle_id
+      and vm.user_id = auth.uid()
+  )
+);
+
+create policy "maintenance_tasks_delete_member"
+on public.maintenance_tasks
+for delete
+to authenticated
+using (
+  exists (
+    select 1
+    from public.vehicle_members vm
+    where vm.vehicle_id = maintenance_tasks.vehicle_id
+      and vm.user_id = auth.uid()
+  )
+);
+
+create policy "maintenance_logs_select_member"
+on public.maintenance_logs
+for select
+to authenticated
+using (
+  exists (
+    select 1
+    from public.vehicle_members vm
+    where vm.vehicle_id = maintenance_logs.vehicle_id
+      and vm.user_id = auth.uid()
+  )
+);
+
+create policy "maintenance_logs_insert_member"
+on public.maintenance_logs
+for insert
+to authenticated
+with check (
+  exists (
+    select 1
+    from public.vehicle_members vm
+    where vm.vehicle_id = maintenance_logs.vehicle_id
+      and vm.user_id = auth.uid()
+  )
+);
+
+create policy "maintenance_logs_update_member"
+on public.maintenance_logs
+for update
+to authenticated
+using (
+  exists (
+    select 1
+    from public.vehicle_members vm
+    where vm.vehicle_id = maintenance_logs.vehicle_id
+      and vm.user_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1
+    from public.vehicle_members vm
+    where vm.vehicle_id = maintenance_logs.vehicle_id
+      and vm.user_id = auth.uid()
+  )
+);
+
+create policy "maintenance_logs_delete_member"
+on public.maintenance_logs
+for delete
+to authenticated
+using (
+  exists (
+    select 1
+    from public.vehicle_members vm
+    where vm.vehicle_id = maintenance_logs.vehicle_id
+      and vm.user_id = auth.uid()
   )
 );
 

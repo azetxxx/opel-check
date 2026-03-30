@@ -44,3 +44,38 @@ export interface VehicleInviteRow {
   used_at: string | null;
   created_at: string;
 }
+
+export interface MaintenanceTaskRow {
+  id: string;
+  vehicle_id: string;
+  description: string;
+  category: string;
+  schedule_type: 'recurring' | 'scheduled';
+  frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual' | null;
+  last_check: string | null;
+  next_check: string | null;
+  due_date: string | null;
+  notes: string | null;
+  due_mileage: number | null;
+  last_mileage: number | null;
+  is_custom: boolean;
+  is_archived: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MaintenanceLogRow {
+  id: string;
+  vehicle_id: string;
+  task_id: string;
+  task_description: string;
+  category: string;
+  frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual' | null;
+  checked_at: string;
+  next_due_date: string | null;
+  notes: string | null;
+  mileage: number | null;
+  created_by: string | null;
+  created_at: string;
+}
