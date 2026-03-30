@@ -68,27 +68,22 @@ export const supabaseVehiclesRepository: VehiclesRepository = {
   async create(partial) {
     const supabase = getSupabaseClient();
     const userId = await requireUserId();
+    const payload = mapVehicleProfileToInsert(partial ?? {}, userId);
 
-    const { data: insertedVehicle, error: insertVehicleError } = await supabase
-      .from('vehicles')
-      .insert(mapVehicleProfileToInsert(partial ?? {}, userId))
-      .select('*')
-      .single();
+    const { data, error } = await supabase.rpc('create_vehicle_with_owner', {
+      p_name: payload.name,
+      p_plate: payload.plate,
+      p_brand: payload.brand,
+      p_model: payload.model,
+      p_year: payload.year,
+      p_vin: payload.vin,
+      p_notes: payload.notes,
+      p_current_mileage: payload.current_mileage,
+      p_symbol: payload.symbol
+    });
 
-    if (insertVehicleError) throw insertVehicleError;
-
-    const { error: insertMemberError } = await supabase
-      .from('vehicle_members')
-      .insert({
-        vehicle_id: insertedVehicle.id,
-        user_id: userId,
-        role: 'owner',
-        created_by: userId
-      });
-
-    if (insertMemberError) throw insertMemberError;
-
-    return mapVehicleRowToProfile(insertedVehicle as VehicleRow);
+    if (error) throw error;
+    return mapVehicleRowToProfile(data as VehicleRow);
   },
 
   async update(vehicle) {

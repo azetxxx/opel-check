@@ -59,44 +59,12 @@ export const listVehicleInvites = async (vehicleId: string): Promise<VehicleInvi
 
 export const acceptVehicleInvite = async (inviteCode: string): Promise<VehicleMemberRow> => {
   const supabase = getSupabaseClient();
-  const user = await requireAuthenticatedUser();
   const code = normalizeInviteCode(inviteCode);
 
-  const { data: invite, error: inviteError } = await supabase
-    .from('vehicle_invites')
-    .select('*')
-    .eq('code', code)
-    .is('used_at', null)
-    .single();
+  const { data, error } = await supabase.rpc('accept_vehicle_invite', {
+    p_code: code
+  });
 
-  if (inviteError) throw inviteError;
-  if (!invite) throw new Error('Invite not found.');
-  if (invite.expires_at && new Date(invite.expires_at).getTime() < Date.now()) {
-    throw new Error('Invite has expired.');
-  }
-
-  const { data: member, error: memberError } = await supabase
-    .from('vehicle_members')
-    .insert({
-      vehicle_id: invite.vehicle_id,
-      user_id: user.id,
-      role: invite.role,
-      created_by: invite.created_by
-    })
-    .select('*')
-    .single();
-
-  if (memberError) throw memberError;
-
-  const { error: updateInviteError } = await supabase
-    .from('vehicle_invites')
-    .update({
-      used_by: user.id,
-      used_at: new Date().toISOString()
-    })
-    .eq('id', invite.id);
-
-  if (updateInviteError) throw updateInviteError;
-
-  return member as VehicleMemberRow;
+  if (error) throw error;
+  return data as VehicleMemberRow;
 };
