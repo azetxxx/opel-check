@@ -1,26 +1,36 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import AppBehaviorCard from '../components/AppBehaviorCard.vue';
 import AppPreferencesCard from '../components/AppPreferencesCard.vue';
+import AuthCard from '../components/AuthCard.vue';
 import BackupPanel from '../components/BackupPanel.vue';
 import HiddenTasksCard from '../components/HiddenTasksCard.vue';
 import HomePreferencesCard from '../components/HomePreferencesCard.vue';
 import VehicleProfileCard from '../components/VehicleProfileCard.vue';
+import VehicleSharingCard from '../components/VehicleSharingCard.vue';
 import VehicleSwitcherCard from '../components/VehicleSwitcherCard.vue';
+import { useAuth } from '../composables/useAuth';
 import { useMaintenanceData } from '../composables/useMaintenanceData';
 import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
 import { useVehicleProfile } from '../composables/useVehicleProfile';
 import { useAppPreferences } from '../composables/useAppPreferences';
+import { storageProvider } from '../services/storage';
+import { acceptVehicleInvite, createVehicleInvite, listVehicleInvites } from '../services/storage/inviteService';
 import type { VehicleProfile } from '../types/maintenance';
 import type { AppPreferences } from '../types/preferences';
+import type { VehicleInviteRow, VehicleMemberRole } from '../types/supabase';
 import { createBackupPayload, downloadBackup, validateBackupPayload } from '../utils/backup';
 
 const { maintenanceTasks, replaceTasks, restoreTask, archiveTask } = useMaintenanceData();
 const { logs, replaceLogs } = useMaintenanceLogs();
-const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle, createVehicle, updateVehicle, deleteVehicle, replaceVehicles } = useVehicleProfile();
+const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle, createVehicle, updateVehicle, deleteVehicle, replaceVehicles, reloadVehicles } = useVehicleProfile();
+const { user, isAuthenticated, isConfigured, isLoading: isAuthLoading, signInWithMagicLink, signOut } = useAuth();
 const editingVehicleId = ref<string | null>(null);
 const viewingVehicleId = ref<string | null>(null);
 const { preferences, updatePreferences } = useAppPreferences();
+const vehicleInvites = ref<VehicleInviteRow[]>([]);
+const isInviteLoading = ref(false);
+const isCloudEnabled = computed(() => storageProvider === 'supabase' && isConfigured.value && isAuthenticated.value);
 
 const selectedVehicleForModal = computed(() => {
   return vehicles.value.find((vehicle) => vehicle.id === (editingVehicleId.value ?? viewingVehicleId.value)) ?? activeVehicle.value;
@@ -29,10 +39,85 @@ const selectedVehicleForModal = computed(() => {
 const isImportingBackup = ref(false);
 const builtInTasks = computed(() => maintenanceTasks.value.filter((task) => !task.isCustom));
 
-const saveVehicleProfile = (vehicle: VehicleProfile) => {
-  updateVehicle(vehicle);
+const saveVehicleProfile = async (vehicle: VehicleProfile) => {
+  await updateVehicle(vehicle);
   closeVehicleModal();
 };
+
+const loadVehicleInvites = async () => {
+  if (!isCloudEnabled.value) {
+    vehicleInvites.value = [];
+    return;
+  }
+
+  try {
+    isInviteLoading.value = true;
+    vehicleInvites.value = await listVehicleInvites(activeVehicle.value.id);
+  } catch (error) {
+    console.error('Error loading vehicle invites:', error);
+    vehicleInvites.value = [];
+  } finally {
+    isInviteLoading.value = false;
+  }
+};
+
+const handleSignIn = async (email: string) => {
+  try {
+    const { error } = await signInWithMagicLink(email);
+    if (error) throw error;
+    alert('Magic Link gesendet. Bitte prüfe dein E-Mail-Postfach.');
+  } catch (error) {
+    console.error('Error signing in:', error);
+    alert('Anmeldung fehlgeschlagen. Bitte prüfe E-Mail und Supabase-Konfiguration.');
+  }
+};
+
+const handleSignOut = async () => {
+  try {
+    const { error } = await signOut();
+    if (error) throw error;
+    vehicleInvites.value = [];
+  } catch (error) {
+    console.error('Error signing out:', error);
+    alert('Abmeldung fehlgeschlagen.');
+  }
+};
+
+const handleCreateInvite = async (payload: { vehicleId: string; role: Exclude<VehicleMemberRole, 'owner'> }) => {
+  try {
+    isInviteLoading.value = true;
+    const invite = await createVehicleInvite(payload.vehicleId, payload.role);
+    vehicleInvites.value = [invite, ...vehicleInvites.value.filter((item) => item.id !== invite.id)];
+  } catch (error) {
+    console.error('Error creating invite:', error);
+    alert('Einladungs-Code konnte nicht erstellt werden.');
+  } finally {
+    isInviteLoading.value = false;
+  }
+};
+
+const handleAcceptInvite = async (code: string) => {
+  try {
+    isInviteLoading.value = true;
+    await acceptVehicleInvite(code);
+    await reloadVehicles();
+    await loadVehicleInvites();
+    alert('Fahrzeug erfolgreich hinzugefügt.');
+  } catch (error) {
+    console.error('Error accepting invite:', error);
+    alert('Invite-Code konnte nicht eingelöst werden.');
+  } finally {
+    isInviteLoading.value = false;
+  }
+};
+
+watch(
+  [() => activeVehicle.value.id, () => isCloudEnabled.value],
+  () => {
+    void loadVehicleInvites();
+  },
+  { immediate: true }
+);
 
 const editVehicle = (vehicleId: string) => {
   setActiveVehicle(vehicleId);
@@ -51,15 +136,20 @@ const closeVehicleModal = () => {
   viewingVehicleId.value = null;
 };
 
-const addVehicle = () => {
-  createVehicle({
-    name: `Fahrzeug ${vehicles.value.length + 1}`,
-    brand: 'Opel',
-    notes: 'Neues Fahrzeug'
-  });
+const addVehicle = async () => {
+  try {
+    await createVehicle({
+      name: `Fahrzeug ${vehicles.value.length + 1}`,
+      brand: 'Opel',
+      notes: 'Neues Fahrzeug'
+    });
+  } catch (error) {
+    console.error('Error creating vehicle:', error);
+    alert('Fahrzeug konnte nicht erstellt werden. Prüfe ggf. Supabase-Anmeldung und Konfiguration.');
+  }
 };
 
-const removeVehicle = (vehicleId: string) => {
+const removeVehicle = async (vehicleId: string) => {
   if (vehicles.value.length <= 1) {
     alert('Mindestens ein Fahrzeug muss erhalten bleiben.');
     return;
@@ -71,7 +161,10 @@ const removeVehicle = (vehicleId: string) => {
   const confirmed = window.confirm(`Fahrzeug „${vehicle.name}“ wirklich löschen?`);
   if (!confirmed) return;
 
-  deleteVehicle(vehicleId);
+  const deleted = await deleteVehicle(vehicleId);
+  if (!deleted) {
+    alert('Fahrzeug konnte nicht gelöscht werden.');
+  }
 };
 
 const exportBackup = () => {
@@ -141,6 +234,20 @@ const toggleBuiltInTask = (taskId: string, enabled: boolean) => {
 
     <section class="space-y-3">
       <div class="flex items-center justify-between gap-3">
+        <h3 class="text-xl font-semibold text-gray-900">Cloud & Konto</h3>
+      </div>
+      <AuthCard
+        :email="user?.email ?? null"
+        :configured="isConfigured"
+        :authenticated="isAuthenticated"
+        :loading="isAuthLoading"
+        @sign-in="handleSignIn"
+        @sign-out="handleSignOut"
+      />
+    </section>
+
+    <section class="space-y-3">
+      <div class="flex items-center justify-between gap-3">
         <h3 class="text-xl font-semibold text-gray-900">Fahrzeuge</h3>
       </div>
       <VehicleSwitcherCard
@@ -151,6 +258,21 @@ const toggleBuiltInTask = (taskId: string, enabled: boolean) => {
         @view="viewVehicle"
         @edit="editVehicle"
         @delete="removeVehicle"
+      />
+    </section>
+
+    <section class="space-y-3">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-xl font-semibold text-gray-900">Teilen</h3>
+      </div>
+      <VehicleSharingCard
+        :vehicle="activeVehicle"
+        :enabled="isCloudEnabled"
+        :invites="vehicleInvites"
+        :loading="isInviteLoading"
+        @refresh="loadVehicleInvites"
+        @create-invite="handleCreateInvite"
+        @accept-invite="handleAcceptInvite"
       />
     </section>
 
