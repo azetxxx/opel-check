@@ -1,102 +1,49 @@
 import { computed, ref } from 'vue';
-import { STORAGE_KEYS, STORAGE_VERSIONS } from '../constants/storage';
 import type { VehicleProfile } from '../types/maintenance';
-import { migrateVehiclesStorage } from '../utils/storageMigrations';
-import { readRawStorage, writeStorageEnvelope } from '../utils/storage';
-import { isVehicleProfile } from '../utils/storageValidators';
+import { createDefaultVehicleProfile, DEFAULT_VEHICLE_ID, vehiclesRepository } from '../services/storage';
 
-export const DEFAULT_VEHICLE_ID = 'default-vehicle';
-
-const nowIso = () => new Date().toISOString();
-
-export const createDefaultVehicleProfile = (): VehicleProfile => {
-  const now = nowIso();
-
-  return {
-    id: DEFAULT_VEHICLE_ID,
-    name: 'Mein Fahrzeug',
-    brand: 'Opel',
-    notes: 'Standardfahrzeug für die lokale Nutzung',
-    currentMileage: null,
-    createdAt: now,
-    updatedAt: now
-  };
-};
+export { DEFAULT_VEHICLE_ID, createDefaultVehicleProfile } from '../services/storage';
 
 const vehicles = ref<VehicleProfile[]>([]);
 const activeVehicleId = ref(DEFAULT_VEHICLE_ID);
 let initialized = false;
 
-const normalizeVehicle = (vehicle: Partial<VehicleProfile>): VehicleProfile => {
-  const fallback = createDefaultVehicleProfile();
-  const createdAt = vehicle.createdAt ?? fallback.createdAt;
-
-  return {
-    id: vehicle.id ?? fallback.id,
-    name: vehicle.name ?? fallback.name,
-    plate: vehicle.plate,
-    brand: vehicle.brand ?? fallback.brand,
-    model: vehicle.model,
-    year: vehicle.year,
-    vin: vehicle.vin,
-    notes: vehicle.notes ?? fallback.notes,
-    currentMileage: vehicle.currentMileage ?? null,
-    symbol: vehicle.symbol ?? 'car',
-    createdAt,
-    updatedAt: vehicle.updatedAt ?? createdAt
-  };
-};
-
 export function useVehicleProfile() {
-  const saveVehicles = () => {
+  const loadVehicles = async () => {
     try {
-      writeStorageEnvelope(STORAGE_KEYS.vehicles, STORAGE_VERSIONS.vehicles, vehicles.value);
-    } catch (error) {
-      console.error('Error saving vehicles:', error);
-    }
-  };
-
-  const loadVehicles = () => {
-    try {
-      const migrated = migrateVehiclesStorage(readRawStorage(STORAGE_KEYS.vehicles));
-      const parsedVehicles = migrated?.data ?? [];
-      const validVehicles = parsedVehicles.filter(isVehicleProfile);
-
-      vehicles.value = validVehicles.length > 0
-        ? validVehicles.map(normalizeVehicle)
-        : [createDefaultVehicleProfile()];
+      vehicles.value = await vehiclesRepository.list();
 
       if (!vehicles.value.some((vehicle) => vehicle.id === activeVehicleId.value)) {
         activeVehicleId.value = vehicles.value[0]?.id ?? DEFAULT_VEHICLE_ID;
       }
-
-      saveVehicles();
     } catch (error) {
       console.error('Error loading vehicles:', error);
       vehicles.value = [createDefaultVehicleProfile()];
       activeVehicleId.value = DEFAULT_VEHICLE_ID;
-      saveVehicles();
     }
   };
 
   const replaceVehicles = (items: VehicleProfile[]) => {
-    vehicles.value = items.map(normalizeVehicle);
+    vehicles.value = items;
     if (!vehicles.value.some((vehicle) => vehicle.id === activeVehicleId.value)) {
       activeVehicleId.value = vehicles.value[0]?.id ?? DEFAULT_VEHICLE_ID;
     }
-    saveVehicles();
   };
 
-  const updateVehicle = (updatedVehicle: VehicleProfile) => {
-    const index = vehicles.value.findIndex((vehicle) => vehicle.id === updatedVehicle.id);
-    if (index !== -1) {
-      vehicles.value[index] = { ...updatedVehicle, updatedAt: nowIso() };
-      saveVehicles();
-      return;
-    }
+  const updateVehicle = async (updatedVehicle: VehicleProfile) => {
+    try {
+      const nextVehicle = await vehiclesRepository.update(updatedVehicle);
+      const index = vehicles.value.findIndex((vehicle) => vehicle.id === nextVehicle.id);
 
-    vehicles.value.push({ ...updatedVehicle, updatedAt: nowIso() });
-    saveVehicles();
+      if (index !== -1) {
+        vehicles.value[index] = nextVehicle;
+        return;
+      }
+
+      vehicles.value.push(nextVehicle);
+    } catch (error) {
+      console.error('Error updating vehicle:', error);
+    }
   };
 
   const setActiveVehicle = (vehicleId: string) => {
@@ -105,38 +52,35 @@ export function useVehicleProfile() {
     }
   };
 
-  const createVehicle = (partial?: Partial<VehicleProfile>) => {
-    const now = nowIso();
-    const base = createDefaultVehicleProfile();
-    const vehicle = normalizeVehicle({
-      ...base,
-      ...partial,
-      id: partial?.id ?? crypto.randomUUID(),
-      name: partial?.name ?? `Fahrzeug ${vehicles.value.length + 1}`,
-      createdAt: now,
-      updatedAt: now
-    });
-
-    vehicles.value.push(vehicle);
-    activeVehicleId.value = vehicle.id;
-    saveVehicles();
-    return vehicle;
+  const createVehicle = async (partial?: Partial<VehicleProfile>) => {
+    try {
+      const vehicle = await vehiclesRepository.create(partial);
+      vehicles.value.push(vehicle);
+      activeVehicleId.value = vehicle.id;
+      return vehicle;
+    } catch (error) {
+      console.error('Error creating vehicle:', error);
+      throw error;
+    }
   };
 
-  const deleteVehicle = (vehicleId: string) => {
-    if (vehicles.value.length <= 1) return false;
+  const deleteVehicle = async (vehicleId: string) => {
+    try {
+      const deleted = await vehiclesRepository.remove(vehicleId);
+      if (!deleted) return false;
 
-    const nextVehicles = vehicles.value.filter((vehicle) => vehicle.id !== vehicleId);
-    if (nextVehicles.length === vehicles.value.length) return false;
+      const nextVehicles = vehicles.value.filter((vehicle) => vehicle.id !== vehicleId);
+      vehicles.value = nextVehicles;
 
-    vehicles.value = nextVehicles;
+      if (activeVehicleId.value === vehicleId) {
+        activeVehicleId.value = nextVehicles[0]?.id ?? DEFAULT_VEHICLE_ID;
+      }
 
-    if (activeVehicleId.value === vehicleId) {
-      activeVehicleId.value = nextVehicles[0]?.id ?? DEFAULT_VEHICLE_ID;
+      return true;
+    } catch (error) {
+      console.error('Error deleting vehicle:', error);
+      return false;
     }
-
-    saveVehicles();
-    return true;
   };
 
   const activeVehicle = computed(() => {
@@ -146,7 +90,7 @@ export function useVehicleProfile() {
   });
 
   if (!initialized) {
-    loadVehicles();
+    void loadVehicles();
     initialized = true;
   }
 
@@ -158,6 +102,7 @@ export function useVehicleProfile() {
     createVehicle,
     updateVehicle,
     deleteVehicle,
-    replaceVehicles
+    replaceVehicles,
+    reloadVehicles: loadVehicles
   };
 }
