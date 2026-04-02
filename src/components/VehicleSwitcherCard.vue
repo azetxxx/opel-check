@@ -87,6 +87,22 @@ const hasMultipleVehicles = computed(() => props.vehicles.length > 1);
       </select>
       <ChevronDownIcon class="pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/85" />
     </div>
+  </section>
 
+  <section v-else class="rounded-[28px] border border-dashed border-gray-200 bg-white p-6 shadow-sm text-center">
+    <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-[20px] bg-blue-50 text-blue-600 shadow-sm">
+      <span class="text-2xl">🚗</span>
+    </div>
+    <h3 class="mt-4 text-xl font-semibold text-gray-900">Noch kein Fahrzeug vorhanden</h3>
+    <p class="mt-2 text-sm text-gray-600">
+      Lege dein erstes Fahrzeug an, um Wartungen, Freigaben und Startseiteninfos zu nutzen.
+    </p>
+    <button
+      @click="emit('create')"
+      class="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700"
+    >
+      <PlusIcon class="h-4 w-4" />
+      Fahrzeug anlegen
+    </button>
   </section>
 </template>
