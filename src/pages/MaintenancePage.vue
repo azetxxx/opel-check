@@ -1,25 +1,29 @@
 <script setup lang="ts">
 import { ChevronDownIcon } from '@heroicons/vue/20/solid';
 import { ClipboardDocumentListIcon, PlusIcon } from '@heroicons/vue/24/outline';
-import { computed, onBeforeUnmount, onErrorCaptured, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onErrorCaptured, onMounted, onUnmounted, ref, watch } from 'vue';
 import StatusToast from '../components/StatusToast.vue';
 import LogModal from '../components/LogModal.vue';
 import TaskCard from '../components/TaskCard.vue';
 import TaskFormModal from '../components/TaskFormModal.vue';
+import { BUILT_IN_MAINTENANCE_TASKS, createBuiltInTaskForVehicle } from '../constants/builtInMaintenanceTasks';
 import { useMaintenanceData } from '../composables/useMaintenanceData';
 import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
 import { useVehicleProfile } from '../composables/useVehicleProfile';
+import { useAppPreferences } from '../composables/useAppPreferences';
 import type { MaintenanceTask } from '../types/maintenance';
 import { getCurrentDate, getNextCheckDate, toDateInputValue } from '../utils/maintenanceDates';
 import { enrichTasks } from '../utils/maintenanceTasks';
 
-const { maintenanceTasks, updateTask, saveTask, archiveTask } = useMaintenanceData();
+const { maintenanceTasks, updateTask, saveTask, archiveTask, removeTask, ensureBuiltInTasksForVehicle } = useMaintenanceData();
 const { addLog, isLoading, openLogModal } = useMaintenanceLogs();
 const { activeVehicle } = useVehicleProfile();
+const { preferences } = useAppPreferences();
 
 const isTaskModalOpen = ref(false);
 const editingTask = ref<MaintenanceTask | null>(null);
 const feedback = ref<{ type: 'success' | 'error'; message: string } | null>(null);
+const isDemoConfirmOpen = ref(false);
 const topCreateButton = ref<HTMLElement | null>(null);
 const showFloatingCreateButton = ref(false);
 let createButtonObserver: IntersectionObserver | null = null;
@@ -32,6 +36,14 @@ const collapsedSections = ref<Record<'urgent' | 'dueSoon' | 'planned' | 'open' |
   open: false,
   done: true
 });
+
+watch(
+  () => activeVehicle.value.id,
+  () => {
+    void ensureBuiltInTasksForVehicle(activeVehicle.value.id);
+  },
+  { immediate: true }
+);
 
 const currentDate = computed(() => getCurrentDate(simulatedDate.value, useSimulatedDate.value));
 const filteredTasks = computed(() => maintenanceTasks.value.filter((task) => task.vehicleId === activeVehicle.value.id && !task.isArchived));
@@ -100,9 +112,23 @@ const setFeedback = (type: 'success' | 'error', message: string, timeoutMs = 300
   }, timeoutMs);
 };
 
+const openDemoConfirm = () => {
+  isDemoConfirmOpen.value = true;
+};
+
+const closeDemoConfirm = () => {
+  isDemoConfirmOpen.value = false;
+};
+
 const addDemoTasks = async () => {
   const now = currentDate.value;
-  const existingDescriptions = new Set(maintenanceTasks.value.map((task) => task.description));
+  const currentTasksForVehicle = maintenanceTasks.value.filter((task) => task.vehicleId === activeVehicle.value.id);
+  const existingDescriptions = new Set(currentTasksForVehicle.map((task) => task.description));
+
+  const archivedBuiltIns = currentTasksForVehicle.filter((task) => !task.isCustom && task.isArchived);
+  const missingBuiltIns = BUILT_IN_MAINTENANCE_TASKS.filter((definition) => {
+    return !currentTasksForVehicle.some((task) => task.description === definition.description && !task.isCustom);
+  });
 
   const demoTasks: Array<Partial<MaintenanceTask> & Pick<MaintenanceTask, 'vehicleId' | 'description' | 'category' | 'scheduleType'>> = [
     {
@@ -111,7 +137,8 @@ const addDemoTasks = async () => {
       category: 'Service',
       scheduleType: 'scheduled',
       dueDate: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      notes: 'Custom Demo für Gruppe Dringend'
+      notes: '[DEMO] Beispielaufgabe für Gruppe Dringend',
+      isCustom: true
     },
     {
       vehicleId: activeVehicle.value.id,
@@ -119,7 +146,8 @@ const addDemoTasks = async () => {
       category: 'Dokumente',
       scheduleType: 'scheduled',
       dueDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-      notes: 'Custom Demo für Gruppe Bald fällig'
+      notes: '[DEMO] Beispielaufgabe für Gruppe Bald fällig',
+      isCustom: true
     },
     {
       vehicleId: activeVehicle.value.id,
@@ -127,7 +155,8 @@ const addDemoTasks = async () => {
       category: 'Karosserie',
       scheduleType: 'scheduled',
       dueDate: new Date(now.getTime() + 20 * 24 * 60 * 60 * 1000).toISOString(),
-      notes: 'Custom Demo für Gruppe Geplant'
+      notes: '[DEMO] Beispielaufgabe für Gruppe Geplant',
+      isCustom: true
     },
     {
       vehicleId: activeVehicle.value.id,
@@ -135,7 +164,8 @@ const addDemoTasks = async () => {
       category: 'Reifen',
       scheduleType: 'recurring',
       frequency: 'monthly',
-      notes: 'Custom Demo für Gruppe Offen'
+      notes: '[DEMO] Beispielaufgabe für Gruppe Offen',
+      isCustom: true
     },
     {
       vehicleId: activeVehicle.value.id,
@@ -145,18 +175,32 @@ const addDemoTasks = async () => {
       frequency: 'monthly',
       lastCheck: now.toISOString(),
       nextCheck: getNextCheckDate('monthly', now).toISOString(),
-      notes: 'Custom Demo für Gruppe Erledigt'
+      notes: '[DEMO] Beispielaufgabe für Gruppe Erledigt',
+      isCustom: true
     }
   ];
 
   try {
+    for (const task of archivedBuiltIns) {
+      await updateTask({
+        ...task,
+        isArchived: false,
+        updatedAt: new Date().toISOString()
+      });
+    }
+
+    for (const definition of missingBuiltIns) {
+      await saveTask(createBuiltInTaskForVehicle(definition, activeVehicle.value.id));
+    }
+
     for (const task of demoTasks) {
       if (!existingDescriptions.has(task.description)) {
         await saveTask(task);
       }
     }
 
-    setFeedback('success', 'Demo-Aufgaben wurden angelegt.');
+    setFeedback('success', 'Hardcoded Wartungen und Demo-Aufgaben wurden wiederhergestellt.');
+    closeDemoConfirm();
   } catch (error) {
     console.error('Error adding demo tasks:', error);
     setFeedback('error', `Demo-Aufgaben konnten nicht angelegt werden: ${getErrorMessage(error)}`);
@@ -198,12 +242,21 @@ const handleSaveTask = async (task: Partial<MaintenanceTask> & Pick<MaintenanceT
 };
 
 const handleArchiveTask = async (taskId: string) => {
+  const task = maintenanceTasks.value.find((item) => item.id === taskId);
+  if (!task) return;
+
   try {
+    if (task.isCustom) {
+      await removeTask(taskId);
+      setFeedback('success', 'Aufgabe gelöscht.');
+      return;
+    }
+
     await archiveTask(taskId);
     setFeedback('success', 'Aufgabe archiviert.');
   } catch (error) {
-    console.error('Error archiving task:', error);
-    setFeedback('error', `Aufgabe konnte nicht archiviert werden: ${getErrorMessage(error)}`);
+    console.error('Error updating task visibility:', error);
+    setFeedback('error', `Aufgabe konnte nicht geändert werden: ${getErrorMessage(error)}`);
   }
 };
 
@@ -247,6 +300,13 @@ const toggleSection = (key: 'urgent' | 'dueSoon' | 'planned' | 'open' | 'done') 
 };
 
 onMounted(() => {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') === 'open-logs') {
+      openLogModal();
+    }
+  }
+
   if (!topCreateButton.value) return;
 
   createButtonObserver = new IntersectionObserver(
@@ -287,7 +347,8 @@ onErrorCaptured((err, instance, info) => {
         </div>
         <div class="flex items-center gap-2">
           <button
-            @click="addDemoTasks"
+            v-if="preferences.developer.showDemoDataButton"
+            @click="openDemoConfirm"
             class="flex min-h-11 items-center justify-center rounded-2xl bg-white/20 px-3 py-2 text-sm font-medium text-white hover:bg-white/25"
           >
             Demo
@@ -357,5 +418,41 @@ onErrorCaptured((err, instance, info) => {
 
     <TaskFormModal :open="isTaskModalOpen" :task="editingTask" :vehicle-id="activeVehicle.id" @close="closeTaskModal" @save="handleSaveTask" />
     <LogModal />
+
+    <Teleport to="body">
+      <div v-if="isDemoConfirmOpen" class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center">
+        <div class="w-full max-w-md rounded-[28px] bg-white shadow-2xl border border-gray-100 overflow-hidden">
+          <div class="border-b border-gray-100 px-5 py-4">
+            <h3 class="text-lg font-semibold text-gray-900">Demo-Daten wiederherstellen?</h3>
+            <p class="mt-1 text-sm text-gray-600">
+              Standardwartungen werden wieder aktiviert und zusätzliche Demo-Aufgaben für alle Gruppen ergänzt.
+            </p>
+          </div>
+
+          <div class="px-5 py-5 text-sm text-gray-600 space-y-2">
+            <p>Archivierte Standardwartungen des aktiven Fahrzeugs werden wiederhergestellt.</p>
+            <p>Fehlende Standardwartungen werden ergänzt, falls sie noch nicht vorhanden sind.</p>
+            <p>Zusätzlich werden Demo-Aufgaben für Dringend, Bald fällig, Geplant, Offen und Erledigt angelegt, falls sie fehlen.</p>
+          </div>
+
+          <div class="flex gap-3 border-t border-gray-100 px-5 py-4">
+            <button
+              @click="closeDemoConfirm"
+              type="button"
+              class="flex min-h-12 flex-1 items-center justify-center rounded-[20px] border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Abbrechen
+            </button>
+            <button
+              @click="addDemoTasks"
+              type="button"
+              class="flex min-h-12 flex-1 items-center justify-center rounded-[20px] bg-orange-500 px-4 py-3 text-sm font-medium text-white hover:bg-orange-600"
+            >
+              Wiederherstellen
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </section>
 </template>

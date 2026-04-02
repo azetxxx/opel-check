@@ -1,4 +1,5 @@
 import { STORAGE_KEYS, STORAGE_VERSIONS } from '../../constants/storage';
+import { BUILT_IN_MAINTENANCE_TASKS, createBuiltInTaskForVehicle } from '../../constants/builtInMaintenanceTasks';
 import type { MaintenanceTask, TaskScheduleType } from '../../types/maintenance';
 import { migrateTasksStorage } from '../../utils/storageMigrations';
 import { readRawStorage, writeStorageEnvelope } from '../../utils/storage';
@@ -7,52 +8,7 @@ import type { MaintenanceTasksRepository } from './types';
 
 const nowIso = () => new Date().toISOString();
 
-const createBaseTask = (
-  id: string,
-  description: string,
-  category: string,
-  frequency: NonNullable<MaintenanceTask['frequency']>
-): MaintenanceTask => {
-  const now = nowIso();
-
-  return {
-    id,
-    vehicleId: DEFAULT_VEHICLE_ID,
-    description,
-    category,
-    scheduleType: 'recurring',
-    frequency,
-    lastCheck: null,
-    nextCheck: null,
-    dueDate: null,
-    notes: '',
-    dueMileage: null,
-    lastMileage: null,
-    isCustom: false,
-    isArchived: false,
-    createdAt: now,
-    updatedAt: now
-  };
-};
-
-const initialTasks: MaintenanceTask[] = [
-  createBaseTask('1', 'Ölstand prüfen (Motoröl)', 'Motor', 'weekly'),
-  createBaseTask('2', 'Scheibenwaschanlage prüfen und nachfüllen', 'Karosserie', 'weekly'),
-  createBaseTask('3', 'Lichtfunktionen prüfen (Abblend-, Fernlicht, Bremslicht, Blinker)', 'Beleuchtung', 'weekly'),
-  createBaseTask('4', 'Kühlflüssigkeit und Bremsflüssigkeit kontrollieren', 'Motor', 'monthly'),
-  createBaseTask('5', 'Batterie prüfen (besonders im Winter)', 'Elektrik', 'monthly'),
-  createBaseTask('6', 'Reifendruck kontrollieren und anpassen', 'Reifen', 'monthly'),
-  createBaseTask('7', 'Wischerblätter auf Schlierenbildung/Geräusche prüfen', 'Karosserie', 'quarterly'),
-  createBaseTask('8', 'Reifenwechsel (Sommer/Winter)', 'Reifen', 'quarterly'),
-  createBaseTask('9', 'TÜV/HU/AU Fälligkeit prüfen', 'Dokumente', 'quarterly'),
-  createBaseTask('10', 'Unterbodenwäsche durchführen', 'Karosserie', 'biannual'),
-  createBaseTask('11', 'Roststellen kontrollieren (Kanten/Radläufe)', 'Karosserie', 'biannual'),
-  createBaseTask('12', 'Inspektion nach Herstellervorgabe', 'Service', 'annual'),
-  createBaseTask('13', 'Klimaanlage prüfen und desinfizieren', 'Klimaanlage', 'annual'),
-  createBaseTask('14', 'Innenraumfilter (Pollenfilter) wechseln', 'Klimaanlage', 'annual'),
-  createBaseTask('15', 'Bremsen (Beläge und Scheiben) überprüfen', 'Bremsen', 'annual'),
-  createBaseTask('16', 'ADAC-Mitgliedschaft prüfen', 'Dokumente', 'annual')
-];
+const initialTasks: MaintenanceTask[] = BUILT_IN_MAINTENANCE_TASKS.map((definition) => createBuiltInTaskForVehicle(definition, DEFAULT_VEHICLE_ID));
 
 const getScheduleType = (task: Partial<MaintenanceTask>): TaskScheduleType => {
   if (task.scheduleType) return task.scheduleType;
@@ -157,6 +113,12 @@ export const localMaintenanceTasksRepository: MaintenanceTasksRepository = {
 
     const index = tasks.findIndex((item) => item.id === taskId);
     tasks[index] = { ...task, isArchived: false, updatedAt: nowIso() };
+    saveTasks(tasks);
+    return tasks;
+  },
+
+  async remove(taskId) {
+    const tasks = readTasks().filter((task) => task.id !== taskId);
     saveTasks(tasks);
     return tasks;
   },

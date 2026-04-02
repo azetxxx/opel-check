@@ -12,11 +12,20 @@ export interface HomeWidgetVisibility {
   modules: boolean;
 }
 
+export interface DeveloperPreferences {
+  showDemoDataButton: boolean;
+}
+
 export interface CarModePreferences {
   enabled: boolean;
   autoOpenFavoritePlace: boolean;
   autoPlayFavoritePlaylist: boolean;
   simplifiedHome: boolean;
+}
+
+export interface HomeTaskHighlightConfig {
+  taskId: string | null;
+  alias: string | null;
 }
 
 export interface AppPreferences {
@@ -30,4 +39,6 @@ export interface AppPreferences {
   preferredStartupModule: StartupModule;
   carMode: CarModePreferences;
   homeWidgets: HomeWidgetVisibility;
+  homeTaskHighlights: Record<string, HomeTaskHighlightConfig>;
+  developer: DeveloperPreferences;
 }

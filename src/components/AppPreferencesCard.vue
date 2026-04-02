@@ -8,6 +8,7 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'update:preferredStartupModule', value: StartupModule): void;
   (e: 'toggle-car-mode', key: keyof AppPreferences['carMode'], value: boolean): void;
+  (e: 'toggle-developer', key: keyof AppPreferences['developer'], value: boolean): void;
 }>();
 
 const startupOptions: { value: StartupModule; label: string }[] = [
@@ -23,6 +24,10 @@ const carModeLabels: Record<keyof AppPreferences['carMode'], string> = {
   autoOpenFavoritePlace: 'Favorit-Ziel bevorzugen',
   autoPlayFavoritePlaylist: 'Favorit-Playlist bevorzugen',
   simplifiedHome: 'Reduzierte Startansicht'
+};
+
+const developerLabels: Record<keyof AppPreferences['developer'], string> = {
+  showDemoDataButton: 'Demo-Schaltfläche in Wartung anzeigen'
 };
 </script>
 
@@ -45,6 +50,24 @@ const carModeLabels: Record<keyof AppPreferences['carMode'], string> = {
             type="checkbox"
             :checked="preferences.carMode[key]"
             @change="emit('toggle-car-mode', key, ($event.target as HTMLInputElement).checked)"
+            class="peer sr-only"
+          >
+          <span class="h-7 w-12 rounded-full bg-white/30 transition-colors peer-checked:bg-white/80"></span>
+          <span class="pointer-events-none absolute left-1 top-1 h-5 w-5 rounded-full bg-white transition-transform peer-checked:translate-x-5"></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="space-y-3 border-t border-white/10 pt-4">
+      <label v-for="(label, key) in developerLabels" :key="key" class="flex items-center justify-between gap-3 rounded-[20px] bg-white/12 px-4 py-4 text-sm">
+        <div>
+          <p class="font-medium text-white">{{ label }}</p>
+        </div>
+        <span class="relative inline-flex items-center">
+          <input
+            type="checkbox"
+            :checked="preferences.developer[key]"
+            @change="emit('toggle-developer', key, ($event.target as HTMLInputElement).checked)"
             class="peer sr-only"
           >
           <span class="h-7 w-12 rounded-full bg-white/30 transition-colors peer-checked:bg-white/80"></span>

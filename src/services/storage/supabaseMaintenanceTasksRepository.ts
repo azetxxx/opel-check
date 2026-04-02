@@ -125,29 +125,42 @@ export const supabaseMaintenanceTasksRepository: MaintenanceTasksRepository = {
     const userId = await requireUserId();
 
     if (task.id) {
+      const existingTasks = await listTasks();
+      const exists = existingTasks.some((item) => item.id === task.id);
+
+      if (exists) {
+        const { error } = await supabase
+          .from('maintenance_tasks')
+          .update(mapTaskToUpdate({
+            id: task.id,
+            vehicleId: task.vehicleId,
+            description: task.description,
+            category: task.category,
+            scheduleType: task.scheduleType,
+            frequency: task.scheduleType === 'recurring' ? (task.frequency ?? 'monthly') : null,
+            lastCheck: task.lastCheck ?? null,
+            nextCheck: task.scheduleType === 'recurring' ? (task.nextCheck ?? null) : null,
+            dueDate: task.scheduleType === 'scheduled' ? (task.dueDate ?? null) : null,
+            notes: task.notes,
+            dueMileage: task.dueMileage ?? null,
+            lastMileage: task.lastMileage ?? null,
+            isCustom: task.isCustom ?? true,
+            isArchived: task.isArchived ?? false,
+            createdAt: task.createdAt ?? new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }))
+          .eq('id', task.id);
+
+        if (error) throw error;
+        return listTasks();
+      }
+
       const { error } = await supabase
         .from('maintenance_tasks')
-        .update(mapTaskToUpdate({
+        .insert({
           id: task.id,
-          vehicleId: task.vehicleId,
-          description: task.description,
-          category: task.category,
-          scheduleType: task.scheduleType,
-          frequency: task.scheduleType === 'recurring' ? (task.frequency ?? 'monthly') : null,
-          lastCheck: task.lastCheck ?? null,
-          nextCheck: task.scheduleType === 'recurring' ? (task.nextCheck ?? null) : null,
-          dueDate: task.scheduleType === 'scheduled' ? (task.dueDate ?? null) : null,
-          notes: task.notes,
-          dueMileage: task.dueMileage ?? null,
-          lastMileage: task.lastMileage ?? null,
-          isCustom: task.isCustom ?? true,
-          isArchived: task.isArchived ?? false,
-          createdAt: task.createdAt ?? new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }))
-        .eq('id', task.id)
-        .select('*')
-        .single();
+          ...mapTaskToInsert(task, userId)
+        });
 
       if (error) throw error;
       return listTasks();
@@ -178,7 +191,8 @@ export const supabaseMaintenanceTasksRepository: MaintenanceTasksRepository = {
     const { error } = await supabase
       .from('maintenance_tasks')
       .update({ is_archived: true })
-      .eq('id', taskId);
+      .eq('id', taskId)
+      .eq('is_custom', false);
 
     if (error) throw error;
     return listTasks();
@@ -189,7 +203,20 @@ export const supabaseMaintenanceTasksRepository: MaintenanceTasksRepository = {
     const { error } = await supabase
       .from('maintenance_tasks')
       .update({ is_archived: false })
-      .eq('id', taskId);
+      .eq('id', taskId)
+      .eq('is_custom', false);
+
+    if (error) throw error;
+    return listTasks();
+  },
+
+  async remove(taskId) {
+    const supabase = getSupabaseClient();
+    const { error } = await supabase
+      .from('maintenance_tasks')
+      .delete()
+      .eq('id', taskId)
+      .eq('is_custom', true);
 
     if (error) throw error;
     return listTasks();

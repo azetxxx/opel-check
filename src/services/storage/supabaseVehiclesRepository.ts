@@ -70,7 +70,7 @@ export const supabaseVehiclesRepository: VehiclesRepository = {
     const userId = await requireUserId();
     const payload = mapVehicleProfileToInsert(partial ?? {}, userId);
 
-    const { data, error } = await supabase.rpc('create_vehicle_with_owner', {
+    const { data: vehicleId, error: createError } = await supabase.rpc('create_vehicle_with_owner', {
       p_name: payload.name,
       p_plate: payload.plate,
       p_brand: payload.brand,
@@ -82,7 +82,33 @@ export const supabaseVehiclesRepository: VehiclesRepository = {
       p_symbol: payload.symbol
     });
 
+    if (createError) throw createError;
+
+    const resolvedVehicleId = typeof vehicleId === 'string'
+      ? vehicleId
+      : typeof vehicleId === 'object' && vehicleId !== null && 'create_vehicle_with_owner' in vehicleId && typeof vehicleId.create_vehicle_with_owner === 'string'
+        ? vehicleId.create_vehicle_with_owner
+        : Array.isArray(vehicleId) && typeof vehicleId[0] === 'string'
+          ? vehicleId[0]
+          : Array.isArray(vehicleId) && typeof vehicleId[0] === 'object' && vehicleId[0] !== null && 'create_vehicle_with_owner' in vehicleId[0] && typeof vehicleId[0].create_vehicle_with_owner === 'string'
+            ? vehicleId[0].create_vehicle_with_owner
+            : null;
+
+    if (!resolvedVehicleId) {
+      throw new Error('Vehicle creation RPC returned no vehicle id.');
+    }
+
+    const { data, error } = await supabase
+      .from('vehicles')
+      .select('*')
+      .eq('id', resolvedVehicleId)
+      .maybeSingle();
+
     if (error) throw error;
+    if (!data) {
+      throw new Error('Created vehicle could not be loaded after RPC execution.');
+    }
+
     return mapVehicleRowToProfile(data as VehicleRow);
   },
 

@@ -17,12 +17,13 @@ import { useVehicleProfile } from '../composables/useVehicleProfile';
 import { useAppPreferences } from '../composables/useAppPreferences';
 import { storageProvider } from '../services/storage';
 import { acceptVehicleInvite, createVehicleInvite, listVehicleInvites } from '../services/storage/inviteService';
+import { BUILT_IN_MAINTENANCE_TASKS, createBuiltInTaskForVehicle } from '../constants/builtInMaintenanceTasks';
 import type { VehicleProfile } from '../types/maintenance';
 import type { AppPreferences } from '../types/preferences';
 import type { VehicleInviteRow, VehicleMemberRole } from '../types/supabase';
 import { createBackupPayload, downloadBackup, validateBackupPayload } from '../utils/backup';
 
-const { maintenanceTasks, replaceTasks, restoreTask, archiveTask } = useMaintenanceData();
+const { maintenanceTasks, replaceTasks, restoreTask, archiveTask, saveTask, ensureBuiltInTasksForVehicle } = useMaintenanceData();
 const { logs, replaceLogs } = useMaintenanceLogs();
 const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle, createVehicle, updateVehicle, deleteVehicle, replaceVehicles, reloadVehicles } = useVehicleProfile();
 const { user, isAuthenticated, isConfigured, isLoading: isAuthLoading, signInWithMagicLink, signOut } = useAuth();
@@ -41,7 +42,15 @@ const selectedVehicleForModal = computed(() => {
 });
 
 const isImportingBackup = ref(false);
-const builtInTasks = computed(() => maintenanceTasks.value.filter((task) => !task.isCustom));
+const builtInTasks = computed(() => {
+  return BUILT_IN_MAINTENANCE_TASKS.map((definition) => {
+    const existingTask = maintenanceTasks.value.find((task) => {
+      return task.vehicleId === activeVehicle.value.id && !task.isCustom && task.description === definition.description;
+    });
+
+    return existingTask ?? createBuiltInTaskForVehicle(definition, activeVehicle.value.id);
+  });
+});
 
 const getErrorMessage = (error: unknown) => {
   if (error instanceof Error && error.message) return error.message;
@@ -180,11 +189,12 @@ const closeVehicleModal = () => {
 
 const addVehicle = async () => {
   try {
-    await createVehicle({
+    const vehicle = await createVehicle({
       name: `Fahrzeug ${vehicles.value.length + 1}`,
       brand: 'Opel',
       notes: 'Neues Fahrzeug'
     });
+    await ensureBuiltInTasksForVehicle(vehicle.id);
     setTimedFeedback(vehicleFeedback, 'success', 'Neues Fahrzeug erstellt.');
   } catch (error) {
     console.error('Error creating vehicle:', error);
@@ -257,13 +267,62 @@ const toggleCarMode = (key: keyof AppPreferences['carMode'], value: boolean) => 
   });
 };
 
-const toggleBuiltInTask = (taskId: string, enabled: boolean) => {
+const toggleDeveloperSetting = (key: keyof AppPreferences['developer'], value: boolean) => {
+  updatePreferences({
+    developer: {
+      ...preferences.value.developer,
+      [key]: value
+    }
+  });
+};
+
+const ensureBuiltInTasksForActiveVehicle = async () => {
+  await ensureBuiltInTasksForVehicle(activeVehicle.value.id);
+};
+
+watch(
+  () => activeVehicle.value.id,
+  () => {
+    void ensureBuiltInTasksForActiveVehicle();
+  },
+  { immediate: true }
+);
+
+const toggleBuiltInTask = async (taskId: string, enabled: boolean) => {
+  const existingTask = maintenanceTasks.value.find((task) => task.id === taskId);
+  const displayedTask = builtInTasks.value.find((task) => task.id === taskId);
+
   if (enabled) {
-    restoreTask(taskId);
+    if (existingTask) {
+      await restoreTask(taskId);
+      return;
+    }
+
+    const definition = BUILT_IN_MAINTENANCE_TASKS.find((item) => item.description === displayedTask?.description);
+    if (definition) {
+      const builtInTask = createBuiltInTaskForVehicle(definition, activeVehicle.value.id);
+      await saveTask({
+        vehicleId: builtInTask.vehicleId,
+        description: builtInTask.description,
+        category: builtInTask.category,
+        scheduleType: builtInTask.scheduleType,
+        frequency: builtInTask.frequency,
+        lastCheck: builtInTask.lastCheck,
+        nextCheck: builtInTask.nextCheck,
+        dueDate: builtInTask.dueDate,
+        notes: builtInTask.notes,
+        dueMileage: builtInTask.dueMileage,
+        lastMileage: builtInTask.lastMileage,
+        isCustom: false,
+        isArchived: false
+      });
+    }
     return;
   }
 
-  archiveTask(taskId);
+  if (existingTask) {
+    await archiveTask(taskId);
+  }
 };
 </script>
 
@@ -348,6 +407,7 @@ const toggleBuiltInTask = (taskId: string, enabled: boolean) => {
         @update:preferred-music-provider="updatePreferences({ preferredMusicProvider: $event })"
         @update:preferred-startup-module="updatePreferences({ preferredStartupModule: $event })"
         @toggle-car-mode="toggleCarMode"
+        @toggle-developer="toggleDeveloperSetting"
       />
     </section>
 

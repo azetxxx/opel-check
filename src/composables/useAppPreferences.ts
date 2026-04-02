@@ -27,6 +27,10 @@ const defaultPreferences = (): AppPreferences => ({
     quickPlaces: true,
     quickPlaylists: true,
     modules: true
+  },
+  homeTaskHighlights: {},
+  developer: {
+    showDemoDataButton: true
   }
 });
 
@@ -65,6 +69,10 @@ const normalizePreferences = (value: Partial<AppPreferences> | null | undefined)
       quickPlaces: value?.homeWidgets?.quickPlaces ?? fallback.homeWidgets.quickPlaces,
       quickPlaylists: value?.homeWidgets?.quickPlaylists ?? fallback.homeWidgets.quickPlaylists,
       modules: value?.homeWidgets?.modules ?? fallback.homeWidgets.modules
+    },
+    homeTaskHighlights: value?.homeTaskHighlights ?? fallback.homeTaskHighlights,
+    developer: {
+      showDemoDataButton: value?.developer?.showDemoDataButton ?? fallback.developer.showDemoDataButton
     }
   };
 };
@@ -94,6 +102,10 @@ export function useAppPreferences() {
       homeWidgets: {
         ...preferences.value.homeWidgets,
         ...patch.homeWidgets
+      },
+      developer: {
+        ...preferences.value.developer,
+        ...patch.developer
       }
     });
     savePreferences();

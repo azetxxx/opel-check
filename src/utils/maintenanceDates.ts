@@ -73,7 +73,7 @@ export const formatDisplayDate = (dateString: string | null, locale = 'de-DE') =
   if (!dateString) return null;
 
   return new Date(dateString).toLocaleDateString(locale, {
-    year: 'numeric',
+    year: '2-digit',
     month: '2-digit',
     day: '2-digit'
   });

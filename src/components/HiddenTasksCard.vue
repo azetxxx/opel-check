@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ArrowPathIcon } from '@heroicons/vue/24/outline';
 import type { MaintenanceTask } from '../types/maintenance';
 
 defineProps<{
@@ -17,18 +16,12 @@ const emit = defineEmits<{
       <p class="mt-1 text-sm text-gray-600">Hardcoded Aufgaben ein- oder ausblenden.</p>
     </div>
 
-    <div v-if="tasks.length > 0" class="space-y-3">
-      <div v-for="task in tasks" :key="task.id" class="flex flex-col gap-3 rounded-[22px] px-4 py-4 sm:flex-row sm:items-center sm:justify-between hover:bg-gray-50">
-        <div class="flex items-center gap-3">
-          <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-500 text-white">
-            <ArrowPathIcon class="h-5 w-5" />
-          </div>
-          <div>
-            <p class="font-medium text-gray-900">{{ task.description }}</p>
-            <p class="mt-1 text-sm text-gray-500">{{ task.category }} · {{ task.scheduleType === 'scheduled' ? 'Geplant' : 'Wiederholend' }}</p>
-          </div>
+    <div v-if="tasks.length > 0" class="space-y-2">
+      <div v-for="task in tasks" :key="task.id" class="flex items-center justify-between gap-3 rounded-[18px] px-3 py-3 hover:bg-gray-50">
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-medium text-gray-900 leading-5 break-words">{{ task.description }}</p>
         </div>
-        <label class="relative inline-flex cursor-pointer items-center">
+        <label class="relative inline-flex shrink-0 cursor-pointer items-center">
           <input
             type="checkbox"
             :checked="!task.isArchived"

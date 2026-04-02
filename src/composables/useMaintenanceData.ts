@@ -1,9 +1,37 @@
 import { ref } from 'vue';
+import { BUILT_IN_MAINTENANCE_TASKS } from '../constants/builtInMaintenanceTasks';
 import type { MaintenanceTask } from '../types/maintenance';
 import { maintenanceTasksRepository } from '../services/storage';
 
 const maintenanceTasks = ref<MaintenanceTask[]>([]);
 let initialized = false;
+
+const ensureBuiltInTasksForVehicle = async (vehicleId: string, options?: { includeArchived?: boolean }) => {
+  const currentTasks = maintenanceTasks.value.filter((task) => task.vehicleId === vehicleId);
+  const includeArchived = options?.includeArchived ?? true;
+
+  for (const definition of BUILT_IN_MAINTENANCE_TASKS) {
+    const exists = currentTasks.some((task) => {
+      if (task.isCustom) return false;
+      if (task.description !== definition.description) return false;
+      if (!includeArchived && task.isArchived) return false;
+      return true;
+    });
+
+    if (!exists) {
+      maintenanceTasks.value = await maintenanceTasksRepository.save({
+        vehicleId,
+        description: definition.description,
+        category: definition.category,
+        scheduleType: 'recurring',
+        frequency: definition.frequency,
+        isCustom: false,
+        isArchived: false,
+        notes: ''
+      });
+    }
+  }
+};
 
 export function useMaintenanceData() {
   const loadTasks = async () => {
@@ -55,6 +83,14 @@ export function useMaintenanceData() {
     }
   };
 
+  const removeTask = async (taskId: string) => {
+    try {
+      maintenanceTasks.value = await maintenanceTasksRepository.remove(taskId);
+    } catch (error) {
+      console.error('Error removing task:', error);
+    }
+  };
+
   const resetTasks = async () => {
     try {
       maintenanceTasks.value = await maintenanceTasksRepository.reset();
@@ -74,8 +110,10 @@ export function useMaintenanceData() {
     saveTask,
     archiveTask,
     restoreTask,
+    removeTask,
     replaceTasks,
     resetTasks,
-    reloadTasks: loadTasks
+    reloadTasks: loadTasks,
+    ensureBuiltInTasksForVehicle
   };
 }

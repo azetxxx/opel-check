@@ -66,5 +66,11 @@ export const acceptVehicleInvite = async (inviteCode: string): Promise<VehicleMe
   });
 
   if (error) throw error;
-  return data as VehicleMemberRow;
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) {
+    throw new Error('Invite RPC returned no membership row.');
+  }
+
+  return row as VehicleMemberRow;
 };

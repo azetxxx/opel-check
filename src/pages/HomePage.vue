@@ -9,9 +9,10 @@ import {
   MapPinIcon,
   MusicalNoteIcon,
   StarIcon,
-  WrenchScrewdriverIcon
+  WrenchScrewdriverIcon,
+  XMarkIcon
 } from '@heroicons/vue/24/outline';
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { RouterLink, useRoute, useRouter } from 'vue-router';
 import { useMaintenanceData } from '../composables/useMaintenanceData';
 import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
@@ -21,7 +22,7 @@ import { useVehicleProfile } from '../composables/useVehicleProfile';
 import { useAppPreferences } from '../composables/useAppPreferences';
 import PwaInstallBanner from '../components/PwaInstallBanner.vue';
 import type { NavigationProvider, SavedPlace } from '../types/map';
-import type { VehicleSymbol } from '../types/maintenance';
+import type { MaintenanceTask, VehicleSymbol } from '../types/maintenance';
 import { formatDisplayDate } from '../utils/maintenanceDates';
 import { enrichTasks } from '../utils/maintenanceTasks';
 import { applyRootDeepLinkRedirect } from '../utils/deepLinks';
@@ -33,13 +34,33 @@ const { maintenanceTasks } = useMaintenanceData();
 const { logs } = useMaintenanceLogs();
 const { shortcuts, markShortcutOpened } = usePlaylistShortcuts();
 const { places } = useSavedPlaces();
-const { vehicles, activeVehicle } = useVehicleProfile();
-const { preferences } = useAppPreferences();
+const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle, updateVehicle } = useVehicleProfile();
+const { preferences, updatePreferences } = useAppPreferences();
 
 const currentDate = computed(() => new Date());
 const filteredTasks = computed(() => maintenanceTasks.value.filter((task) => task.vehicleId === activeVehicle.value.id && !task.isArchived));
 const enrichedTasks = computed(() => enrichTasks(filteredTasks.value, currentDate.value));
 const filteredLogs = computed(() => logs.value.filter((log) => log.vehicleId === activeVehicle.value.id));
+const currentTaskHighlightConfig = computed(() => {
+  return preferences.value.homeTaskHighlights[activeVehicle.value.id] ?? { taskId: null, alias: null };
+});
+const highlightedTask = computed<MaintenanceTask | null>(() => {
+  const taskId = currentTaskHighlightConfig.value.taskId;
+  if (!taskId) return null;
+  return filteredTasks.value.find((task) => task.id === taskId) ?? null;
+});
+const highlightedTaskTitle = computed(() => {
+  return currentTaskHighlightConfig.value.alias?.trim() || highlightedTask.value?.description || 'Aufgabe wählen';
+});
+const highlightedTaskValue = computed(() => {
+  if (!highlightedTask.value) return 'Eintragen';
+
+  if (highlightedTask.value.scheduleType === 'scheduled') {
+    return formatDisplayDate(highlightedTask.value.dueDate ?? null) ?? 'Eintragen';
+  }
+
+  return formatDisplayDate(highlightedTask.value.nextCheck) ?? 'Eintragen';
+});
 
 const isCarMode = computed(() => preferences.value.carMode.enabled);
 const isSimplifiedCarMode = computed(() => isCarMode.value && preferences.value.carMode.simplifiedHome);
@@ -53,6 +74,46 @@ const urgentTaskSummary = computed(() => {
 const recentCompletions = computed(() => filteredLogs.value.slice(0, 3));
 const favoritePlace = computed(() => places.value.find((place) => place.id === preferences.value.pinnedStartPlaceId) ?? null);
 const favoritePlaylist = computed(() => shortcuts.value.find((item) => item.id === preferences.value.pinnedStartPlaylistId) ?? null);
+const isMileageModalOpen = ref(false);
+const isSavingMileage = ref(false);
+const isTaskHighlightModalOpen = ref(false);
+const isVehicleSwitchModalOpen = ref(false);
+const mileageForm = reactive({
+  currentMileage: ''
+});
+const taskHighlightForm = reactive({
+  taskId: '',
+  alias: ''
+});
+const vehicleSwitchForm = reactive({
+  vehicleId: ''
+});
+
+watch(
+  () => activeVehicle.value.currentMileage,
+  (value) => {
+    mileageForm.currentMileage = value != null ? String(value) : '';
+  },
+  { immediate: true }
+);
+
+watch(
+  () => activeVehicleId.value,
+  (value) => {
+    vehicleSwitchForm.vehicleId = value;
+  },
+  { immediate: true }
+);
+
+watch(
+  [() => activeVehicle.value.id, () => preferences.value.homeTaskHighlights],
+  () => {
+    const config = preferences.value.homeTaskHighlights[activeVehicle.value.id];
+    taskHighlightForm.taskId = config?.taskId ?? '';
+    taskHighlightForm.alias = config?.alias ?? '';
+  },
+  { immediate: true, deep: true }
+);
 
 const onboardingSteps = computed(() => {
   const vehicleConfigured = vehicles.value.length > 1 || Boolean(activeVehicle.value.model || activeVehicle.value.plate || activeVehicle.value.currentMileage);
@@ -103,6 +164,77 @@ const openPlace = (place: SavedPlace) => {
 const openPlaylist = (id: string, url: string) => {
   markShortcutOpened(id);
   window.open(url, '_blank', 'noopener,noreferrer');
+};
+
+const openMileageModal = () => {
+  mileageForm.currentMileage = activeVehicle.value.currentMileage != null ? String(activeVehicle.value.currentMileage) : '';
+  isMileageModalOpen.value = true;
+};
+
+const closeMileageModal = () => {
+  isMileageModalOpen.value = false;
+};
+
+const openVehicleSwitchModal = () => {
+  vehicleSwitchForm.vehicleId = activeVehicleId.value;
+  isVehicleSwitchModalOpen.value = true;
+};
+
+const closeVehicleSwitchModal = () => {
+  isVehicleSwitchModalOpen.value = false;
+};
+
+const saveVehicleSwitch = () => {
+  if (vehicleSwitchForm.vehicleId) {
+    setActiveVehicle(vehicleSwitchForm.vehicleId);
+  }
+  closeVehicleSwitchModal();
+};
+
+const openTaskHighlightModal = () => {
+  const config = preferences.value.homeTaskHighlights[activeVehicle.value.id];
+  taskHighlightForm.taskId = config?.taskId ?? '';
+  taskHighlightForm.alias = config?.alias ?? '';
+  isTaskHighlightModalOpen.value = true;
+};
+
+const closeTaskHighlightModal = () => {
+  isTaskHighlightModalOpen.value = false;
+};
+
+const saveTaskHighlight = () => {
+  updatePreferences({
+    homeTaskHighlights: {
+      ...preferences.value.homeTaskHighlights,
+      [activeVehicle.value.id]: {
+        taskId: taskHighlightForm.taskId || null,
+        alias: taskHighlightForm.alias.trim() || null
+      }
+    }
+  });
+  closeTaskHighlightModal();
+};
+
+const adjustMileage = (delta: number) => {
+  const currentValue = Number(mileageForm.currentMileage || 0);
+  const safeValue = Number.isFinite(currentValue) ? currentValue : 0;
+  mileageForm.currentMileage = String(Math.max(0, safeValue + delta));
+};
+
+const saveMileage = async () => {
+  try {
+    isSavingMileage.value = true;
+    await updateVehicle({
+      ...activeVehicle.value,
+      currentMileage: mileageForm.currentMileage ? Number(mileageForm.currentMileage) : null
+    });
+    closeMileageModal();
+  } catch (error) {
+    console.error('Error saving mileage:', error);
+    alert('Kilometerstand konnte nicht gespeichert werden.');
+  } finally {
+    isSavingMileage.value = false;
+  }
 };
 
 onMounted(() => {
@@ -159,27 +291,36 @@ onMounted(() => {
           <h3 class="mt-2 text-3xl font-semibold">{{ activeVehicle.name }}</h3>
           <p class="mt-1 text-lg text-blue-100/90">{{ [activeVehicle.brand, activeVehicle.model].filter(Boolean).join(' ') || 'Fahrzeugprofil ergänzen' }}</p>
         </div>
-        <div class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[22px] bg-white/15 text-white">
+        <button
+          @click.stop="openVehicleSwitchModal"
+          class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[22px] bg-white/15 text-white transition-colors hover:bg-white/20"
+        >
           <FontAwesomeIcon :icon="vehicleSymbolIcons[activeVehicle.symbol ?? 'car']" class="h-7 w-7" />
-        </div>
+        </button>
       </div>
 
       <div class="mt-4 grid grid-cols-2 gap-3">
-        <div class="rounded-[22px] bg-white/10 px-4 py-4 text-center">
-          <p class="text-3xl font-semibold">{{ places.length }}</p>
-          <p class="mt-1 text-sm text-blue-100/85">Ziele</p>
-        </div>
-        <div class="rounded-[22px] bg-white/10 px-4 py-4 text-center">
-          <p class="text-3xl font-semibold">{{ shortcuts.length }}</p>
-          <p class="mt-1 text-sm text-blue-100/85">Playlists</p>
-        </div>
+        <button
+          @click.stop="openMileageModal"
+          class="rounded-[22px] bg-white/10 px-4 py-4 text-center transition-colors hover:bg-white/15"
+        >
+          <p class="text-3xl font-semibold">{{ activeVehicle.currentMileage != null ? activeVehicle.currentMileage.toLocaleString('de-DE') : '—' }}</p>
+          <p class="mt-1 text-sm text-blue-100/85">Kilometerstand</p>
+        </button>
+        <button
+          @click.stop="openTaskHighlightModal"
+          class="rounded-[22px] bg-white/10 px-4 py-4 text-center transition-colors hover:bg-white/15"
+        >
+          <p class="text-3xl font-semibold">{{ highlightedTaskValue }}</p>
+          <p class="mt-1 text-sm text-blue-100/85">{{ highlightedTaskTitle }}</p>
+        </button>
       </div>
     </button>
 
-    <button
+    <RouterLink
       v-if="urgentTasks.length > 0"
-      as="button"
-      class="w-full rounded-[28px] bg-gradient-to-r from-red-500 to-orange-500 p-5 text-left text-white shadow-lg"
+      to="/maintenance"
+      class="block w-full rounded-[28px] bg-gradient-to-r from-red-500 to-orange-500 p-5 text-left text-white shadow-lg"
     >
       <div class="flex items-start justify-between gap-3">
         <div class="flex items-start gap-3">
@@ -197,7 +338,7 @@ onMounted(() => {
           </div>
         </div>
       </div>
-    </button>
+    </RouterLink>
 
     <button
       v-if="favoritePlace"
@@ -296,18 +437,189 @@ onMounted(() => {
       </RouterLink>
     </div>
 
-    <section v-if="recentCompletions.length > 0 && !isSimplifiedCarMode" class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm space-y-3">
+    <RouterLink
+      v-if="recentCompletions.length > 0 && !isSimplifiedCarMode"
+      to="/maintenance?action=open-logs"
+      class="block rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm space-y-3 transition-colors hover:bg-gray-50"
+    >
       <div class="flex items-center justify-between gap-3">
         <h3 class="text-lg font-semibold text-gray-900">Zuletzt erledigt</h3>
-        <RouterLink to="/maintenance" class="text-gray-400 hover:text-gray-500">
-          <ArrowRightIcon class="h-5 w-5" />
-        </RouterLink>
+        <ChevronRightIcon class="h-7 w-7 text-gray-300 stroke-[2]" />
       </div>
 
       <div v-for="entry in recentCompletions" :key="entry.id" class="rounded-2xl bg-gray-50 px-4 py-3">
         <p class="font-medium text-gray-900">{{ entry.taskDescription }}</p>
         <p class="mt-1 text-sm text-gray-600">Erledigt am {{ formatDisplayDate(entry.checkedAt) }}</p>
       </div>
-    </section>
+    </RouterLink>
+
+    <Teleport to="body">
+      <div v-if="isMileageModalOpen" class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center">
+        <div class="w-full max-w-md rounded-[28px] bg-white shadow-2xl border border-gray-100 overflow-hidden">
+          <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">Kilometerstand bearbeiten</h3>
+              <p class="mt-1 text-sm text-gray-600">{{ activeVehicle.name }}</p>
+            </div>
+            <button @click="closeMileageModal" class="rounded-xl p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </div>
+
+          <div class="space-y-4 px-5 py-5">
+            <label class="block text-sm font-medium text-gray-700">Kilometerstand</label>
+            <div class="grid grid-cols-[64px_1fr_64px] gap-3 items-center">
+              <button
+                @click="adjustMileage(-100)"
+                type="button"
+                class="flex min-h-12 items-center justify-center rounded-2xl border border-gray-300 text-lg font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                -100
+              </button>
+
+              <input
+                v-model="mileageForm.currentMileage"
+                type="number"
+                min="0"
+                inputmode="numeric"
+                class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-center text-lg font-semibold focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="125000"
+              >
+
+              <button
+                @click="adjustMileage(100)"
+                type="button"
+                class="flex min-h-12 items-center justify-center rounded-2xl border border-gray-300 text-lg font-semibold text-gray-700 hover:bg-gray-50"
+              >
+                +100
+              </button>
+            </div>
+          </div>
+
+          <div class="flex gap-3 border-t border-gray-100 px-5 py-4">
+            <button
+              @click="closeMileageModal"
+              type="button"
+              class="flex min-h-12 flex-1 items-center justify-center rounded-[20px] border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Abbrechen
+            </button>
+            <button
+              @click="saveMileage"
+              type="button"
+              :disabled="isSavingMileage"
+              class="flex min-h-12 flex-1 items-center justify-center rounded-[20px] bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+            >
+              {{ isSavingMileage ? 'Speichert…' : 'Speichern' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="isTaskHighlightModalOpen" class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center">
+        <div class="w-full max-w-md rounded-[28px] bg-white shadow-2xl border border-gray-100 overflow-hidden">
+          <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">Startseiten-Karte wählen</h3>
+              <p class="mt-1 text-sm text-gray-600">{{ activeVehicle.name }}</p>
+            </div>
+            <button @click="closeTaskHighlightModal" class="rounded-xl p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </div>
+
+          <div class="space-y-4 px-5 py-5">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Wartungsaufgabe</label>
+              <select
+                v-model="taskHighlightForm.taskId"
+                class="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Keine Aufgabe gewählt</option>
+                <option v-for="task in filteredTasks" :key="task.id" :value="task.id">
+                  {{ task.description }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Alias für Startseite</label>
+              <input
+                v-model="taskHighlightForm.alias"
+                type="text"
+                class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="z. B. Nächster TÜV"
+              >
+            </div>
+          </div>
+
+          <div class="flex gap-3 border-t border-gray-100 px-5 py-4">
+            <button
+              @click="closeTaskHighlightModal"
+              type="button"
+              class="flex min-h-12 flex-1 items-center justify-center rounded-[20px] border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Abbrechen
+            </button>
+            <button
+              @click="saveTaskHighlight"
+              type="button"
+              class="flex min-h-12 flex-1 items-center justify-center rounded-[20px] bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Speichern
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="isVehicleSwitchModalOpen" class="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-4 backdrop-blur-sm sm:items-center">
+        <div class="w-full max-w-md rounded-[28px] bg-white shadow-2xl border border-gray-100 overflow-hidden">
+          <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900">Aktives Fahrzeug wechseln</h3>
+              <p class="mt-1 text-sm text-gray-600">Wähle das Fahrzeug für die Startseite.</p>
+            </div>
+            <button @click="closeVehicleSwitchModal" class="rounded-xl p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </div>
+
+          <div class="space-y-4 px-5 py-5">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Fahrzeug</label>
+              <select
+                v-model="vehicleSwitchForm.vehicleId"
+                class="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option v-for="vehicle in vehicles" :key="vehicle.id" :value="vehicle.id">
+                  {{ vehicle.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex gap-3 border-t border-gray-100 px-5 py-4">
+            <button
+              @click="closeVehicleSwitchModal"
+              type="button"
+              class="flex min-h-12 flex-1 items-center justify-center rounded-[20px] border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              Abbrechen
+            </button>
+            <button
+              @click="saveVehicleSwitch"
+              type="button"
+              class="flex min-h-12 flex-1 items-center justify-center rounded-[20px] bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Auswählen
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </section>
 </template>

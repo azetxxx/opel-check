@@ -16,6 +16,7 @@ export interface MaintenanceTasksRepository {
   update(task: MaintenanceTask): Promise<MaintenanceTask[]>;
   archive(taskId: string): Promise<MaintenanceTask[]>;
   restore(taskId: string): Promise<MaintenanceTask[]>;
+  remove(taskId: string): Promise<MaintenanceTask[]>;
   reset(): Promise<MaintenanceTask[]>;
 }
 

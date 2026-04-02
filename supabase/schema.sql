@@ -436,7 +436,7 @@ create or replace function public.create_vehicle_with_owner(
   p_current_mileage int default null,
   p_symbol text default 'car'
 )
-returns public.vehicles
+returns uuid
 language plpgsql
 security definer
 set search_path = public
@@ -478,7 +478,7 @@ begin
   insert into public.vehicle_members (vehicle_id, user_id, role, created_by)
   values (v_vehicle.id, v_user_id, 'owner', v_user_id);
 
-  return v_vehicle;
+  return v_vehicle.id;
 end;
 $$;
 
