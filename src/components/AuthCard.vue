@@ -8,6 +8,7 @@ const props = defineProps<{
   loading?: boolean;
   successMessage?: string | null;
   errorMessage?: string | null;
+  localOnlyNotice?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -41,6 +42,10 @@ const submit = () => {
 
     <div v-if="successMessage" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
       {{ successMessage }}
+    </div>
+
+    <div v-if="localOnlyNotice && !authenticated" class="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+      Du nutzt die App aktuell ohne Cloud-Konto. Fahrzeuge, Wartungen, Ziele und Playlists werden nur lokal auf diesem Gerät gespeichert. Später kannst du lokale Daten in ein Cloud-Konto übernehmen.
     </div>
 
     <div v-if="configured && authenticated" class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3">

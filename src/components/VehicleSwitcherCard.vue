@@ -6,6 +6,7 @@ import type { VehicleProfile } from '../types/maintenance';
 const props = defineProps<{
   vehicles: VehicleProfile[];
   activeVehicleId: string;
+  localOnlyNotice?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -98,6 +99,10 @@ const hasMultipleVehicles = computed(() => props.vehicles.length > 1);
     <p class="mt-2 text-sm text-gray-600">
       Lege dein erstes Fahrzeug an oder verbinde dich per Einladungscode mit einem vorhandenen Fahrzeug.
     </p>
+    <div v-if="localOnlyNotice" class="mt-4 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+      Ohne Cloud-Konto werden neue Fahrzeuge und Daten nur lokal auf diesem Gerät gespeichert. Später kannst du diese lokalen Daten in ein Cloud-Konto übernehmen.
+    </div>
+
     <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
       <button
         @click="emit('create')"

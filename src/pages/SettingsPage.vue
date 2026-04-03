@@ -39,6 +39,7 @@ const authFeedback = ref<{ type: 'success' | 'error'; message: string } | null>(
 const sharingFeedback = ref<{ type: 'success' | 'error'; message: string } | null>(null);
 const vehicleFeedback = ref<{ type: 'success' | 'error'; message: string } | null>(null);
 const isCloudEnabled = computed(() => storageProvider === 'supabase' && isConfigured.value && isAuthenticated.value);
+const isLocalOnlyMode = computed(() => !isAuthenticated.value);
 
 const selectedVehicleForModal = computed(() => {
   if (creatingVehicle.value) {
@@ -394,6 +395,7 @@ const toggleBuiltInTask = async (taskId: string, enabled: boolean) => {
         :loading="isAuthLoading"
         :success-message="authFeedback?.type === 'success' ? authFeedback.message : null"
         :error-message="authFeedback?.type === 'error' ? authFeedback.message : null"
+        :local-only-notice="isLocalOnlyMode"
         @sign-in="handleSignIn"
         @sign-out="handleSignOut"
       />
@@ -406,6 +408,7 @@ const toggleBuiltInTask = async (taskId: string, enabled: boolean) => {
       <VehicleSwitcherCard
         :vehicles="vehicles"
         :active-vehicle-id="activeVehicleId"
+        :local-only-notice="isLocalOnlyMode"
         @change="setActiveVehicle"
         @create="addVehicle"
         @join="openJoinVehicleModal"
