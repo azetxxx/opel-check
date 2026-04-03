@@ -60,6 +60,8 @@ const vehicleSummary = computed(() => {
   return [props.vehicle.brand, props.vehicle.model].filter(Boolean).join(' ');
 });
 
+const isCreateMode = computed(() => !props.vehicle.name && !props.vehicle.brand && !props.vehicle.model && !props.vehicle.plate);
+
 const submit = () => {
   emit('save', {
     ...props.vehicle,
@@ -82,9 +84,10 @@ const submit = () => {
         <FontAwesomeIcon :icon="vehicleSymbolOptions.find((option) => option.value === (form.symbol || 'car'))?.icon ?? faCar" class="h-5 w-5" />
       </div>
       <div>
-        <h2 class="text-lg font-semibold text-gray-900">Fahrzeugprofil</h2>
+        <h2 class="text-lg font-semibold text-gray-900">{{ isCreateMode ? 'Neues Fahrzeug' : 'Fahrzeugprofil' }}</h2>
         <p class="text-sm text-gray-600 mt-1">
-          {{ vehicle.name }}<span v-if="vehicleSummary"> · {{ vehicleSummary }}</span>
+          <template v-if="isCreateMode">Fülle die Fahrzeugdaten aus und speichere dann das Fahrzeug.</template>
+          <template v-else>{{ vehicle.name }}<span v-if="vehicleSummary"> · {{ vehicleSummary }}</span></template>
         </p>
       </div>
     </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDownIcon, EllipsisVerticalIcon, EyeIcon, PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
+import { ArrowRightIcon, ChevronDownIcon, EllipsisVerticalIcon, EyeIcon, PencilSquareIcon, PlusIcon, TrashIcon } from '@heroicons/vue/24/outline';
 import { computed, ref } from 'vue';
 import type { VehicleProfile } from '../types/maintenance';
 
@@ -11,6 +11,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'change', vehicleId: string): void;
   (e: 'create'): void;
+  (e: 'join'): void;
   (e: 'view', vehicleId: string): void;
   (e: 'edit', vehicleId: string): void;
   (e: 'delete', vehicleId: string): void;
@@ -95,14 +96,23 @@ const hasMultipleVehicles = computed(() => props.vehicles.length > 1);
     </div>
     <h3 class="mt-4 text-xl font-semibold text-gray-900">Noch kein Fahrzeug vorhanden</h3>
     <p class="mt-2 text-sm text-gray-600">
-      Lege dein erstes Fahrzeug an, um Wartungen, Freigaben und Startseiteninfos zu nutzen.
+      Lege dein erstes Fahrzeug an oder verbinde dich per Einladungscode mit einem vorhandenen Fahrzeug.
     </p>
-    <button
-      @click="emit('create')"
-      class="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700"
-    >
-      <PlusIcon class="h-4 w-4" />
-      Fahrzeug anlegen
-    </button>
+    <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <button
+        @click="emit('create')"
+        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700"
+      >
+        <PlusIcon class="h-4 w-4" />
+        Fahrzeug anlegen
+      </button>
+      <button
+        @click="emit('join')"
+        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+      >
+        <ArrowRightIcon class="h-4 w-4" />
+        Mit Fahrzeug verbinden
+      </button>
+    </div>
   </section>
 </template>

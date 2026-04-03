@@ -48,9 +48,7 @@ const readVehicles = (): VehicleProfile[] => {
   const parsedVehicles = migrated?.data ?? [];
   const validVehicles = parsedVehicles.filter(isVehicleProfile);
 
-  return validVehicles.length > 0
-    ? validVehicles.map(normalizeVehicle)
-    : [createDefaultVehicleProfile()];
+  return validVehicles.map(normalizeVehicle);
 };
 
 const saveVehicles = (vehicles: VehicleProfile[]) => {
@@ -99,8 +97,6 @@ export const localVehiclesRepository: VehiclesRepository = {
 
   async remove(vehicleId) {
     const vehicles = readVehicles();
-    if (vehicles.length <= 1) return false;
-
     const nextVehicles = vehicles.filter((vehicle) => vehicle.id !== vehicleId);
     if (nextVehicles.length === vehicles.length) return false;
 

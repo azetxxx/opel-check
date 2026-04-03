@@ -29,6 +29,9 @@ const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle, createVehicl
 const { user, isAuthenticated, isConfigured, isLoading: isAuthLoading, signInWithMagicLink, signOut } = useAuth();
 const editingVehicleId = ref<string | null>(null);
 const viewingVehicleId = ref<string | null>(null);
+const creatingVehicle = ref(false);
+const joiningVehicle = ref(false);
+const joinInviteCode = ref('');
 const { preferences, updatePreferences } = useAppPreferences();
 const vehicleInvites = ref<VehicleInviteRow[]>([]);
 const isInviteLoading = ref(false);
@@ -38,6 +41,23 @@ const vehicleFeedback = ref<{ type: 'success' | 'error'; message: string } | nul
 const isCloudEnabled = computed(() => storageProvider === 'supabase' && isConfigured.value && isAuthenticated.value);
 
 const selectedVehicleForModal = computed(() => {
+  if (creatingVehicle.value) {
+    return {
+      id: crypto.randomUUID(),
+      name: '',
+      brand: '',
+      model: '',
+      plate: '',
+      year: undefined,
+      vin: undefined,
+      notes: '',
+      currentMileage: null,
+      symbol: 'car',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    } as VehicleProfile;
+  }
+
   return vehicles.value.find((vehicle) => vehicle.id === (editingVehicleId.value ?? viewingVehicleId.value)) ?? activeVehicle.value;
 });
 
@@ -84,6 +104,24 @@ const setTimedFeedback = (
 
 const saveVehicleProfile = async (vehicle: VehicleProfile) => {
   try {
+    if (creatingVehicle.value) {
+      const createdVehicle = await createVehicle({
+        name: vehicle.name,
+        brand: vehicle.brand,
+        model: vehicle.model,
+        plate: vehicle.plate,
+        year: vehicle.year,
+        vin: vehicle.vin,
+        notes: vehicle.notes,
+        currentMileage: vehicle.currentMileage,
+        symbol: vehicle.symbol
+      });
+      await ensureBuiltInTasksForVehicle(createdVehicle.id);
+      setTimedFeedback(vehicleFeedback, 'success', 'Fahrzeug erstellt.');
+      closeVehicleModal();
+      return;
+    }
+
     await updateVehicle(vehicle);
     setTimedFeedback(vehicleFeedback, 'success', 'Fahrzeug gespeichert.');
     closeVehicleModal();
@@ -154,12 +192,23 @@ const handleAcceptInvite = async (code: string) => {
     await reloadVehicles();
     await loadVehicleInvites();
     setTimedFeedback(sharingFeedback, 'success', 'Fahrzeug erfolgreich hinzugefügt.');
+    joiningVehicle.value = false;
+    joinInviteCode.value = '';
   } catch (error) {
     console.error('Error accepting invite:', error);
     setTimedFeedback(sharingFeedback, 'error', `Invite-Code konnte nicht eingelöst werden: ${getErrorMessage(error)}`);
   } finally {
     isInviteLoading.value = false;
   }
+};
+
+const submitJoinVehicle = async () => {
+  if (!joinInviteCode.value.trim()) {
+    setTimedFeedback(vehicleFeedback, 'error', 'Bitte Einladungscode eingeben.');
+    return;
+  }
+
+  await handleAcceptInvite(joinInviteCode.value);
 };
 
 watch(
@@ -185,29 +234,24 @@ const viewVehicle = (vehicleId: string) => {
 const closeVehicleModal = () => {
   editingVehicleId.value = null;
   viewingVehicleId.value = null;
+  creatingVehicle.value = false;
+  joiningVehicle.value = false;
+  joinInviteCode.value = '';
 };
 
-const addVehicle = async () => {
-  try {
-    const vehicle = await createVehicle({
-      name: `Fahrzeug ${vehicles.value.length + 1}`,
-      brand: 'Opel',
-      notes: 'Neues Fahrzeug'
-    });
-    await ensureBuiltInTasksForVehicle(vehicle.id);
-    setTimedFeedback(vehicleFeedback, 'success', 'Neues Fahrzeug erstellt.');
-  } catch (error) {
-    console.error('Error creating vehicle:', error);
-    setTimedFeedback(vehicleFeedback, 'error', `Fahrzeug konnte nicht erstellt werden: ${getErrorMessage(error)}`);
-  }
+const openJoinVehicleModal = () => {
+  joiningVehicle.value = true;
+  editingVehicleId.value = null;
+  viewingVehicleId.value = null;
+};
+
+const addVehicle = () => {
+  creatingVehicle.value = true;
+  editingVehicleId.value = null;
+  viewingVehicleId.value = null;
 };
 
 const removeVehicle = async (vehicleId: string) => {
-  if (vehicles.value.length <= 1) {
-    alert('Mindestens ein Fahrzeug muss erhalten bleiben.');
-    return;
-  }
-
   const vehicle = vehicles.value.find((item) => item.id === vehicleId);
   if (!vehicle) return;
 
@@ -220,6 +264,7 @@ const removeVehicle = async (vehicleId: string) => {
     return;
   }
 
+  closeVehicleModal();
   setTimedFeedback(vehicleFeedback, 'success', 'Fahrzeug gelöscht.');
 };
 
@@ -363,6 +408,7 @@ const toggleBuiltInTask = async (taskId: string, enabled: boolean) => {
         :active-vehicle-id="activeVehicleId"
         @change="setActiveVehicle"
         @create="addVehicle"
+        @join="openJoinVehicleModal"
         @view="viewVehicle"
         @edit="editVehicle"
         @delete="removeVehicle"
@@ -437,7 +483,7 @@ const toggleBuiltInTask = async (taskId: string, enabled: boolean) => {
       <BackupPanel :is-importing="isImportingBackup" @export="exportBackup" @import-file="importBackup" />
     </section>
 
-    <div v-if="editingVehicleId || viewingVehicleId" class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+    <div v-if="editingVehicleId || viewingVehicleId || creatingVehicle" class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
       <div class="w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <VehicleProfileCard
           :vehicle="selectedVehicleForModal"
@@ -446,6 +492,47 @@ const toggleBuiltInTask = async (taskId: string, enabled: boolean) => {
           @delete="removeVehicle"
           @close="closeVehicleModal"
         />
+      </div>
+    </div>
+
+    <div v-if="joiningVehicle" class="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center">
+      <div class="w-full max-w-md rounded-[28px] border border-gray-100 bg-white p-5 shadow-2xl">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h3 class="text-xl font-semibold text-gray-900">Mit Fahrzeug verbinden</h3>
+            <p class="mt-1 text-sm text-gray-600">Gib einen Einladungscode ein, um einem vorhandenen Fahrzeug beizutreten.</p>
+          </div>
+        </div>
+
+        <div class="mt-4 space-y-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Einladungscode</label>
+            <input
+              v-model="joinInviteCode"
+              type="text"
+              class="w-full rounded-2xl border border-gray-300 px-4 py-3 text-sm uppercase focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="ABCD2345"
+            >
+          </div>
+        </div>
+
+        <div class="mt-5 flex gap-3">
+          <button
+            @click="closeVehicleModal"
+            type="button"
+            class="flex min-h-11 flex-1 items-center justify-center rounded-2xl border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Abbrechen
+          </button>
+          <button
+            @click="submitJoinVehicle"
+            :disabled="isInviteLoading || !joinInviteCode.trim()"
+            type="button"
+            class="flex min-h-11 flex-1 items-center justify-center rounded-2xl bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+          >
+            Verbinden
+          </button>
+        </div>
       </div>
     </div>
   </section>
