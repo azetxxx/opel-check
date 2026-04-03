@@ -33,6 +33,12 @@ export interface VehicleMemberRow {
   created_at: string;
 }
 
+export interface VehicleMemberListItem extends VehicleMemberRow {
+  label: string;
+  email: string | null;
+  display_name: string | null;
+}
+
 export interface VehicleInviteRow {
   id: string;
   vehicle_id: string;

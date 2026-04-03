@@ -16,11 +16,11 @@ import { useMaintenanceLogs } from '../composables/useMaintenanceLogs';
 import { useVehicleProfile } from '../composables/useVehicleProfile';
 import { useAppPreferences } from '../composables/useAppPreferences';
 import { storageProvider } from '../services/storage';
-import { acceptVehicleInvite, createVehicleInvite, listVehicleInvites } from '../services/storage/inviteService';
+import { acceptVehicleInvite, createVehicleInvite, listVehicleInvites, listVehicleMembers, removeVehicleMember, revokeVehicleInvite, updateVehicleMemberRole } from '../services/storage/inviteService';
 import { BUILT_IN_MAINTENANCE_TASKS, createBuiltInTaskForVehicle } from '../constants/builtInMaintenanceTasks';
 import type { VehicleProfile } from '../types/maintenance';
 import type { AppPreferences } from '../types/preferences';
-import type { VehicleInviteRow, VehicleMemberRole } from '../types/supabase';
+import type { VehicleInviteRow, VehicleMemberListItem, VehicleMemberRole } from '../types/supabase';
 import { createBackupPayload, downloadBackup, validateBackupPayload } from '../utils/backup';
 
 const { maintenanceTasks, replaceTasks, restoreTask, archiveTask, saveTask, ensureBuiltInTasksForVehicle } = useMaintenanceData();
@@ -34,6 +34,7 @@ const joiningVehicle = ref(false);
 const joinInviteCode = ref('');
 const { preferences, updatePreferences } = useAppPreferences();
 const vehicleInvites = ref<VehicleInviteRow[]>([]);
+const vehicleMembers = ref<VehicleMemberListItem[]>([]);
 const isInviteLoading = ref(false);
 const authFeedback = ref<{ type: 'success' | 'error'; message: string } | null>(null);
 const sharingFeedback = ref<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -89,6 +90,24 @@ const getErrorMessage = (error: unknown) => {
   return 'Unbekannter Fehler';
 };
 
+const getMemberManagementErrorMessage = (error: unknown) => {
+  const message = getErrorMessage(error);
+
+  if (message.includes('Last owner cannot be removed')) {
+    return 'Der letzte Owner eines Fahrzeugs kann nicht entfernt werden. Übertrage zuerst die Owner-Rolle an eine andere Person.';
+  }
+
+  if (message.includes('Last owner cannot be downgraded')) {
+    return 'Der letzte Owner eines Fahrzeugs kann nicht herabgestuft werden. Lege zuerst einen weiteren Owner fest.';
+  }
+
+  if (message.includes('Access denied')) {
+    return 'Diese Aktion ist nur für Owner des Fahrzeugs erlaubt.';
+  }
+
+  return message;
+};
+
 const setTimedFeedback = (
   target: typeof authFeedback,
   type: 'success' | 'error',
@@ -132,18 +151,25 @@ const saveVehicleProfile = async (vehicle: VehicleProfile) => {
   }
 };
 
-const loadVehicleInvites = async () => {
+const loadVehicleSharingData = async () => {
   if (!isCloudEnabled.value) {
     vehicleInvites.value = [];
+    vehicleMembers.value = [];
     return;
   }
 
   try {
     isInviteLoading.value = true;
-    vehicleInvites.value = await listVehicleInvites(activeVehicle.value.id);
+    const [invites, members] = await Promise.all([
+      listVehicleInvites(activeVehicle.value.id),
+      listVehicleMembers(activeVehicle.value.id)
+    ]);
+    vehicleInvites.value = invites;
+    vehicleMembers.value = members;
   } catch (error) {
-    console.error('Error loading vehicle invites:', error);
+    console.error('Error loading vehicle sharing data:', error);
     vehicleInvites.value = [];
+    vehicleMembers.value = [];
   } finally {
     isInviteLoading.value = false;
   }
@@ -191,13 +217,55 @@ const handleAcceptInvite = async (code: string) => {
     isInviteLoading.value = true;
     await acceptVehicleInvite(code);
     await reloadVehicles();
-    await loadVehicleInvites();
+    await loadVehicleSharingData();
     setTimedFeedback(sharingFeedback, 'success', 'Fahrzeug erfolgreich hinzugefügt.');
     joiningVehicle.value = false;
     joinInviteCode.value = '';
   } catch (error) {
     console.error('Error accepting invite:', error);
     setTimedFeedback(sharingFeedback, 'error', `Invite-Code konnte nicht eingelöst werden: ${getErrorMessage(error)}`);
+  } finally {
+    isInviteLoading.value = false;
+  }
+};
+
+const handleUpdateMemberRole = async (payload: { memberId: string; role: VehicleMemberRole }) => {
+  try {
+    isInviteLoading.value = true;
+    await updateVehicleMemberRole(payload.memberId, payload.role);
+    await loadVehicleSharingData();
+    setTimedFeedback(sharingFeedback, 'success', 'Rolle aktualisiert.');
+  } catch (error) {
+    console.error('Error updating member role:', error);
+    setTimedFeedback(sharingFeedback, 'error', `Rolle konnte nicht geändert werden: ${getMemberManagementErrorMessage(error)}`);
+  } finally {
+    isInviteLoading.value = false;
+  }
+};
+
+const handleRemoveMember = async (memberId: string) => {
+  try {
+    isInviteLoading.value = true;
+    await removeVehicleMember(memberId);
+    await loadVehicleSharingData();
+    setTimedFeedback(sharingFeedback, 'success', 'Mitglied entfernt.');
+  } catch (error) {
+    console.error('Error removing member:', error);
+    setTimedFeedback(sharingFeedback, 'error', `Mitglied konnte nicht entfernt werden: ${getMemberManagementErrorMessage(error)}`);
+  } finally {
+    isInviteLoading.value = false;
+  }
+};
+
+const handleRevokeInvite = async (inviteId: string) => {
+  try {
+    isInviteLoading.value = true;
+    await revokeVehicleInvite(inviteId);
+    await loadVehicleSharingData();
+    setTimedFeedback(sharingFeedback, 'success', 'Einladung widerrufen.');
+  } catch (error) {
+    console.error('Error revoking invite:', error);
+    setTimedFeedback(sharingFeedback, 'error', `Einladung konnte nicht widerrufen werden: ${getErrorMessage(error)}`);
   } finally {
     isInviteLoading.value = false;
   }
@@ -215,7 +283,7 @@ const submitJoinVehicle = async () => {
 watch(
   [() => activeVehicle.value.id, () => isCloudEnabled.value],
   () => {
-    void loadVehicleInvites();
+    void loadVehicleSharingData();
   },
   { immediate: true }
 );
@@ -426,12 +494,16 @@ const toggleBuiltInTask = async (taskId: string, enabled: boolean) => {
         :vehicle="activeVehicle"
         :enabled="isCloudEnabled"
         :invites="vehicleInvites"
+        :members="vehicleMembers"
         :loading="isInviteLoading"
         :success-message="sharingFeedback?.type === 'success' ? sharingFeedback.message : null"
         :error-message="sharingFeedback?.type === 'error' ? sharingFeedback.message : null"
-        @refresh="loadVehicleInvites"
+        @refresh="loadVehicleSharingData"
         @create-invite="handleCreateInvite"
         @accept-invite="handleAcceptInvite"
+        @update-member-role="handleUpdateMemberRole"
+        @remove-member="handleRemoveMember"
+        @revoke-invite="handleRevokeInvite"
       />
     </section>
 

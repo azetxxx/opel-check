@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import type { VehicleProfile } from '../types/maintenance';
-import type { VehicleInviteRow, VehicleMemberRole } from '../types/supabase';
+import type { VehicleInviteRow, VehicleMemberListItem, VehicleMemberRole } from '../types/supabase';
 
 const props = defineProps<{
   vehicle: VehicleProfile;
   enabled: boolean;
   invites: VehicleInviteRow[];
+  members: VehicleMemberListItem[];
   loading?: boolean;
   successMessage?: string | null;
   errorMessage?: string | null;
@@ -16,6 +17,9 @@ const emit = defineEmits<{
   (e: 'refresh'): void;
   (e: 'create-invite', payload: { vehicleId: string; role: Exclude<VehicleMemberRole, 'owner'> }): void;
   (e: 'accept-invite', code: string): void;
+  (e: 'update-member-role', payload: { memberId: string; role: VehicleMemberRole }): void;
+  (e: 'remove-member', memberId: string): void;
+  (e: 'revoke-invite', inviteId: string): void;
 }>();
 
 const inviteCode = ref('');
@@ -29,6 +33,7 @@ watch(
 );
 
 const hasInvites = computed(() => props.invites.length > 0);
+const hasMembers = computed(() => props.members.length > 0);
 
 const createInvite = () => {
   emit('create-invite', {
@@ -80,6 +85,36 @@ const acceptInvite = () => {
         </button>
       </div>
 
+      <div v-if="hasMembers" class="space-y-2">
+        <p class="text-sm font-medium text-gray-700">Mitglieder</p>
+        <div v-for="member in members" :key="member.id" class="rounded-2xl border border-gray-200 px-4 py-3">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-gray-900 break-all">{{ member.email || member.label }}</p>
+              <p v-if="member.display_name" class="mt-1 text-sm text-gray-500">{{ member.display_name }}</p>
+              <p class="mt-1 text-sm text-gray-500">Rolle: {{ member.role }}</p>
+            </div>
+            <div class="flex flex-col items-end gap-2">
+              <select
+                :value="member.role"
+                @change="emit('update-member-role', { memberId: member.id, role: ($event.target as HTMLSelectElement).value as VehicleMemberRole })"
+                class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700"
+              >
+                <option value="owner">Owner</option>
+                <option value="driver">Driver</option>
+                <option value="viewer">Viewer</option>
+              </select>
+              <button
+                @click="emit('remove-member', member.id)"
+                class="rounded-xl border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
+              >
+                Entfernen
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div v-if="hasInvites" class="space-y-2">
         <p class="text-sm font-medium text-gray-700">Aktive Codes</p>
         <div v-for="invite in invites" :key="invite.id" class="rounded-2xl border border-gray-200 px-4 py-3">
@@ -89,10 +124,10 @@ const acceptInvite = () => {
               <p class="mt-1 text-sm text-gray-500">Rolle: {{ invite.role }}</p>
             </div>
             <button
-              @click="emit('refresh')"
-              class="rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+              @click="emit('revoke-invite', invite.id)"
+              class="rounded-xl border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50"
             >
-              Aktualisieren
+              Widerrufen
             </button>
           </div>
         </div>

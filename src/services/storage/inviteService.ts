@@ -1,5 +1,5 @@
 import { getSupabaseClient } from '../../lib/supabase';
-import type { VehicleInviteRow, VehicleMemberRole, VehicleMemberRow } from '../../types/supabase';
+import type { VehicleInviteRow, VehicleMemberListItem, VehicleMemberRole, VehicleMemberRow } from '../../types/supabase';
 
 const randomCode = (length = 8) => {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -73,4 +73,58 @@ export const acceptVehicleInvite = async (inviteCode: string): Promise<VehicleMe
   }
 
   return row as VehicleMemberRow;
+};
+
+export const listVehicleMembers = async (vehicleId: string): Promise<VehicleMemberListItem[]> => {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('list_vehicle_members_with_profiles', {
+    p_vehicle_id: vehicleId
+  });
+
+  if (error) throw error;
+
+  return (data ?? []).map((member: unknown) => {
+    const row = member as VehicleMemberListItem;
+    return {
+      ...row,
+      label: row.email ?? row.display_name ?? row.user_id
+    };
+  });
+};
+
+export const updateVehicleMemberRole = async (memberId: string, role: VehicleMemberRole): Promise<VehicleMemberRow> => {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('update_vehicle_member_role', {
+    p_member_id: memberId,
+    p_role: role
+  });
+
+  if (error) throw error;
+
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) {
+    throw new Error('Role update returned no member row.');
+  }
+
+  return row as VehicleMemberRow;
+};
+
+export const removeVehicleMember = async (memberId: string): Promise<string> => {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('remove_vehicle_member', {
+    p_member_id: memberId
+  });
+
+  if (error) throw error;
+  return (Array.isArray(data) ? data[0] : data) as string;
+};
+
+export const revokeVehicleInvite = async (inviteId: string): Promise<string> => {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.rpc('revoke_vehicle_invite', {
+    p_invite_id: inviteId
+  });
+
+  if (error) throw error;
+  return (Array.isArray(data) ? data[0] : data) as string;
 };
