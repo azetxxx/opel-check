@@ -68,21 +68,24 @@ const acceptInvite = () => {
         {{ successMessage }}
       </div>
 
-      <div class="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-end">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Rolle für Einladung</label>
-          <select v-model="inviteRole" class="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <option value="driver">Driver</option>
-            <option value="viewer">Viewer</option>
-          </select>
+      <div class="space-y-3 rounded-2xl border border-gray-100 bg-gray-50/70 p-4">
+        <p class="text-sm font-medium text-gray-700">Neue Einladung</p>
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-end">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Rolle für Einladung</label>
+            <select v-model="inviteRole" class="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <option value="driver">Fahrer</option>
+              <option value="viewer">Mitleser</option>
+            </select>
+          </div>
+          <button
+            @click="createInvite"
+            :disabled="loading"
+            class="flex min-h-12 items-center justify-center rounded-[20px] bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
+          >
+            Einladungs-Code erstellen
+          </button>
         </div>
-        <button
-          @click="createInvite"
-          :disabled="loading"
-          class="flex min-h-12 items-center justify-center rounded-[20px] bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-        >
-          Einladungs-Code erstellen
-        </button>
       </div>
 
       <div v-if="hasMembers" class="space-y-2">
@@ -90,7 +93,15 @@ const acceptInvite = () => {
         <div v-for="member in members" :key="member.id" class="rounded-2xl border border-gray-200 px-4 py-3">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <p class="text-sm font-medium text-gray-900 break-all">{{ member.email || member.label }}</p>
+              <div class="flex flex-wrap items-center gap-2">
+                <p class="text-sm font-medium text-gray-900 break-all">{{ member.email || member.label }}</p>
+                <span
+                  v-if="member.role === 'owner'"
+                  class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800"
+                >
+                  Owner
+                </span>
+              </div>
               <p v-if="member.display_name" class="mt-1 text-sm text-gray-500">{{ member.display_name }}</p>
               <p class="mt-1 text-sm text-gray-500">Rolle: {{ member.role }}</p>
             </div>
@@ -101,8 +112,8 @@ const acceptInvite = () => {
                 class="rounded-xl border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700"
               >
                 <option value="owner">Owner</option>
-                <option value="driver">Driver</option>
-                <option value="viewer">Viewer</option>
+                <option value="driver">Fahrer</option>
+                <option value="viewer">Mitleser</option>
               </select>
               <button
                 @click="emit('remove-member', member.id)"
@@ -116,7 +127,15 @@ const acceptInvite = () => {
       </div>
 
       <div v-if="hasInvites" class="space-y-2">
-        <p class="text-sm font-medium text-gray-700">Aktive Codes</p>
+        <div class="flex items-center justify-between gap-3">
+          <p class="text-sm font-medium text-gray-700">Aktive Einladungen</p>
+          <button
+            @click="emit('refresh')"
+            class="rounded-xl border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
+          >
+            Aktualisieren
+          </button>
+        </div>
         <div v-for="invite in invites" :key="invite.id" class="rounded-2xl border border-gray-200 px-4 py-3">
           <div class="flex items-center justify-between gap-3">
             <div>

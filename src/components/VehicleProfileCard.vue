@@ -135,6 +135,13 @@ const submit = () => {
     <div class="mt-5 flex flex-col gap-3 sm:flex-row">
       <button
         v-if="!readonly"
+        @click="emit('close')"
+        class="flex min-h-12 w-full items-center justify-center rounded-[20px] border border-gray-300 px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+      >
+        Abbrechen
+      </button>
+      <button
+        v-if="!readonly"
         @click="submit"
         class="flex min-h-12 w-full items-center justify-center rounded-[20px] bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700"
       >

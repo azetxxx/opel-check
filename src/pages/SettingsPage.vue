@@ -108,6 +108,24 @@ const getMemberManagementErrorMessage = (error: unknown) => {
   return message;
 };
 
+const getVehicleEditErrorMessage = (error: unknown) => {
+  const message = getErrorMessage(error);
+
+  if (
+    message.includes('Cannot coerce the result to a single JSON object') ||
+    message.includes('JSON object requested, multiple (or no) rows returned') ||
+    message.includes('PGRST116')
+  ) {
+    return 'Du kannst dieses Fahrzeug nicht bearbeiten, weil du nicht Owner bist.';
+  }
+
+  if (message.includes('Access denied')) {
+    return 'Du kannst dieses Fahrzeug nicht bearbeiten, weil du nicht Owner bist.';
+  }
+
+  return message;
+};
+
 const setTimedFeedback = (
   target: typeof authFeedback,
   type: 'success' | 'error',
@@ -147,7 +165,7 @@ const saveVehicleProfile = async (vehicle: VehicleProfile) => {
     closeVehicleModal();
   } catch (error) {
     console.error('Error saving vehicle profile:', error);
-    setTimedFeedback(vehicleFeedback, 'error', `Fahrzeug konnte nicht gespeichert werden: ${getErrorMessage(error)}`);
+    setTimedFeedback(vehicleFeedback, 'error', getVehicleEditErrorMessage(error));
   }
 };
 
