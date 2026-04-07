@@ -88,7 +88,7 @@ export const localMaintenanceTasksRepository: MaintenanceTasksRepository = {
       }
     }
 
-    const newTask = normalizeTask({ ...task, id: crypto.randomUUID(), isCustom: true, isArchived: false, createdAt: nowIso(), updatedAt: nowIso() });
+    const newTask = normalizeTask({ id: crypto.randomUUID(), isCustom: true, isArchived: false, createdAt: nowIso(), updatedAt: nowIso(), ...task });
     tasks.unshift(newTask);
     saveTasks(tasks);
     return tasks;
