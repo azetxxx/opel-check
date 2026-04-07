@@ -70,7 +70,11 @@ const builtInTasks = computed(() => {
       return task.vehicleId === activeVehicle.value.id && !task.isCustom && task.description === definition.description;
     });
 
-    return existingTask ?? createBuiltInTaskForVehicle(definition, activeVehicle.value.id);
+    if (existingTask) return existingTask;
+
+    const placeholder = createBuiltInTaskForVehicle(definition, activeVehicle.value.id);
+    placeholder.isArchived = true;
+    return placeholder;
   });
 });
 
