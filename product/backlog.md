@@ -32,7 +32,7 @@ All user stories grouped by the problem they solve. Each story follows the forma
 ### 1.5 Offline Asset Caching
 *Alltagsfahrer* — The app works without internet (cached via service worker), so I can check maintenance status in the garage with no signal.
 
-### 1.6 Push Notifications (planned)
+### 1.6 Push Notifications ✅
 *Alltagsfahrer* — I receive a notification when a task becomes overdue, so I don't have to remember to open the app.
 
 ### 1.7 Offline Write Queue (planned)

@@ -6,19 +6,17 @@
 
 ## Status
 
-**PWA live** on Netlify. Core maintenance tracking, multi-vehicle support, and optional Supabase cloud sync are implemented. Vehicle sharing via invite codes is functional. Map and music modules are local-only shortcuts. Member management UI is in progress.
+**PWA live** on Netlify. Core maintenance tracking, multi-vehicle support, and optional Supabase cloud sync are implemented. Vehicle sharing via invite codes is functional. Map and music modules are local-only shortcuts. Push notifications for overdue tasks are active. Local-to-cloud migration wizard migrates all user data (vehicles, tasks, logs, places, playlists) on first sign-in.
 
-**Branch:** `ui/redesign-option-a` (active development)
+**Branch:** `main`
 
 ## Next Steps
 
-- Apply and validate member-management SQL patch in Supabase
+- Mileage-based task triggers (wire `due_mileage` / `last_mileage` into status computation)
+- Offline write queue for Supabase writes
+- Role-based views (hide actions based on viewer/driver/owner role)
 - E2E test sharing flows (invite, accept, role change, revoke)
-- Production validation of all major flows (new account, local-only, invite, multi-vehicle, permissions)
-- Push notifications for overdue tasks
-- Mileage-based task triggers
-- Data migration wizard (local → cloud)
-- Offline queue for Supabase writes
+- Production validation of all major flows
 
 ## Stack
 
@@ -29,7 +27,7 @@
 - Heroicons + Font Awesome
 - Supabase (optional backend: auth, Postgres, RLS)
 - localStorage for local-first persistence
-- vite-plugin-pwa (Workbox)
+- vite-plugin-pwa (injectManifest, custom service worker with periodic sync)
 
 ## Workspace
 
