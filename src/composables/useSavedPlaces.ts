@@ -8,30 +8,7 @@ const STORAGE_VERSION = STORAGE_VERSIONS.vehicles;
 
 const nowIso = () => new Date().toISOString();
 
-const defaultPlaces: SavedPlace[] = [
-  {
-    id: 'place-home',
-    label: 'Zuhause',
-    address: 'München',
-    icon: '🏠',
-    notes: 'Beispieladresse',
-    providers: ['google', 'apple', 'waze'],
-    defaultProvider: 'google',
-    createdAt: nowIso(),
-    updatedAt: nowIso()
-  },
-  {
-    id: 'place-work',
-    label: 'Arbeit',
-    address: 'Berlin',
-    icon: '💼',
-    notes: 'Arbeitsweg',
-    providers: ['google', 'apple'],
-    defaultProvider: 'google',
-    createdAt: nowIso(),
-    updatedAt: nowIso()
-  }
-];
+const defaultPlaces: SavedPlace[] = [];
 
 const places = ref<SavedPlace[]>([]);
 let initialized = false;

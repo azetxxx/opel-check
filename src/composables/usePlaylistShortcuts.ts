@@ -8,30 +8,7 @@ const STORAGE_VERSION = STORAGE_VERSIONS.logs;
 
 const nowIso = () => new Date().toISOString();
 
-const defaultShortcuts: PlaylistShortcut[] = [
-  {
-    id: 'playlist-roadtrip',
-    title: 'Roadtrip Mix',
-    provider: 'spotify',
-    url: 'https://open.spotify.com/',
-    notes: 'Beispiel-Link',
-    icon: '🚗',
-    pinned: true,
-    createdAt: nowIso(),
-    updatedAt: nowIso()
-  },
-  {
-    id: 'playlist-chill',
-    title: 'Chill Fahrt',
-    provider: 'youtube-music',
-    url: 'https://music.youtube.com/',
-    notes: 'Beispiel-Link',
-    icon: '🎵',
-    pinned: false,
-    createdAt: nowIso(),
-    updatedAt: nowIso()
-  }
-];
+const defaultShortcuts: PlaylistShortcut[] = [];
 
 const shortcuts = ref<PlaylistShortcut[]>([]);
 let initialized = false;

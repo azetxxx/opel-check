@@ -1,5 +1,4 @@
 import { STORAGE_KEYS, STORAGE_VERSIONS } from '../../constants/storage';
-import { BUILT_IN_MAINTENANCE_TASKS, createBuiltInTaskForVehicle } from '../../constants/builtInMaintenanceTasks';
 import type { MaintenanceTask, TaskScheduleType } from '../../types/maintenance';
 import { migrateTasksStorage } from '../../utils/storageMigrations';
 import { readRawStorage, writeStorageEnvelope } from '../../utils/storage';
@@ -8,7 +7,7 @@ import type { MaintenanceTasksRepository } from './types';
 
 const nowIso = () => new Date().toISOString();
 
-const initialTasks: MaintenanceTask[] = BUILT_IN_MAINTENANCE_TASKS.map((definition) => createBuiltInTaskForVehicle(definition, DEFAULT_VEHICLE_ID));
+const initialTasks: MaintenanceTask[] = [];
 
 const getScheduleType = (task: Partial<MaintenanceTask>): TaskScheduleType => {
   if (task.scheduleType) return task.scheduleType;

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ChevronDownIcon } from '@heroicons/vue/20/solid';
 import { ClipboardDocumentListIcon, PlusIcon } from '@heroicons/vue/24/outline';
-import { computed, onBeforeUnmount, onErrorCaptured, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onErrorCaptured, onMounted, onUnmounted, ref } from 'vue';
 import StatusToast from '../components/StatusToast.vue';
 import LogModal from '../components/LogModal.vue';
 import TaskCard from '../components/TaskCard.vue';
@@ -15,7 +15,7 @@ import type { MaintenanceTask } from '../types/maintenance';
 import { getCurrentDate, getNextCheckDate, toDateInputValue } from '../utils/maintenanceDates';
 import { enrichTasks } from '../utils/maintenanceTasks';
 
-const { maintenanceTasks, updateTask, saveTask, archiveTask, removeTask, ensureBuiltInTasksForVehicle } = useMaintenanceData();
+const { maintenanceTasks, updateTask, saveTask, archiveTask, removeTask } = useMaintenanceData();
 const { addLog, isLoading, openLogModal } = useMaintenanceLogs();
 const { activeVehicle } = useVehicleProfile();
 const { preferences } = useAppPreferences();
@@ -36,14 +36,6 @@ const collapsedSections = ref<Record<'urgent' | 'dueSoon' | 'planned' | 'open' |
   open: false,
   done: true
 });
-
-watch(
-  () => activeVehicle.value.id,
-  () => {
-    void ensureBuiltInTasksForVehicle(activeVehicle.value.id);
-  },
-  { immediate: true }
-);
 
 const currentDate = computed(() => getCurrentDate(simulatedDate.value, useSimulatedDate.value));
 const filteredTasks = computed(() => maintenanceTasks.value.filter((task) => task.vehicleId === activeVehicle.value.id && !task.isArchived));
@@ -351,7 +343,7 @@ onErrorCaptured((err, instance, info) => {
             @click="openDemoConfirm"
             class="flex min-h-11 items-center justify-center rounded-2xl bg-white/20 px-3 py-2 text-sm font-medium text-white hover:bg-white/25"
           >
-            Demo
+            Demo laden
           </button>
           <button
             @click="openLogModal"

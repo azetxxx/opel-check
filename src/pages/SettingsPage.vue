@@ -23,7 +23,7 @@ import type { AppPreferences } from '../types/preferences';
 import type { VehicleInviteRow, VehicleMemberListItem, VehicleMemberRole } from '../types/supabase';
 import { createBackupPayload, downloadBackup, validateBackupPayload } from '../utils/backup';
 
-const { maintenanceTasks, replaceTasks, restoreTask, archiveTask, saveTask, ensureBuiltInTasksForVehicle } = useMaintenanceData();
+const { maintenanceTasks, replaceTasks, restoreTask, archiveTask, saveTask } = useMaintenanceData();
 const { logs, replaceLogs } = useMaintenanceLogs();
 const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle, createVehicle, updateVehicle, deleteVehicle, replaceVehicles, reloadVehicles } = useVehicleProfile();
 const { user, isAuthenticated, isConfigured, isLoading: isAuthLoading, signInWithMagicLink, signOut } = useAuth();
@@ -143,7 +143,7 @@ const setTimedFeedback = (
 const saveVehicleProfile = async (vehicle: VehicleProfile) => {
   try {
     if (creatingVehicle.value) {
-      const createdVehicle = await createVehicle({
+      await createVehicle({
         name: vehicle.name,
         brand: vehicle.brand,
         model: vehicle.model,
@@ -154,7 +154,6 @@ const saveVehicleProfile = async (vehicle: VehicleProfile) => {
         currentMileage: vehicle.currentMileage,
         symbol: vehicle.symbol
       });
-      await ensureBuiltInTasksForVehicle(createdVehicle.id);
       setTimedFeedback(vehicleFeedback, 'success', 'Fahrzeug erstellt.');
       closeVehicleModal();
       return;
@@ -408,17 +407,6 @@ const toggleDeveloperSetting = (key: keyof AppPreferences['developer'], value: b
   });
 };
 
-const ensureBuiltInTasksForActiveVehicle = async () => {
-  await ensureBuiltInTasksForVehicle(activeVehicle.value.id);
-};
-
-watch(
-  () => activeVehicle.value.id,
-  () => {
-    void ensureBuiltInTasksForActiveVehicle();
-  },
-  { immediate: true }
-);
 
 const toggleBuiltInTask = async (taskId: string, enabled: boolean) => {
   const existingTask = maintenanceTasks.value.find((task) => task.id === taskId);
