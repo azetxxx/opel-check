@@ -1,9 +1,37 @@
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue';
 import { HomeIcon, MapIcon, WrenchScrewdriverIcon, MusicalNoteIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline';
 import { RouterLink, RouterView, useRoute } from 'vue-router';
 import PwaInstallBanner from './PwaInstallBanner.vue';
+import MigrationWizard from './MigrationWizard.vue';
+import { useAuth } from '../composables/useAuth';
+import { storageProvider } from '../services/storage';
+import { hasLocalData, wasMigrated, restoreUserDataFromCloud } from '../services/storage/migrationService';
+import type { MigrationResult } from '../services/storage/migrationService';
 
 const route = useRoute();
+const { isAuthenticated, isConfigured } = useAuth();
+
+const isCloudEnabled = computed(() => storageProvider === 'supabase' && isConfigured.value && isAuthenticated.value);
+const showMigrationWizard = ref(false);
+
+watch(isCloudEnabled, async (enabled) => {
+  if (!enabled) return;
+
+  if (!wasMigrated() && await hasLocalData()) {
+    showMigrationWizard.value = true;
+    return;
+  }
+
+  // On a new device with an existing account, restore places/playlists from cloud
+  try { await restoreUserDataFromCloud(); } catch { /* user_data table may not exist yet */ }
+});
+
+const handleMigrationDone = (_result: MigrationResult | null) => {
+  showMigrationWizard.value = false;
+  // Reload the current page so composables pick up the new data source
+  window.location.reload();
+};
 
 const navItems = [
   { name: 'Start', to: '/', icon: HomeIcon },
@@ -20,6 +48,8 @@ const navItems = [
       <PwaInstallBanner />
       <RouterView />
     </main>
+
+    <MigrationWizard v-if="showMigrationWizard" @done="handleMigrationDone" />
 
     <nav class="fixed bottom-0 inset-x-0 z-30 border-t border-gray-200 bg-white/95 backdrop-blur pb-[env(safe-area-inset-bottom)]">
       <div class="max-w-7xl mx-auto grid grid-cols-5">

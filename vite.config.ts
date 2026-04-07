@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['car-maintenance.svg', 'apple-touch-icon.svg', 'pwa-192.svg', 'pwa-512.svg'],
       manifest: {
@@ -33,7 +36,7 @@ export default defineConfig({
           }
         ]
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,svg,png,ico}']
       },
       devOptions: {

@@ -22,8 +22,9 @@ import type { VehicleProfile } from '../types/maintenance';
 import type { AppPreferences } from '../types/preferences';
 import type { VehicleInviteRow, VehicleMemberListItem, VehicleMemberRole } from '../types/supabase';
 import { createBackupPayload, downloadBackup, validateBackupPayload } from '../utils/backup';
-
+import { useNotifications } from '../composables/useNotifications';
 const { maintenanceTasks, replaceTasks, restoreTask, archiveTask, saveTask } = useMaintenanceData();
+const { isSupported: notificationsSupported, isGranted: notificationsGranted, isDenied: notificationsDenied, requestPermission: requestNotificationPermission } = useNotifications();
 const { logs, replaceLogs } = useMaintenanceLogs();
 const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle, createVehicle, updateVehicle, deleteVehicle, replaceVehicles, reloadVehicles } = useVehicleProfile();
 const { user, isAuthenticated, isConfigured, isLoading: isAuthLoading, signInWithMagicLink, signOut } = useAuth();
@@ -41,7 +42,6 @@ const sharingFeedback = ref<{ type: 'success' | 'error'; message: string } | nul
 const vehicleFeedback = ref<{ type: 'success' | 'error'; message: string } | null>(null);
 const isCloudEnabled = computed(() => storageProvider === 'supabase' && isConfigured.value && isAuthenticated.value);
 const isLocalOnlyMode = computed(() => !isAuthenticated.value);
-
 const selectedVehicleForModal = computed(() => {
   if (creatingVehicle.value) {
     return {
@@ -554,6 +554,38 @@ const toggleBuiltInTask = async (taskId: string, enabled: boolean) => {
       />
     </section>
 
+    <section v-if="notificationsSupported" class="space-y-3">
+      <div class="flex items-center justify-between gap-3">
+        <h3 class="text-xl font-semibold text-gray-900">Benachrichtigungen</h3>
+      </div>
+      <div class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm space-y-4">
+        <p class="text-sm text-gray-600">
+          Erhalte eine Erinnerung, wenn Wartungsaufgaben überfällig sind.
+        </p>
+
+        <div v-if="notificationsGranted" class="flex items-center justify-between gap-3 rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-4">
+          <div class="flex items-center gap-2 text-emerald-700">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+            <span class="text-sm font-medium">Benachrichtigungen aktiv</span>
+          </div>
+        </div>
+
+        <div v-else-if="notificationsDenied" class="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-4">
+          <p class="text-sm text-amber-800 font-medium">Benachrichtigungen wurden im Browser blockiert.</p>
+          <p class="mt-1 text-sm text-amber-700">Öffne die Browser-Einstellungen für diese Seite, um sie wieder zu erlauben.</p>
+        </div>
+
+        <button
+          v-else
+          @click="requestNotificationPermission"
+          type="button"
+          class="flex min-h-12 w-full items-center justify-center rounded-[20px] bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          Benachrichtigungen aktivieren
+        </button>
+      </div>
+    </section>
+
     <section class="space-y-3">
       <div class="flex items-center justify-between gap-3">
         <h3 class="text-xl font-semibold text-gray-900">Wartung</h3>
@@ -620,5 +652,6 @@ const toggleBuiltInTask = async (taskId: string, enabled: boolean) => {
         </div>
       </div>
     </div>
+
   </section>
 </template>

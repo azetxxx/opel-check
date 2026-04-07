@@ -254,7 +254,7 @@ onMounted(() => {
     <section v-if="!onboardingComplete" class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm space-y-4">
       <div class="flex items-center justify-between gap-3">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">Loslegen</h3>
+          <h3 class="text-lg font-semibold text-gray-900">Loslegen <span class="font-normal text-gray-400">({{ activeVehicle.name }})</span></h3>
           <p class="mt-1 text-sm text-gray-600">Richte Omiigo Car in wenigen Schritten ein.</p>
         </div>
         <span class="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">

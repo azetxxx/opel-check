@@ -1,10 +1,36 @@
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { BUILT_IN_MAINTENANCE_TASKS } from '../constants/builtInMaintenanceTasks';
 import type { MaintenanceTask } from '../types/maintenance';
 import { maintenanceTasksRepository } from '../services/storage';
 
+const TASK_CACHE = 'overdue-check-data';
+const TASK_CACHE_KEY = '/task-snapshot.json';
+
+const mirrorTasksToCache = async (tasks: MaintenanceTask[]) => {
+  try {
+    const snapshot = tasks.map((t) => ({
+      description: t.description,
+      scheduleType: t.scheduleType,
+      nextCheck: t.nextCheck,
+      dueDate: t.dueDate,
+      isArchived: t.isArchived,
+      vehicleId: t.vehicleId
+    }));
+    const cache = await caches.open(TASK_CACHE);
+    await cache.put(
+      TASK_CACHE_KEY,
+      new Response(JSON.stringify({ tasks: snapshot, updatedAt: new Date().toISOString() }), {
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+  } catch {
+    // Cache API unavailable (e.g. private browsing) — silently skip
+  }
+};
+
 const maintenanceTasks = ref<MaintenanceTask[]>([]);
 let initialized = false;
+let mirrorSetup = false;
 
 const ensureBuiltInTasksForVehicle = async (vehicleId: string, options?: { includeArchived?: boolean }) => {
   const currentTasks = maintenanceTasks.value.filter((task) => task.vehicleId === vehicleId);
@@ -102,6 +128,11 @@ export function useMaintenanceData() {
   if (!initialized) {
     void loadTasks();
     initialized = true;
+  }
+
+  if (!mirrorSetup) {
+    watch(maintenanceTasks, (tasks) => void mirrorTasksToCache(tasks), { deep: true });
+    mirrorSetup = true;
   }
 
   return {
