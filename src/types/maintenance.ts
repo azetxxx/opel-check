@@ -1,4 +1,4 @@
-export type Frequency = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual';
+export type Frequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual';
 export type TaskGroupKey = Frequency | 'scheduled';
 export type TaskScheduleType = 'recurring' | 'scheduled';
 export type TaskStatus = 'pending' | 'planned' | 'done' | 'dueSoon' | 'dueNow' | 'overdue';
