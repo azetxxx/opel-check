@@ -62,6 +62,7 @@ export interface MaintenanceLog {
 export const frequencyToDays: Record<Frequency, number> = {
   daily: 1,
   weekly: 7,
+  biweekly: 14,
   monthly: 30,
   quarterly: 90,
   biannual: 180,
