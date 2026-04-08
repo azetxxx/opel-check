@@ -60,7 +60,9 @@ const syncForm = (task: MaintenanceTask | null) => {
 watch(() => props.task, (task) => syncForm(task), { immediate: true });
 watch(() => props.open, (open) => { if (open && !props.task) syncForm(null); });
 
-const recurringOptions = computed(() => FREQUENCY_ORDER.filter((item) => item !== 'scheduled'));
+const recurringOptions = computed(() =>
+  FREQUENCY_ORDER.filter((item) => item !== 'scheduled' && item !== 'daily' && item !== 'weekly')
+);
 
 const submit = () => {
   if (!form.description.trim()) return;

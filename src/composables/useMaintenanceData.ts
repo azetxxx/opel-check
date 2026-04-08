@@ -1,5 +1,5 @@
 import { ref, watch } from 'vue';
-import { BUILT_IN_MAINTENANCE_TASKS } from '../constants/builtInMaintenanceTasks';
+import { ACTIVE_BUILT_IN_TASK_DESCRIPTIONS, BUILT_IN_MAINTENANCE_TASKS, LEGACY_BUILT_IN_TASK_DESCRIPTIONS } from '../constants/builtInMaintenanceTasks';
 import type { MaintenanceTask } from '../types/maintenance';
 import { maintenanceTasksRepository } from '../services/storage';
 
@@ -33,11 +33,26 @@ let initialized = false;
 let mirrorSetup = false;
 
 const ensureBuiltInTasksForVehicle = async (vehicleId: string, options?: { includeArchived?: boolean }) => {
-  const currentTasks = maintenanceTasks.value.filter((task) => task.vehicleId === vehicleId);
   const includeArchived = options?.includeArchived ?? true;
+  const currentTasks = maintenanceTasks.value.filter((task) => task.vehicleId === vehicleId);
+
+  const obsoleteBuiltIns = currentTasks.filter((task) => {
+    if (task.isCustom || task.isArchived) return false;
+    if (ACTIVE_BUILT_IN_TASK_DESCRIPTIONS.has(task.description)) return false;
+    return LEGACY_BUILT_IN_TASK_DESCRIPTIONS.has(task.description);
+  });
+
+  for (const task of obsoleteBuiltIns) {
+    maintenanceTasks.value = await maintenanceTasksRepository.update({
+      ...task,
+      isArchived: true
+    });
+  }
+
+  const refreshedTasks = maintenanceTasks.value.filter((task) => task.vehicleId === vehicleId);
 
   for (const definition of BUILT_IN_MAINTENANCE_TASKS) {
-    const exists = currentTasks.some((task) => {
+    const exists = refreshedTasks.some((task) => {
       if (task.isCustom) return false;
       if (task.description !== definition.description) return false;
       if (!includeArchived && task.isArchived) return false;
