@@ -21,6 +21,12 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         lang: 'de',
+        // Chromium (incl. Android): prefer opening in-scope links in the installed PWA when possible.
+        // Does not force email clients to hand off to the PWA; a native shell (TWA/Capacitor) is the full fix.
+        handle_links: 'preferred',
+        launch_handler: {
+          client_mode: ['navigate-existing', 'focus-existing']
+        },
         icons: [
           {
             src: '/pwa-192.svg',

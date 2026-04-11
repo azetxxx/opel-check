@@ -31,7 +31,7 @@ Record pass/fail and one line of notes per section. When done, drop a short summ
 - [ ] **Abmelden** → session ends; app clears local vehicle/task/log/Ziel/playlist caches and **reloads** (see §F)  
 - [ ] Request link again → second login works  
 
-**If link opens in browser instead of installed PWA (Android):** note as expected PWA behavior; still pass if session is created.
+**If the Magic Link opens in Chrome instead of the installed PWA (Android):** that is normal for many email clients. The app manifest sets `handle_links: preferred` and `launch_handler` so **Chromium can route same-origin opens into the installed app where supported**; it is not a guarantee. A **Trusted Web Activity / native shell** (see roadmap Phase 4) is required for reliable “always open in app” from arbitrary mail apps.
 
 ---
 
