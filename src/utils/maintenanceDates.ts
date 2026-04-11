@@ -22,6 +22,9 @@ export const getNextCheckDate = (frequency: Frequency, baseDate: Date) => {
     case 'weekly':
       nextCheck.setDate(nextCheck.getDate() + 7);
       break;
+    case 'biweekly':
+      nextCheck.setDate(nextCheck.getDate() + 14);
+      break;
     case 'monthly':
       nextCheck.setMonth(nextCheck.getMonth() + 1);
       break;

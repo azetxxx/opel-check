@@ -10,6 +10,7 @@ import { supabaseVehiclesRepository } from './supabaseVehiclesRepository';
 import { supabaseMaintenanceTasksRepository } from './supabaseMaintenanceTasksRepository';
 import { supabaseMaintenanceLogsRepository } from './supabaseMaintenanceLogsRepository';
 import { supabaseUserDataRepository } from './supabaseUserDataRepository';
+import { DEFAULT_VEHICLE_ID } from './localVehiclesRepository';
 
 const MIGRATION_FLAG = 'local-to-cloud-migrated';
 const PLACES_KEY = 'saved-places';
@@ -43,9 +44,16 @@ const readLocalArray = <T>(key: string): T[] => {
 export const hasLocalData = async (): Promise<boolean> => {
   const vehicles = await localVehiclesRepository.list();
   const tasks = await localMaintenanceTasksRepository.list();
+  const logs = await localMaintenanceLogsRepository.list();
   const places = readLocalArray<SavedPlace>(PLACES_KEY);
   const playlists = readLocalArray<PlaylistShortcut>(PLAYLISTS_KEY);
-  return vehicles.length > 0 || tasks.length > 0 || places.length > 0 || playlists.length > 0;
+  return (
+    vehicles.length > 0
+    || tasks.length > 0
+    || logs.length > 0
+    || places.length > 0
+    || playlists.length > 0
+  );
 };
 
 export const wasMigrated = (): boolean => {
@@ -66,46 +74,115 @@ export const getLocalDataPreview = async (): Promise<MigrationPreview> => {
 export const migrateLocalToCloud = async (): Promise<MigrationResult> => {
   const { vehicles, tasks, logs, places, playlists } = await getLocalDataPreview();
 
-  if (vehicles.length === 0 && tasks.length === 0 && places.length === 0 && playlists.length === 0) {
+  if (
+    vehicles.length === 0
+    && tasks.length === 0
+    && logs.length === 0
+    && places.length === 0
+    && playlists.length === 0
+  ) {
     throw new Error('Keine lokalen Daten zum Migrieren gefunden.');
   }
 
   // Vehicle ID mapping: local ID → Supabase ID
   const vehicleIdMap = new Map<string, string>();
+  let vehiclesMigratedCount = 0;
 
-  for (const vehicle of vehicles) {
-    const created = await supabaseVehiclesRepository.create({
-      name: vehicle.name,
-      plate: vehicle.plate,
-      brand: vehicle.brand,
-      model: vehicle.model,
-      year: vehicle.year,
-      vin: vehicle.vin,
-      notes: vehicle.notes,
-      currentMileage: vehicle.currentMileage,
-      symbol: vehicle.symbol
-    });
-    vehicleIdMap.set(vehicle.id, created.id);
+  // Tasks/logs exist but no vehicle rows (legacy or cleared list) — create one cloud vehicle and map all old IDs to it
+  if (vehicles.length === 0 && (tasks.length > 0 || logs.length > 0)) {
+    const created = await supabaseVehiclesRepository.create({ name: 'Mein Fahrzeug' });
+    const newCloudId = created.id;
+    const oldIds = new Set<string>();
+    tasks.forEach((t) => oldIds.add(t.vehicleId));
+    logs.forEach((l) => oldIds.add(l.vehicleId));
+    for (const oldId of oldIds) {
+      vehicleIdMap.set(oldId, newCloudId);
+    }
+    vehiclesMigratedCount = 1;
+  } else {
+    for (const vehicle of vehicles) {
+      const created = await supabaseVehiclesRepository.create({
+        name: vehicle.name,
+        plate: vehicle.plate,
+        brand: vehicle.brand,
+        model: vehicle.model,
+        year: vehicle.year,
+        vin: vehicle.vin,
+        notes: vehicle.notes,
+        currentMileage: vehicle.currentMileage,
+        symbol: vehicle.symbol
+      });
+      vehicleIdMap.set(vehicle.id, created.id);
+    }
+    vehiclesMigratedCount = vehicles.length;
   }
 
-  // Remap vehicleId in tasks and insert
-  const remappedTasks = tasks.map((task) => ({
+  const singleCloudVehicleId = (): string | null => {
+    if (vehicleIdMap.size !== 1) return null;
+    return vehicleIdMap.values().next().value ?? null;
+  };
+
+  /**
+   * Tasks may still reference `default-vehicle` or another stale id while the vehicle list
+   * only contains a real UUID — remap to the only cloud vehicle when unambiguous.
+   */
+  const resolveVehicleId = (oldVehicleId: string): string => {
+    const mapped = vehicleIdMap.get(oldVehicleId);
+    if (mapped) return mapped;
+
+    const only = singleCloudVehicleId();
+    if (only) return only;
+
+    if (vehicles.length === 1) {
+      const fallback = vehicleIdMap.get(vehicles[0].id);
+      if (fallback) return fallback;
+    }
+
+    if (oldVehicleId === DEFAULT_VEHICLE_ID && vehicles.length >= 1) {
+      const first = vehicleIdMap.get(vehicles[0].id);
+      if (first) return first;
+    }
+
+    throw new Error(
+      `Daten passen nicht zusammen: Aufgaben verweisen auf Fahrzeug-ID „${oldVehicleId}“, aber dieses Fahrzeug ist nicht in der lokalen Liste. Bitte in den Einstellungen prüfen oder Support kontaktieren.`
+    );
+  };
+
+  // Remap vehicle IDs, then assign new task UUIDs so retries after a partial migration
+  // never hit maintenance_tasks_pkey duplicates (local IDs may already exist in Postgres).
+  const remappedTasksVehicle = tasks.map((task) => ({
     ...task,
-    vehicleId: vehicleIdMap.get(task.vehicleId) ?? task.vehicleId
+    vehicleId: resolveVehicleId(task.vehicleId)
   }));
 
-  if (remappedTasks.length > 0) {
-    await supabaseMaintenanceTasksRepository.replace(remappedTasks);
+  const taskIdMap = new Map<string, string>();
+  const cloudTasks = remappedTasksVehicle.map((task) => {
+    const newId = crypto.randomUUID();
+    taskIdMap.set(task.id, newId);
+    return { ...task, id: newId };
+  });
+
+  if (cloudTasks.length > 0) {
+    await supabaseMaintenanceTasksRepository.replace(cloudTasks);
   }
 
-  // Remap vehicleId in logs and insert
-  const remappedLogs = logs.map((log) => ({
-    ...log,
-    vehicleId: vehicleIdMap.get(log.vehicleId) ?? log.vehicleId
-  }));
+  const cloudLogs: MaintenanceLog[] = logs.map((log) => {
+    const newLogId = crypto.randomUUID();
+    const vehicleId = resolveVehicleId(log.vehicleId);
+    const mappedTaskId =
+      log.taskId != null && log.taskId !== '' && taskIdMap.has(log.taskId)
+        ? taskIdMap.get(log.taskId)!
+        : null;
+    return {
+      ...log,
+      id: newLogId,
+      vehicleId,
+      taskId: mappedTaskId
+    };
+  });
 
-  if (remappedLogs.length > 0) {
-    await supabaseMaintenanceLogsRepository.replace(remappedLogs);
+  if (cloudLogs.length > 0) {
+    await supabaseMaintenanceLogsRepository.replace(cloudLogs);
   }
 
   // Upload places and playlists as user-level data
@@ -125,9 +202,9 @@ export const migrateLocalToCloud = async (): Promise<MigrationResult> => {
   localStorage.setItem(MIGRATION_FLAG, 'true');
 
   return {
-    vehiclesMigrated: vehicles.length,
-    tasksMigrated: remappedTasks.length,
-    logsMigrated: remappedLogs.length,
+    vehiclesMigrated: vehiclesMigratedCount,
+    tasksMigrated: cloudTasks.length,
+    logsMigrated: cloudLogs.length,
     placesMigrated: places.length,
     playlistsMigrated: playlists.length
   };

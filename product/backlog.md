@@ -24,7 +24,7 @@ All user stories grouped by the problem they solve. Each story follows the forma
 *Gelegenheitsnutzer* — When I open the app for the first time, a default vehicle already exists with a name ("Mein Fahrzeug"), so I can start using the app without any setup.
 
 ### 1.3 Built-In Tasks Pre-Populated
-*Alltagsfahrer* — The default vehicle has 16 German maintenance tasks pre-loaded (oil, tires, TÜV, brakes, etc.), so I can see what my car needs without entering anything manually.
+*Alltagsfahrer* — The default vehicle has 7 core German maintenance tasks pre-loaded (tire pressure, lights, washer fluid, oil, battery, brakes, inspection), so I can see what my car needs without entering anything manually.
 
 ### 1.4 PWA Install Banner
 *Gelegenheitsnutzer* — I see a prompt to add the app to my home screen, so I can access it like a native app.
@@ -33,7 +33,7 @@ All user stories grouped by the problem they solve. Each story follows the forma
 *Alltagsfahrer* — The app works without internet (cached via service worker), so I can check maintenance status in the garage with no signal.
 
 ### 1.6 Push Notifications ✅
-*Alltagsfahrer* — I receive a notification when a task becomes overdue, so I don't have to remember to open the app.
+*Alltagsfahrer* — I receive a notification when a task becomes overdue, so I don't have to remember to open the app. *(Implemented: service worker periodic sync, Chrome/Edge Android.)*
 
 ### 1.7 Offline Write Queue (planned)
 *Alltagsfahrer* — Changes I make offline are synced when I reconnect, so I can mark tasks done without worrying about connectivity.

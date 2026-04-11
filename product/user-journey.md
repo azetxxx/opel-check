@@ -6,7 +6,7 @@ What a new user experiences from first encounter to first productive action.
 
 ### Step 1: Open the App
 
-User taps the PWA link or home screen icon. No login, no onboarding screens. The app opens directly to the Home page with a default vehicle ("Mein Fahrzeug") already created and 16 built-in German maintenance tasks pre-populated.
+User taps the PWA link or home screen icon. No login, no onboarding screens. The app opens directly to the Home page with a default vehicle ("Mein Fahrzeug") already created and 7 core German maintenance tasks pre-populated (tire pressure, lights, washer fluid, oil, battery, brakes, inspection).
 
 ### Step 2: Scan the Dashboard
 
@@ -76,7 +76,7 @@ The mileage is now attached to future log entries, building a maintenance histor
 
 The value becomes obvious when the user can see, at a glance, that:
 
-1. **16 maintenance tasks exist** without any setup — the app already knows what a car needs
+1. **7 core maintenance tasks exist** without any setup — the app already knows what a car needs
 2. **One tap records a check** and schedules the next one — no forms, no dates to enter
 3. **Status grouping shows urgency** — overdue items are impossible to miss
 
@@ -86,9 +86,9 @@ This visibility — which previously required a spreadsheet, a notebook, or pure
 
 For the first impression to succeed, the system needs:
 
-- **Pre-populated tasks**: 16 German maintenance tasks covering motor, tires, brakes, body, lights, electrics, documents, service, and A/C — created on first visit
+- **Pre-populated tasks**: 7 core German maintenance tasks (tire pressure, lights, washer fluid, oil, battery, brakes, inspection) — created on first visit, covering biweekly through annual intervals
 - **A default vehicle**: Automatically created so the user isn't greeted with an empty state
 - **No auth requirement**: The app must work fully from localStorage on first open
 - **Instant load**: PWA cached assets, no server round-trip for the initial view
 
-Without pre-populated tasks, the maintenance page is empty and the value proposition ("see what your car needs") is invisible.
+Without pre-populated tasks, the maintenance page is empty and the value proposition ("see what your car needs") is invisible. Users can add custom tasks later for their specific needs.

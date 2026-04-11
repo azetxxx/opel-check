@@ -36,7 +36,7 @@
 | **Language** | TypeScript | Catch type mismatches between local and Supabase models at compile time |
 | **UI** | Tailwind CSS + Heroicons + Font Awesome | Utility-first for rapid prototyping; Heroicons for nav, Font Awesome for vehicle symbols |
 | **Routing** | vue-router (hash mode) | Hash mode avoids server-side redirect config for static hosts (Netlify, GH Pages) |
-| **PWA** | vite-plugin-pwa (Workbox) | Automatic service worker, manifest, install banner — zero config for offline caching |
+| **PWA** | vite-plugin-pwa (injectManifest mode) | Custom service worker with periodic background sync for overdue task notifications; install banner; offline caching |
 | **Backend** | Supabase (@supabase/supabase-js) | Auth + Postgres + RLS in one service; generous free tier; no custom server to maintain |
 | **Auth** | Magic link OTP (Supabase Auth) | No passwords to manage or leak; email-only flow is the lowest-friction auth for casual users |
 | **Local storage** | localStorage with versioned JSON envelopes | Dead simple, works offline, migrateable via version field |
@@ -51,6 +51,7 @@ omiigo-car/
 │   ├── main.ts                         # App bootstrap, router, PWA registration
 │   ├── App.vue                         # Root: AppShell with router-view
 │   ├── router.ts                       # 5 routes: /, /map, /maintenance, /music, /settings
+│   ├── sw.ts                           # Custom service worker (periodic sync, overdue check)
 │   ├── style.css                       # Tailwind base imports
 │   ├── pages/                          # One page per route
 │   │   ├── HomePage.vue
@@ -66,6 +67,7 @@ omiigo-car/
 │   │   ├── VehicleProfileCard.vue      # Vehicle edit form
 │   │   ├── VehicleSwitcherCard.vue     # Multi-vehicle dropdown
 │   │   ├── VehicleSharingCard.vue      # Invite/member management
+│   │   ├── MigrationWizard.vue         # Local-to-cloud data migration (4-step dialog)
 │   │   ├── AuthCard.vue                # Magic link login
 │   │   ├── BackupPanel.vue             # JSON export/import
 │   │   ├── DebugPanel.vue              # Simulated date, dev tools
@@ -73,12 +75,13 @@ omiigo-car/
 │   │   └── PwaInstallBanner.vue        # "Add to home screen" prompt
 │   ├── composables/                    # Reactive state + business logic
 │   │   ├── useVehicleProfile.ts        # Active vehicle, CRUD
-│   │   ├── useMaintenanceData.ts       # Task list, save/archive/restore
+│   │   ├── useMaintenanceData.ts       # Task list, save/archive/restore + cache for SW
 │   │   ├── useMaintenanceLogs.ts       # Log history, add log
 │   │   ├── useSavedPlaces.ts           # Map module state
 │   │   ├── usePlaylistShortcuts.ts     # Music module state
 │   │   ├── useAppPreferences.ts        # Settings, favorites, car mode
 │   │   ├── useAuth.ts                  # Supabase session management
+│   │   ├── useNotifications.ts         # Push notification permission + periodic sync
 │   │   └── usePwaInstall.ts            # beforeinstallprompt handler
 │   ├── services/storage/               # Data access layer
 │   │   ├── types.ts                    # Repository interfaces
@@ -90,6 +93,8 @@ omiigo-car/
 │   │   ├── supabaseVehiclesRepository.ts
 │   │   ├── supabaseMaintenanceTasksRepository.ts
 │   │   ├── supabaseMaintenanceLogsRepository.ts
+│   │   ├── supabaseUserDataRepository.ts # User-level key-value CRUD (places, playlists)
+│   │   ├── migrationService.ts         # Local → cloud migration engine
 │   │   └── inviteService.ts            # Invite/member RPCs
 │   ├── types/                          # TypeScript interfaces
 │   │   ├── maintenance.ts              # VehicleProfile, MaintenanceTask, MaintenanceLog
@@ -98,7 +103,7 @@ omiigo-car/
 │   │   ├── music.ts                    # PlaylistShortcut, MusicProvider
 │   │   └── preferences.ts             # AppPreferences, CarMode, HomeWidgets
 │   ├── constants/                      # Static data
-│   │   ├── builtInMaintenanceTasks.ts  # 16 German maintenance task definitions
+│   │   ├── builtInMaintenanceTasks.ts  # 7 core German maintenance task definitions
 │   │   ├── maintenance.ts              # Frequency labels, category colors
 │   │   └── storage.ts                  # localStorage keys, schema versions
 │   ├── utils/                          # Pure functions
@@ -116,7 +121,9 @@ omiigo-car/
 │   ├── schema.sql                      # Full schema: tables, indexes, triggers, RLS, RPCs
 │   ├── patch-create-vehicle-rpc.sql    # RPC return shape fix (returns table)
 │   ├── patch-create-vehicle-rpc-id.sql # RPC return shape fix (returns uuid)
-│   └── patch-member-management-rpcs.sql # list/update/remove members, revoke invites
+│   ├── patch-member-management-rpcs.sql # list/update/remove members, revoke invites
+│   ├── patch-user-data-table.sql       # user_data table for user-level key-value storage
+│   └── patch-biweekly-frequency.sql    # Add 'biweekly' to frequency CHECK constraints
 ├── public/                             # PWA icons (SVG)
 ├── vite.config.ts                      # Vue + PWA plugin config
 ├── tailwind.config.js                  # Content paths
@@ -133,7 +140,7 @@ omiigo-car/
 | Concept | Description |
 |---------|-------------|
 | **VehicleProfile** | A car with identity fields (name, plate, brand, model, year, VIN, mileage, symbol). In local mode, one is auto-created. In cloud mode, created via `create_vehicle_with_owner` RPC which atomically creates the vehicle + owner membership. |
-| **MaintenanceTask** | Something a vehicle needs — either `recurring` (frequency-based: daily to annual) or `scheduled` (one-off due date). 16 built-in German tasks are auto-created per vehicle. Custom tasks are user-created. Tasks can be archived (hidden) but not deleted if built-in. |
+| **MaintenanceTask** | Something a vehicle needs — either `recurring` (frequency-based: biweekly to annual) or `scheduled` (one-off due date). 7 built-in German core tasks are auto-created per vehicle. Legacy built-in tasks from older versions are automatically archived. Custom tasks are user-created. Tasks can be archived (hidden) but not deleted if built-in. |
 | **MaintenanceLog** | A timestamped record that a task was completed. Captures task description, category, frequency, odometer reading, and the computed next due date. Immutable once created. |
 | **Task Status** | Computed at render time (not stored) by `enrichTasks()`: compares `lastCheck` + `frequency` against current date to determine `pending`, `dueSoon`, `dueNow`, `overdue`, or `done`. |
 | **Storage Facade** | The `services/storage/index.ts` facade checks `VITE_STORAGE_PROVIDER` + Supabase session at every call. If both are available → Supabase repos. Otherwise → local repos. All repos implement the same interfaces. |
@@ -235,7 +242,7 @@ erDiagram
 |------|--------|
 | `VehicleMemberRole` | owner, driver, viewer |
 | `TaskScheduleType` | recurring, scheduled |
-| `Frequency` | daily, weekly, monthly, quarterly, biannual, annual |
+| `Frequency` | daily, weekly, biweekly, monthly, quarterly, biannual, annual |
 | `TaskStatus` (computed) | pending, planned, done, dueSoon, dueNow, overdue |
 | `NavigationProvider` | google, apple, waze |
 | `MusicProvider` | spotify, youtube-music, apple-music, soundcloud, other |

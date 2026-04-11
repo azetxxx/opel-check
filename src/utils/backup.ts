@@ -16,7 +16,7 @@ const isString = (value: unknown): value is string => typeof value === 'string';
 const isOptionalString = (value: unknown) => value === undefined || value === null || typeof value === 'string';
 const isOptionalNumber = (value: unknown) => value === undefined || value === null || typeof value === 'number';
 
-const frequencyValues = new Set(['daily', 'weekly', 'monthly', 'quarterly', 'biannual', 'annual']);
+const frequencyValues = new Set(['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'biannual', 'annual']);
 const isFrequency = (value: unknown): value is MaintenanceTask['frequency'] => isString(value) && frequencyValues.has(value);
 
 const isVehicleProfile = (value: unknown): value is VehicleProfile => {
@@ -32,7 +32,7 @@ const isVehicleProfile = (value: unknown): value is VehicleProfile => {
     && isOptionalString(value.notes)
     && isOptionalNumber(value.currentMileage)
     && isString(value.createdAt)
-    && isString(value.updatedAt);
+    && (isString(value.updatedAt) || value.updatedAt === undefined);
 };
 
 const isMaintenanceTask = (value: unknown): value is MaintenanceTask => {
@@ -59,12 +59,12 @@ const isMaintenanceLog = (value: unknown): value is MaintenanceLog => {
 
   return isString(value.id)
     && isString(value.vehicleId)
-    && isString(value.taskId)
+    && (value.taskId === null || isString(value.taskId))
     && isString(value.taskDescription)
     && isString(value.category)
-    && isFrequency(value.frequency)
+    && (value.frequency === null || isFrequency(value.frequency))
     && isString(value.checkedAt)
-    && isString(value.nextDueDate)
+    && (value.nextDueDate === null || isString(value.nextDueDate))
     && isOptionalString(value.notes)
     && isOptionalNumber(value.mileage)
     && isString(value.createdAt);

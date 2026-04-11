@@ -2,7 +2,7 @@
 import { CheckIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/20/solid';
 import { EllipsisVerticalIcon } from '@heroicons/vue/24/outline';
 import { computed, ref } from 'vue';
-import { CATEGORY_CLASSES, DEFAULT_CATEGORY_CLASS } from '../constants/maintenance';
+import { CATEGORY_CLASSES, DEFAULT_CATEGORY_CLASS, FREQUENCY_LABELS } from '../constants/maintenance';
 import { formatDisplayDate } from '../utils/maintenanceDates';
 import type { MaintenanceTask } from '../types/maintenance';
 import type { EnrichedMaintenanceTask } from '../utils/maintenanceTasks';
@@ -22,21 +22,7 @@ const getCategoryClass = (category: string) => CATEGORY_CLASSES[category] || DEF
 
 const getFrequencyLabel = (task: EnrichedMaintenanceTask) => {
   if (task.scheduleType !== 'recurring' || !task.frequency) return null;
-
-  switch (task.frequency) {
-    case 'daily':
-      return 'Täglich';
-    case 'weekly':
-      return 'Wöchentlich';
-    case 'monthly':
-      return 'Monatlich';
-    case 'quarterly':
-      return 'Vierteljährlich';
-    case 'biannual':
-      return 'Halbjährlich';
-    case 'annual':
-      return 'Jährlich';
-  }
+  return FREQUENCY_LABELS[task.frequency] ?? null;
 };
 
 const getButtonText = (task: EnrichedMaintenanceTask) => {

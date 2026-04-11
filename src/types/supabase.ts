@@ -57,7 +57,7 @@ export interface MaintenanceTaskRow {
   description: string;
   category: string;
   schedule_type: 'recurring' | 'scheduled';
-  frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual' | null;
+  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual' | null;
   last_check: string | null;
   next_check: string | null;
   due_date: string | null;
@@ -74,10 +74,10 @@ export interface MaintenanceTaskRow {
 export interface MaintenanceLogRow {
   id: string;
   vehicle_id: string;
-  task_id: string;
+  task_id: string | null;
   task_description: string;
   category: string;
-  frequency: 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual' | null;
+  frequency: 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'biannual' | 'annual' | null;
   checked_at: string;
   next_due_date: string | null;
   notes: string | null;

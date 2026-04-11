@@ -10,7 +10,7 @@ const nowIso = () => new Date().toISOString();
 const normalizeLog = (log: Partial<MaintenanceLog>): MaintenanceLog => ({
   id: log.id ?? crypto.randomUUID(),
   vehicleId: log.vehicleId ?? DEFAULT_VEHICLE_ID,
-  taskId: log.taskId ?? 'unknown-task',
+  taskId: log.taskId != null && log.taskId !== '' ? log.taskId : 'unknown-task',
   taskDescription: log.taskDescription ?? 'Unbekannte Wartung',
   category: log.category ?? 'Allgemein',
   frequency: log.frequency ?? null,

@@ -6,7 +6,7 @@ const isOptionalString = (value: unknown) => value === undefined || value === nu
 const isOptionalNumber = (value: unknown) => value === undefined || value === null || typeof value === 'number';
 const isBoolean = (value: unknown): value is boolean => typeof value === 'boolean';
 
-const frequencyValues = new Set<Frequency>(['daily', 'weekly', 'monthly', 'quarterly', 'biannual', 'annual']);
+const frequencyValues = new Set<Frequency>(['daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'biannual', 'annual']);
 const scheduleTypeValues = new Set<TaskScheduleType>(['recurring', 'scheduled']);
 
 export const isFrequency = (value: unknown): value is Frequency => isString(value) && frequencyValues.has(value as Frequency);
@@ -58,7 +58,7 @@ export const isMaintenanceLog = (value: unknown): value is MaintenanceLog => {
 
   return isString(value.id)
     && isString(value.vehicleId)
-    && isString(value.taskId)
+    && (value.taskId === null || isString(value.taskId))
     && isString(value.taskDescription)
     && isString(value.category)
     && (value.frequency === null || isFrequency(value.frequency))

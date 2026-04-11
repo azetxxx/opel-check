@@ -1,7 +1,7 @@
 # Omiigo Car — Business Strategy
 
-**Date**: 2026-04-03
-**Status**: Post-MVP, iterating on multi-user sharing
+**Date**: 2026-04-11
+**Status**: Stabilization phase — validating all major flows before Android prep
 
 ## Vision
 
@@ -36,8 +36,8 @@ Free-first because the biggest risk is adoption, not monetization. A user who ch
 
 The core. Recurring and scheduled tasks with built-in German presets.
 
-- **Input**: Vehicle profile (name, plate, brand, mileage) + task list (16 built-in + custom)
-- **Logic**: Date-based status engine — `pending`, `dueSoon`, `dueNow`, `overdue`, `done` — using `frequencyToDays` mapping
+- **Input**: Vehicle profile (name, plate, brand, mileage) + task list (7 built-in core defaults + custom)
+- **Logic**: Date-based status engine — `pending`, `dueSoon`, `dueNow`, `overdue`, `done` — using `frequencyToDays` mapping (supports biweekly through annual)
 - **Value**: At-a-glance view of what needs attention now, grouped by urgency
 
 ### 2. Multi-Vehicle Support 🚗
@@ -126,6 +126,8 @@ Optional Supabase backend for multi-device and multi-user.
 
 ## Next Steps
 
+See **[90-90-1 Roadmap](roadmap-90-90-1.md)** for the full 90-day execution plan.
+
 1. ✅ Single-vehicle maintenance tracking (localStorage)
 2. ✅ PWA with install banner
 3. ✅ Multi-vehicle support
@@ -134,8 +136,12 @@ Optional Supabase backend for multi-device and multi-user.
 6. ✅ Magic link authentication
 7. ✅ Vehicle sharing with invite codes
 8. ✅ Member management (roles, remove, revoke)
-9. 🔲 Push notifications for overdue tasks
-10. 🔲 Mileage-based task triggers
-11. 🔲 Offline write queue (sync when reconnected)
-12. 🔲 Data migration wizard (local → cloud)
-13. 🔲 Internationalization (English)
+9. ✅ Push notifications for overdue tasks
+10. ✅ Data migration wizard (local → cloud)
+11. ✅ Custom SMTP via Resend (no more Supabase rate limits)
+12. ✅ Built-in task reduction (16 → 7 core defaults)
+13. 🔲 Mileage-based task triggers
+14. 🔲 Offline write queue (sync when reconnected)
+15. 🔲 Role-based views (viewer/driver/owner)
+16. 🔲 Android / Capacitor wrapper
+17. 🔲 Internationalization (English)

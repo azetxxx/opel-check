@@ -48,7 +48,8 @@ export interface MaintenanceCategory {
 export interface MaintenanceLog {
   id: string;
   vehicleId: string;
-  taskId: string;
+  /** Null when the row is not linked to a task (e.g. cloud rows or orphaned history). */
+  taskId: string | null;
   taskDescription: string;
   category: string;
   frequency: Frequency | null;

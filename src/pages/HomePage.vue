@@ -37,6 +37,24 @@ const { places } = useSavedPlaces();
 const { vehicles, activeVehicle, activeVehicleId, setActiveVehicle, updateVehicle } = useVehicleProfile();
 const { preferences, updatePreferences } = useAppPreferences();
 
+const hasAnyVehicle = computed(() => vehicles.value.length > 0);
+
+/** Main title on the gradient vehicle card — avoids showing the local placeholder name when there are no vehicles. */
+const homeActiveVehicleTitle = computed(() =>
+  hasAnyVehicle.value ? activeVehicle.value.name : 'Noch kein Auto'
+);
+
+const homeActiveVehicleSubtitle = computed(() =>
+  hasAnyVehicle.value
+    ? [activeVehicle.value.brand, activeVehicle.value.model].filter(Boolean).join(' ') || 'Fahrzeugprofil ergänzen'
+    : 'In den Einstellungen anlegen oder per Einladung beitreten'
+);
+
+/** Text inside “Loslegen (…)” — clarifies that no vehicle is selected when the list is empty. */
+const loslegenVehicleBracket = computed(() =>
+  hasAnyVehicle.value ? activeVehicle.value.name : 'Noch kein Auto'
+);
+
 const currentDate = computed(() => new Date());
 const filteredTasks = computed(() => maintenanceTasks.value.filter((task) => task.vehicleId === activeVehicle.value.id && !task.isArchived));
 const enrichedTasks = computed(() => enrichTasks(filteredTasks.value, currentDate.value));
@@ -254,7 +272,7 @@ onMounted(() => {
     <section v-if="!onboardingComplete" class="rounded-[28px] border border-gray-100 bg-white p-5 shadow-sm space-y-4">
       <div class="flex items-center justify-between gap-3">
         <div>
-          <h3 class="text-lg font-semibold text-gray-900">Loslegen <span class="font-normal text-gray-400">({{ activeVehicle.name }})</span></h3>
+          <h3 class="text-lg font-semibold text-gray-900">Loslegen <span class="font-normal text-gray-400">({{ loslegenVehicleBracket }})</span></h3>
           <p class="mt-1 text-sm text-gray-600">Richte Omiigo Car in wenigen Schritten ein.</p>
         </div>
         <span class="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700">
@@ -284,38 +302,45 @@ onMounted(() => {
       <PwaInstallBanner />
     </section>
 
-    <button class="w-full rounded-[28px] bg-gradient-to-br from-blue-500 to-indigo-600 p-5 text-left text-white shadow-lg">
+    <div class="w-full rounded-[28px] bg-gradient-to-br from-blue-500 to-indigo-600 p-5 text-left text-white shadow-lg">
       <div class="flex items-start justify-between gap-3">
-        <div>
+        <div class="min-w-0 flex-1 pr-1">
           <p class="text-sm font-medium text-blue-100">Aktives Fahrzeug</p>
-          <h3 class="mt-2 text-3xl font-semibold">{{ activeVehicle.name }}</h3>
-          <p class="mt-1 text-lg text-blue-100/90">{{ [activeVehicle.brand, activeVehicle.model].filter(Boolean).join(' ') || 'Fahrzeugprofil ergänzen' }}</p>
+          <h3 class="mt-2 break-words text-3xl font-semibold leading-tight">{{ homeActiveVehicleTitle }}</h3>
+          <p class="mt-1 break-words text-lg leading-snug text-blue-100/90">{{ homeActiveVehicleSubtitle }}</p>
         </div>
         <button
-          @click.stop="openVehicleSwitchModal"
-          class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-[22px] bg-white/15 text-white transition-colors hover:bg-white/20"
+          @click="openVehicleSwitchModal"
+          type="button"
+          class="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-white/15 text-white transition-colors hover:bg-white/20"
+          aria-label="Fahrzeug wechseln"
         >
-          <FontAwesomeIcon :icon="vehicleSymbolIcons[activeVehicle.symbol ?? 'car']" class="h-7 w-7" />
+          <FontAwesomeIcon
+            :icon="vehicleSymbolIcons[activeVehicle.symbol ?? 'car']"
+            class="h-7 w-7 shrink-0"
+          />
         </button>
       </div>
 
       <div class="mt-4 grid grid-cols-2 gap-3">
         <button
-          @click.stop="openMileageModal"
+          type="button"
+          @click="openMileageModal"
           class="rounded-[22px] bg-white/10 px-4 py-4 text-center transition-colors hover:bg-white/15"
         >
           <p class="text-3xl font-semibold">{{ activeVehicle.currentMileage != null ? activeVehicle.currentMileage.toLocaleString('de-DE') : '—' }}</p>
           <p class="mt-1 text-sm text-blue-100/85">Kilometerstand</p>
         </button>
         <button
-          @click.stop="openTaskHighlightModal"
+          type="button"
+          @click="openTaskHighlightModal"
           class="rounded-[22px] bg-white/10 px-4 py-4 text-center transition-colors hover:bg-white/15"
         >
           <p class="text-3xl font-semibold">{{ highlightedTaskValue }}</p>
           <p class="mt-1 text-sm text-blue-100/85">{{ highlightedTaskTitle }}</p>
         </button>
       </div>
-    </button>
+    </div>
 
     <RouterLink
       v-if="urgentTasks.length > 0"

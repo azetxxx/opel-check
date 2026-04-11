@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue';
 import type { Session, User } from '@supabase/supabase-js';
 import { getSupabaseClient, isSupabaseConfigured } from '../lib/supabase';
+import { clearLocalAppCachesAfterSignOut } from '../utils/localSessionCleanup';
 
 const user = ref<User | null>(null);
 const session = ref<Session | null>(null);
@@ -53,7 +54,12 @@ export function useAuth() {
 
   const signOut = async () => {
     const supabase = getSupabaseClient();
-    return supabase.auth.signOut();
+    const result = await supabase.auth.signOut();
+    if (!result.error) {
+      clearLocalAppCachesAfterSignOut();
+      window.location.reload();
+    }
+    return result;
   };
 
   return {

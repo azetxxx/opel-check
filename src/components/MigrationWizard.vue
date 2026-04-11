@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { getLocalDataPreview, migrateLocalToCloud } from '../services/storage/migrationService';
 import type { MigrationPreview, MigrationResult } from '../services/storage/migrationService';
+import { formatUserFacingError } from '../utils/errorMessage';
 
 const emit = defineEmits<{
   (e: 'done', result: MigrationResult | null): void;
@@ -24,7 +25,7 @@ const startMigration = async () => {
     result.value = await migrateLocalToCloud();
     step.value = 'success';
   } catch (error) {
-    errorMessage.value = error instanceof Error ? error.message : 'Unbekannter Fehler';
+    errorMessage.value = formatUserFacingError(error);
     step.value = 'error';
   }
 };

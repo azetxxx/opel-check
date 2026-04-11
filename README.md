@@ -12,11 +12,12 @@
 
 ## Next Steps
 
-- Mileage-based task triggers (wire `due_mileage` / `last_mileage` into status computation)
-- Offline write queue for Supabase writes
-- Role-based views (hide actions based on viewer/driver/owner role)
-- E2E test sharing flows (invite, accept, role change, revoke)
-- Production validation of all major flows
+See **[90-90-1 Roadmap](product/roadmap-90-90-1.md)** for the full 90-day plan (started Apr 1).
+
+Current focus (Phase 1 — Stabilization, Days 1–14): run **[milestone-checkup.md](product/milestone-checkup.md)** (sections A–F).
+
+- Supabase: patches verified (biweekly, member RPCs, `user_data` + RLS)
+- App: production UI (7 tasks), Magic Link E2E, migration wizard, sharing, Android push, local-only regression
 
 ## Stack
 
@@ -36,6 +37,8 @@ omiigo-car/
 ├── README.md
 ├── product/
 │   ├── strategy.md                        # Business strategy, pricing, GTM
+│   ├── roadmap-90-90-1.md                 # 90-day execution plan (Apr 1 – Jun 29)
+│   ├── milestone-checkup.md               # Phase 1 production validation checklist (A–F)
 │   ├── jtbd.md                            # Jobs to Be Done (3 personas, 8 jobs)
 │   ├── user-journey.md                    # First-time user flow + aha moment
 │   ├── story-map.md                       # Journey columns × priority rows

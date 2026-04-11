@@ -211,8 +211,7 @@ const handleSignOut = async () => {
   try {
     const { error } = await signOut();
     if (error) throw error;
-    vehicleInvites.value = [];
-    setTimedFeedback(authFeedback, 'success', 'Erfolgreich abgemeldet.');
+    // Success: useAuth clears local app caches and reloads the page (no further code runs here).
   } catch (error) {
     console.error('Error signing out:', error);
     setTimedFeedback(authFeedback, 'error', `Abmeldung fehlgeschlagen: ${getErrorMessage(error)}`);
