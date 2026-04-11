@@ -31,6 +31,9 @@ export function useVehicleProfile() {
   };
 
   const updateVehicle = async (updatedVehicle: VehicleProfile) => {
+    if (!vehicles.value.some((vehicle) => vehicle.id === updatedVehicle.id)) {
+      throw new Error('Kein gespeichertes Fahrzeug mit dieser ID — bitte zuerst ein Fahrzeug anlegen.');
+    }
     try {
       const nextVehicle = await vehiclesRepository.update(updatedVehicle);
       const index = vehicles.value.findIndex((vehicle) => vehicle.id === nextVehicle.id);

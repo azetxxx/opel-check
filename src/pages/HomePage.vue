@@ -55,6 +55,11 @@ const loslegenVehicleBracket = computed(() =>
   hasAnyVehicle.value ? activeVehicle.value.name : 'Noch kein Auto'
 );
 
+/** Subtitle in modals that still reference a vehicle (only opened when `hasAnyVehicle`). */
+const modalVehicleSubtitle = computed(() =>
+  hasAnyVehicle.value ? activeVehicle.value.name : 'Noch kein Auto'
+);
+
 const currentDate = computed(() => new Date());
 const filteredTasks = computed(() => maintenanceTasks.value.filter((task) => task.vehicleId === activeVehicle.value.id && !task.isArchived));
 const enrichedTasks = computed(() => enrichTasks(filteredTasks.value, currentDate.value));
@@ -185,6 +190,10 @@ const openPlaylist = (id: string, url: string) => {
 };
 
 const openMileageModal = () => {
+  if (!hasAnyVehicle.value) {
+    router.push('/settings');
+    return;
+  }
   mileageForm.currentMileage = activeVehicle.value.currentMileage != null ? String(activeVehicle.value.currentMileage) : '';
   isMileageModalOpen.value = true;
 };
@@ -194,6 +203,10 @@ const closeMileageModal = () => {
 };
 
 const openVehicleSwitchModal = () => {
+  if (!hasAnyVehicle.value) {
+    router.push('/settings');
+    return;
+  }
   vehicleSwitchForm.vehicleId = activeVehicleId.value;
   isVehicleSwitchModalOpen.value = true;
 };
@@ -210,6 +223,10 @@ const saveVehicleSwitch = () => {
 };
 
 const openTaskHighlightModal = () => {
+  if (!hasAnyVehicle.value) {
+    router.push('/settings');
+    return;
+  }
   const config = preferences.value.homeTaskHighlights[activeVehicle.value.id];
   taskHighlightForm.taskId = config?.taskId ?? '';
   taskHighlightForm.alias = config?.alias ?? '';
@@ -221,6 +238,7 @@ const closeTaskHighlightModal = () => {
 };
 
 const saveTaskHighlight = () => {
+  if (!hasAnyVehicle.value) return;
   updatePreferences({
     homeTaskHighlights: {
       ...preferences.value.homeTaskHighlights,
@@ -240,6 +258,7 @@ const adjustMileage = (delta: number) => {
 };
 
 const saveMileage = async () => {
+  if (!hasAnyVehicle.value) return;
   try {
     isSavingMileage.value = true;
     await updateVehicle({
@@ -326,7 +345,9 @@ onMounted(() => {
         <button
           type="button"
           @click="openMileageModal"
+          :title="hasAnyVehicle ? undefined : 'Fahrzeug in den Einstellungen anlegen'"
           class="rounded-[22px] bg-white/10 px-4 py-4 text-center transition-colors hover:bg-white/15"
+          :class="!hasAnyVehicle ? 'opacity-80' : ''"
         >
           <p class="text-3xl font-semibold">{{ activeVehicle.currentMileage != null ? activeVehicle.currentMileage.toLocaleString('de-DE') : '—' }}</p>
           <p class="mt-1 text-sm text-blue-100/85">Kilometerstand</p>
@@ -334,7 +355,9 @@ onMounted(() => {
         <button
           type="button"
           @click="openTaskHighlightModal"
+          :title="hasAnyVehicle ? undefined : 'Fahrzeug in den Einstellungen anlegen'"
           class="rounded-[22px] bg-white/10 px-4 py-4 text-center transition-colors hover:bg-white/15"
+          :class="!hasAnyVehicle ? 'opacity-80' : ''"
         >
           <p class="text-3xl font-semibold">{{ highlightedTaskValue }}</p>
           <p class="mt-1 text-sm text-blue-100/85">{{ highlightedTaskTitle }}</p>
@@ -484,7 +507,7 @@ onMounted(() => {
           <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4">
             <div>
               <h3 class="text-lg font-semibold text-gray-900">Kilometerstand bearbeiten</h3>
-              <p class="mt-1 text-sm text-gray-600">{{ activeVehicle.name }}</p>
+              <p class="mt-1 text-sm text-gray-600">{{ modalVehicleSubtitle }}</p>
             </div>
             <button @click="closeMileageModal" class="rounded-xl p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
               <XMarkIcon class="h-5 w-5" />
@@ -548,7 +571,7 @@ onMounted(() => {
           <div class="flex items-center justify-between gap-3 border-b border-gray-100 px-5 py-4">
             <div>
               <h3 class="text-lg font-semibold text-gray-900">Startseiten-Karte wählen</h3>
-              <p class="mt-1 text-sm text-gray-600">{{ activeVehicle.name }}</p>
+              <p class="mt-1 text-sm text-gray-600">{{ modalVehicleSubtitle }}</p>
             </div>
             <button @click="closeTaskHighlightModal" class="rounded-xl p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
               <XMarkIcon class="h-5 w-5" />

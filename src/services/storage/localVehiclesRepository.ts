@@ -100,6 +100,8 @@ export const localVehiclesRepository: VehiclesRepository = {
 
     if (index !== -1) {
       vehicles[index] = nextVehicle;
+    } else if (vehicles.length === 0) {
+      throw new Error('Kein Fahrzeug zum Aktualisieren vorhanden.');
     } else {
       vehicles.push(nextVehicle);
     }
