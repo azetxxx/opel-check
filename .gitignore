@@ -27,3 +27,6 @@ dist-ssr
 # Local OpenClaw workspace state
 agent-state/
 agent-workspace/
+
+# Day/session QA write-ups — keep local only, do not commit
+REPORT-*.md
