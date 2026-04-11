@@ -25,11 +25,11 @@ Record pass/fail and one line of notes per section. When done, drop a short summ
 
 **Prep:** Incognito; optional: log out first if testing on existing profile.
 
-- [ ] **Einstellungen** → Cloud & Konto → enter email → **Magic Link** email arrives (sender `noreply@auth.az-studio.pro` or your configured sender)  
-- [ ] Tap link → browser opens app URL → **you are logged in** (email shown in settings)  
-- [ ] Refresh page or close tab and reopen PWA → **session still there** (or re-auth behaves as designed)  
-- [ ] **Abmelden** → session ends; app clears local vehicle/task/log/Ziel/playlist caches and **reloads** (see §F)  
-- [ ] Request link again → second login works  
+- [x] **Einstellungen** → Cloud & Konto → enter email → **Magic Link** email arrives (sender `noreply@auth.az-studio.pro` or your configured sender)  
+- [x] Tap link → browser opens app URL → **you are logged in** (email shown in settings)  
+- [x] Refresh page or close tab and reopen PWA → **session still there** (or re-auth behaves as designed)  
+- [x] **Abmelden** → session ends; app clears local vehicle/task/log/Ziel/playlist caches and **reloads** (see §F)  
+- [x] Request link again → second login works  
 
 **If the Magic Link opens in Chrome instead of the installed PWA (Android):** that is normal for many email clients. The app manifest sets `handle_links: preferred` and `launch_handler` so **Chromium can route same-origin opens into the installed app where supported**; it is not a guarantee. A **Trusted Web Activity / native shell** (see roadmap Phase 4) is required for reliable “always open in app” from arbitrary mail apps.
 
@@ -59,9 +59,9 @@ Record pass/fail and one line of notes per section. When done, drop a short summ
 - [x] A creates **invite** (e.g. Fahrer) → code visible  
 - [x] B accepts invite → B sees shared vehicle  
 - [x] A: **Teilen** → member list shows A and B with roles  
-- [ ] A: **change B’s role** (e.g. Fahrer → Mitleser) → persists after refresh  
+- [x] A: **change B’s role** (e.g. Fahrer → Mitleser) → persists after refresh  
 - [x] A: **remove B** (or B leaves, per product) → B no longer sees vehicle / correct error  
-- [ ] A: create unused invite → **revoke** → code no longer works  
+- [x] A: create unused invite → **revoke** → code no longer works  
 
 ---
 

@@ -40,9 +40,9 @@ Get the existing feature set production-solid. No new features — only fixes, v
 | | | - [x] Apply `patch-member-management-rpcs.sql` in Supabase (already applied) | |
 | | | - [x] Confirm `patch-user-data-table.sql` is applied | |
 | | | - [x] Verify reduced built-in set in production UI → [milestone-checkup.md](milestone-checkup.md) §A (biweekly chip + `getNextCheckDate` fixed in app) | |
-| | | - [ ] Test full Magic Link login → redirect → session creation → §B | |
+| | | - [x] Test full Magic Link login → redirect → session creation → §B | |
 | | | - [x] Test migration wizard: local data → sign up → migrate → verify → §C | |
-| | | - [x] Sharing + member management E2E → §D (role change + revoke still open in checklist) | |
+| | | - [x] Sharing + member management E2E → §D | |
 | | | - [ ] Validate push notification delivery on Android PWA → §E | |
 | | | - [ ] Local-only regression + post-logout empty state → §F | |
 
